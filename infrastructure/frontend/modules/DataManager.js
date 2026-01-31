@@ -31,6 +31,9 @@ class DataManager {
             
             let data;
             switch (type) {
+                case 'price':
+                    data = await this.loadWithRetry(() => api.getStockPrice(symbol));
+                    break;
                 case 'metrics':
                     data = await this.loadWithRetry(() => api.getStockMetrics(symbol));
                     break;

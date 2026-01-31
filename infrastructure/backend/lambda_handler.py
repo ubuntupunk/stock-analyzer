@@ -4,7 +4,7 @@ Handles HTTP routing and CORS for all stock data endpoints
 """
 
 import json
-from stock_api_refactored import StockDataAPI, decimal_default
+from stock_api import StockDataAPI, decimal_default
 
 
 def lambda_handler(event, context):

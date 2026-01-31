@@ -371,11 +371,12 @@ Resources:
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        BlockPublicPolicy: false
-        IgnorePublicAcls: false
-        RestrictPublicBuckets: false
+
+  OAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: OAI for Stock Analyzer frontend
 
   FrontendBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -383,9 +384,10 @@ Resources:
       Bucket: !Ref FrontendBucket
       PolicyDocument:
         Statement:
-          - Sid: PublicReadGetObject
+          - Sid: GrantCloudFrontAccess
             Effect: Allow
-            Principal: '*'
+            Principal:
+              CanonicalUser: !GetAtt OAI.S3CanonicalUserId
             Action: 's3:GetObject'
             Resource: !Sub '${FrontendBucket.Arn}/*'
 
@@ -398,7 +400,7 @@ Resources:
           - Id: S3Origin
             DomainName: !GetAtt FrontendBucket.DomainName
             S3OriginConfig:
-              OriginAccessIdentity: ''
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${OAI}'
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
