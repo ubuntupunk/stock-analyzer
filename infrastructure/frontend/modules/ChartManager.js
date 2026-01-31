@@ -649,10 +649,17 @@ class ChartManager {
         toggle.addEventListener("click", () => {
             console.log("Custom Range toggle clicked");
             const isHidden = dateRangeDiv.style.display === "" || dateRangeDiv.style.display === "none";
-            console.log("Before: dateRangeDiv.style.display =", JSON.stringify(dateRangeDiv.style.display), "isHidden =", isHidden);
             dateRangeDiv.style.display = isHidden ? "flex" : "none";
-            console.log("After: dateRangeDiv.style.display =", JSON.stringify(dateRangeDiv.style.display));
             toggle.classList.toggle("active", isHidden);
+
+            // Debug: log computed style after change
+            setTimeout(() => {
+                const computed = window.getComputedStyle(dateRangeDiv);
+                console.log("Computed display:", computed.display);
+                console.log("Element offsetWidth:", dateRangeDiv.offsetWidth, "offsetHeight:", dateRangeDiv.offsetHeight);
+                console.log("Element visibility:", computed.visibility);
+                console.log("Element position:", computed.position);
+            }, 10);
 
             // Hide/show timeframe buttons
             document.querySelectorAll(".timeframe-btn").forEach(btn => {
