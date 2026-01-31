@@ -60,6 +60,15 @@ class DataManager {
                 throw new Error(data.error);
             }
 
+            // Transform data if needed
+            if (type === 'metrics' && data) {
+                data = this.transformMetricsData(data);
+            } else if (type === 'financials' && data) {
+                data = this.transformFinancialsData(data);
+            } else if (type === 'analyst-estimates' && data) {
+                data = this.transformEstimatesData(data);
+            }
+
             // Cache the successful response
             this.setCachedData(cacheKey, data);
             
@@ -354,14 +363,38 @@ class DataManager {
      * @returns {object} Transformed metrics data
      */
     transformMetricsData(data) {
+        // Convert snake_case to camelCase
+        const camelData = this.snakeToCamel(data);
+        
         return {
-            ...data,
-            formattedMarketCap: Formatters.formatCurrency(data.marketCap),
-            formattedRevenue: Formatters.formatCurrency(data.revenue),
-            formattedPERatio: Formatters.formatRatio(data.peRatio),
-            formattedROE: Formatters.formatPercentage(data.roe),
-            formattedDebtToEquity: Formatters.formatRatio(data.debtToEquity)
+            ...camelData,
+            formattedMarketCap: Formatters.formatCurrency(camelData.marketCap),
+            formattedRevenue: Formatters.formatCurrency(camelData.revenue),
+            formattedPERatio: Formatters.formatRatio(camelData.peRatio),
+            formattedROE: Formatters.formatPercentage(camelData.roe),
+            formattedDebtToEquity: Formatters.formatRatio(camelData.debtToEquity)
         };
+    }
+
+    /**
+     * Convert snake_case object keys to camelCase
+     * @param {object} obj - Object with snake_case keys
+     * @returns {object} Object with camelCase keys
+     */
+    snakeToCamel(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+        
+        const result = {};
+        
+        for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                // Convert snake_case to camelCase
+                const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+                result[camelKey] = obj[key];
+            }
+        }
+        
+        return result;
     }
 
     /**

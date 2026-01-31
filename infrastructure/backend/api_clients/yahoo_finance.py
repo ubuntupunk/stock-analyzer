@@ -69,6 +69,41 @@ class YahooFinanceClient:
         
         return price_info
     
+    def fetch_history(self, symbol: str, period: str = '1mo') -> Optional[Dict]:
+        """
+        Fetch historical price data for charting
+        Returns dict with dates as keys and OHLCV data
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period=period)
+            
+            if hist is None or hist.empty:
+                return None
+            
+            # Convert to dict format expected by frontend
+            historical_data = {}
+            for date, row in hist.iterrows():
+                date_str = date.strftime('%Y-%m-%d')
+                historical_data[date_str] = {
+                    '1. open': float(row['Open']),
+                    '2. high': float(row['High']),
+                    '3. low': float(row['Low']),
+                    '4. close': float(row['Close']),
+                    '5. volume': int(row['Volume'])
+                }
+            
+            return historical_data
+        except Exception as e:
+            print(f"YFinance history error for {symbol}: {str(e)}")
+            return None
+    
+    def parse_history(self, historical_data: Dict) -> Dict:
+        """Parse historical data into price format with historicalData key"""
+        return {
+            'historicalData': historical_data
+        }
+    
     def parse_metrics(self, data: Dict) -> Dict:
         """Parse Yahoo Finance data into standard metrics format"""
         metrics = {}

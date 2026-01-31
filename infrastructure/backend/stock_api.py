@@ -86,6 +86,7 @@ class StockDataAPI:
         """
         Get current stock price and basic quote information
         Priority: Yahoo Finance (free) > Alpaca > Polygon > Alpha Vantage (rate limited)
+        Also includes historical data for charting
         """
         cache_key = self._get_cache_key('price', symbol)
         cached = self._get_from_cache(cache_key)
@@ -104,21 +105,26 @@ class StockDataAPI:
             price_data.update(self.yahoo.parse_price(yf_data))
             price_data['source'] = 'yahoo_finance'
         
-        # 2. Try Alpaca
+        # 2. Fetch historical data for charting
+        history = self.yahoo.fetch_history(symbol, '1mo')
+        if history:
+            price_data['historicalData'] = history
+        
+        # 3. Try Alpaca
         if price_data['source'] == 'unknown' and self.alpaca.api_key:
             alpaca_data = self.alpaca.fetch_snapshot(symbol)
             if alpaca_data:
                 price_data.update(self.alpaca.parse_price(alpaca_data))
                 price_data['source'] = 'alpaca'
         
-        # 3. Try Polygon
+        # 4. Try Polygon
         if price_data['source'] == 'unknown' and self.polygon.api_key:
             poly_snap = self.polygon.fetch_snapshot(symbol)
             if poly_snap:
                 price_data.update(self.polygon.parse_price(poly_snap))
                 price_data['source'] = 'polygon'
         
-        # 4. Try Alpha Vantage as LAST RESORT
+        # 5. Try Alpha Vantage as LAST RESORT
         if price_data['source'] == 'unknown':
             av_quote = self.alpha_vantage.fetch_quote(symbol)
             if av_quote:

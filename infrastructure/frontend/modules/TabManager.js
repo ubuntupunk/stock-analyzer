@@ -608,8 +608,14 @@ class TabManager {
             if (currentSymbol) {
                 await this.dataManager.loadStockData(currentSymbol, 'factors');
             } else {
-                // Load user factors when no stock selected
-                await this.dataManager.loadStockData(null, 'user-factors');
+                // No stock selected - just show empty factors or user factors if available
+                console.log('TabManager: No stock selected for factors tab');
+                // Emit event to show empty state
+                this.eventBus.emit('data:loaded', { 
+                    symbol: null, 
+                    type: 'factors', 
+                    data: { message: 'Select a stock to view factors' } 
+                });
             }
         } catch (error) {
             console.error('TabManager: Failed to load factors data:', error);
