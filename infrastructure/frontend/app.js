@@ -127,8 +127,10 @@ class StockAnalyzer {
 
         // Chart creation from price data
         eventBus.on('data:loaded', ({ symbol, type, data }) => {
-            if (type === 'price' && data && data.historicalData) {
-                // Create price chart when price data with history is loaded
+            // Create price chart when price data OR metrics data with history is loaded
+            const hasHistoricalData = (type === 'price' && data?.historicalData) ||
+                                      (type === 'metrics' && data?.hasHistoricalData);
+            if (hasHistoricalData) {
                 const chart = this.modules.chartManager.createPriceChart('priceChart', data, symbol);
                 if (chart) {
                     // Setup timeframe handlers after chart is created
