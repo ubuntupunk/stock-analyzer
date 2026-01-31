@@ -630,10 +630,24 @@ class ChartManager {
         const applyBtn = document.getElementById("applyCustomRange");
         const cancelBtn = document.getElementById("cancelCustomRange");
 
-        if (!toggle || !dateRangeDiv) return;
+        // Debug logging
+        console.log("setupCustomRangeHandlers:", {
+            toggle: !!toggle,
+            dateRangeDiv: !!dateRangeDiv,
+            startDateInput: !!startDateInput,
+            endDateInput: !!endDateInput,
+            applyBtn: !!applyBtn,
+            cancelBtn: !!cancelBtn
+        });
+
+        if (!toggle || !dateRangeDiv) {
+            console.warn("Custom range elements not found - Metrics section may not be loaded");
+            return;
+        }
 
         // Toggle custom range visibility
         toggle.addEventListener("click", () => {
+            console.log("Custom Range toggle clicked");
             const isHidden = dateRangeDiv.style.display === "none";
             dateRangeDiv.style.display = isHidden ? "flex" : "none";
             toggle.classList.toggle("active", isHidden);
@@ -646,14 +660,22 @@ class ChartManager {
 
         // Apply custom range
         applyBtn.addEventListener("click", () => {
+            console.log("Apply clicked");
             const startDate = startDateInput.value;
             const endDate = endDateInput.value;
 
             if (startDate && endDate) {
+                console.log("Fetching data for range:", startDate, "to", endDate);
                 this.changeTimeframeCustom(startDate, endDate);
 
                 // Hide custom range UI
                 dateRangeDiv.style.display = "none";
+                toggle.classList.remove("active");
+
+                // Show timeframe buttons
+                document.querySelectorAll(".timeframe-btn").forEach(btn => {
+                    btn.style.display = "inline-block";
+                });
             } else {
                 alert("Please select both start and end dates");
             }
@@ -661,6 +683,7 @@ class ChartManager {
 
         // Cancel custom range
         cancelBtn.addEventListener("click", () => {
+            console.log("Cancel clicked");
             dateRangeDiv.style.display = "none";
             toggle.classList.remove("active");
 
