@@ -601,8 +601,8 @@ class ChartManager {
         
         try {
             const yfPeriod = periodMap[period] || "3mo";
-            const response = await fetch("/api/stock/price/history?symbol=" + symbol + "\&period=" + yfPeriod);
-            const priceData = await response.json();
+            // Use window.api (global) to fetch historical data
+            const priceData = await window.api.getStockPriceHistory(symbol, yfPeriod);
             if (priceData && priceData.historicalData) {
                 this.updatePriceChartWithData("priceChart", priceData, symbol, period);
             }
