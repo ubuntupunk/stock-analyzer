@@ -158,10 +158,13 @@ class StockManager {
         if (this.popularStocks && this.popularStocks.length > 0) {
             console.log('StockManager: Popular stocks already loaded, re-rendering');
             // Wait a tiny bit for DOM to be ready
-            setTimeout(() => {
+            setTimeout(async () => {
                 this.populateSectorFilter();
                 this.renderPopularStocks();
                 this.setupPopularStocksHandlers();
+                // Restore prices after re-rendering (fixes tab switch showing "Loading...")
+                // Must await to ensure prices are restored before pricesLoaded flag is set
+                await this.loadPopularStockPrices();
             }, 100);
             return;
         }
@@ -489,13 +492,23 @@ class StockManager {
      * Uses BATCH API for concurrent fetching (optimized)
      */
     async loadPopularStockPrices() {
-        // Prevent duplicate price loading
-        if (this.pricesLoaded) {
-            console.log('StockManager: Prices already loaded, skipping');
+        // Check if we have prices already loaded - restore them to UI without API calls
+        const hasCachedPrices = this.popularStocks.some(stock => stock.price);
+        
+        if (hasCachedPrices && this.pricesLoaded) {
+            console.log('StockManager: Prices already loaded, restoring to UI');
+            this.restorePricesToUI();
+            return;
+        }
+        
+        // Prevent duplicate API calls
+        if (this.apiPricesLoading) {
+            console.log('StockManager: API prices already loading, skipping');
             return;
         }
         
         console.log('StockManager: Loading prices for popular stocks using BATCH API');
+        this.apiPricesLoading = true;
         this.pricesLoaded = true;
         
         // Extract all symbols
@@ -503,6 +516,7 @@ class StockManager {
         
         if (symbols.length === 0) {
             console.log('StockManager: No symbols to load prices for');
+            this.apiPricesLoading = false;
             return;
         }
         
@@ -542,6 +556,8 @@ class StockManager {
             // Fallback to sequential loading if batch fails
             console.log('StockManager: Falling back to sequential price loading');
             await this.loadPopularStockPricesSequential();
+        } finally {
+            this.apiPricesLoading = false;
         }
     }
     
