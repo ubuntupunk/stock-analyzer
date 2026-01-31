@@ -35,7 +35,19 @@ class DataManager {
                     data = await this.loadWithRetry(() => api.getStockPrice(symbol));
                     break;
                 case 'metrics':
-                    data = await this.loadWithRetry(() => api.getStockMetrics(symbol));
+                    // Fetch both price (for charts) and metrics data
+                    const [priceData, metricsData] = await Promise.all([
+                        this.loadWithRetry(() => api.getStockPrice(symbol)),
+                        this.loadWithRetry(() => api.getStockMetrics(symbol))
+                    ]);
+                    // Transform metrics data
+                    const transformedMetrics = this.transformMetricsData(metricsData);
+                    // Combine price (with historicalData) and metrics
+                    data = {
+                        ...priceData,
+                        metrics: transformedMetrics,
+                        hasHistoricalData: !!priceData?.historicalData
+                    };
                     break;
                 case 'financials':
                     data = await this.loadWithRetry(() => api.getFinancialStatements(symbol));
