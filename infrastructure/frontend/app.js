@@ -124,6 +124,21 @@ class StockAnalyzer {
             this.modules.uiManager.showNotification(message, type);
         });
 
+
+        // Chart creation from price data
+        eventBus.on('data:loaded', ({ symbol, type, data }) => {
+            if (type === 'price' && data && data.historicalData) {
+                // Create price chart when price data with history is loaded
+                const chart = this.modules.chartManager.createPriceChart('priceChart', data, symbol);
+                if (chart) {
+                    // Setup timeframe handlers after chart is created
+                    setTimeout(() => {
+                        this.modules.chartManager.setupTimeframeHandlers();
+                    }, 100);
+                }
+            }
+        });
+
         // Chart creation requests
         eventBus.on('chart:create', ({ canvasId, type, data, options, symbol }) => {
             switch (type) {
