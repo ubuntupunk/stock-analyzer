@@ -117,7 +117,31 @@ Resources:
             RestApiId: !Ref StockAnalyzerAPI
             Path: /api/stock/financials
             Method: get
-        Options:
+        BatchPrices:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/batch/prices
+            Method: get
+        BatchMetrics:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/batch/metrics
+            Method: get
+        BatchEstimates:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/batch/estimates
+            Method: get
+        BatchFinancials:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/batch/financials
+            Method: get
+        OptionsStock:
           Type: Api
           Properties:
             RestApiId: !Ref StockAnalyzerAPI
