@@ -648,13 +648,13 @@ class ChartManager {
         // Toggle custom range visibility
         toggle.addEventListener("click", () => {
             console.log("Custom Range toggle clicked");
-            const isHidden = dateRangeDiv.style.display === "none";
+            const isHidden = dateRangeDiv.style.display === "" || dateRangeDiv.style.display === "none";
             dateRangeDiv.style.display = isHidden ? "flex" : "none";
             toggle.classList.toggle("active", isHidden);
 
-            // Hide timeframe buttons when custom range is active
+            // Hide/show timeframe buttons
             document.querySelectorAll(".timeframe-btn").forEach(btn => {
-                btn.style.display = isHidden ? "none" : "inline-block";
+                btn.style.display = isHidden ? "none" : "";
             });
         });
 
@@ -674,7 +674,7 @@ class ChartManager {
 
                 // Show timeframe buttons
                 document.querySelectorAll(".timeframe-btn").forEach(btn => {
-                    btn.style.display = "inline-block";
+                    btn.style.display = "";
                 });
             } else {
                 alert("Please select both start and end dates");
@@ -689,7 +689,7 @@ class ChartManager {
 
             // Show timeframe buttons
             document.querySelectorAll(".timeframe-btn").forEach(btn => {
-                btn.style.display = "inline-block";
+                btn.style.display = "";
             });
         });
     }
