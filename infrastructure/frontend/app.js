@@ -2,26 +2,18 @@
 // Coordinates all modules and provides the main application interface
 
 class StockAnalyzer {
-    constructor(autoInit = true) {
+    constructor() {
         this.modules = {};
         this.isInitialized = false;
         
-        if (autoInit) {
-            // Initialize immediately
-            this.init();
-        }
+        // Initialize immediately
+        this.init();
     }
 
     /**
-     * Initialize the application (callable manually after sections are loaded)
+     * Initialize the application
      */
     async init() {
-        // Skip if already initialized
-        if (this.isInitialized) {
-            console.log('StockAnalyzer: Already initialized, skipping');
-            return;
-        }
-        
         try {
             console.log('Initializing Stock Analyzer...');
             
@@ -44,8 +36,8 @@ class StockAnalyzer {
             // Setup auth dropdown close handler
             this.setupAuthDropdownCloseHandler();
             
-            // Load initial data
-            await this.loadInitialData();
+            // Load initial data - but wait for popular-stocks section to exist
+            await this.waitForSections();
             
             this.isInitialized = true;
             console.log('Stock Analyzer initialized successfully');
@@ -53,6 +45,28 @@ class StockAnalyzer {
         } catch (error) {
             console.error('Failed to initialize Stock Analyzer:', error);
             this.showFatalError(error);
+        }
+    }
+
+    /**
+     * Wait for required sections to be loaded before loading data
+     */
+    async waitForSections() {
+        console.log('Waiting for sections to load...');
+        let attempts = 0;
+        const maxAttempts = 50; // 2.5 seconds max
+        
+        while (!document.getElementById('popular-stocks') && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+        }
+        
+        if (document.getElementById('popular-stocks')) {
+            console.log('Sections ready after', attempts * 50, 'ms');
+            await this.loadInitialData();
+        } else {
+            console.warn('Sections not ready after timeout, loading data anyway');
+            await this.loadInitialData();
         }
     }
 
@@ -621,12 +635,9 @@ class StockAnalyzer {
 let app;
 
 // Initialize application when DOM is ready
-// NOTE: Initialization is controlled by index.html's loadComponents() function
-// which calls app.initializeComponents() after sections are loaded
+// The app waits for sections to load via waitForSections() in init()
 document.addEventListener('DOMContentLoaded', () => {
-    // Create the app instance but don't initialize yet
-    // wait for loadComponents() to call initializeComponents()
-    app = new StockAnalyzer(false); // Pass false to skip auto-init
+    app = new StockAnalyzer();
     
     // Make app globally available
     window.app = app;

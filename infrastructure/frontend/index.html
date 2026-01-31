@@ -81,41 +81,20 @@
                 // Load default sections - SEQUENTIALLY to ensure both load
                 console.log('Loading metrics section...');
                 await componentLoader.loadSection('metrics');
-                console.log('Metrics section loaded, checking for popular-stocks...');
+                console.log('Metrics section loaded');
                 
-                // Check if popular-stocks is already loaded by previous section
-                if (!componentLoader.isSectionLoaded('popular-stocks')) {
-                    console.log('Loading popular-stocks section...');
-                    await componentLoader.loadSection('popular-stocks');
-                    console.log('Popular-stocks section loaded');
-                } else {
-                    console.log('Popular-stocks section already loaded');
-                }
+                console.log('Loading popular-stocks section...');
+                await componentLoader.loadSection('popular-stocks');
+                console.log('Popular-stocks section loaded');
 
-                // Verify popular-stocks is in DOM
-                const popularSection = document.getElementById('popular-stocks');
-                console.log('Popular-stocks section in DOM:', !!popularSection);
-
-                // Initialize app AFTER sections are loaded
-                if (window.app) {
-                    console.log('Initializing app components...');
-                    window.app.initializeComponents();
-                    
-                    // Setup burger menu after components are loaded
-                    window.app.setupBurgerMenu();
-                    
-                    console.log('App components initialized');
-                } else {
-                    console.error('App not found - app.js may not have loaded properly');
-                }
+                console.log('All sections loaded successfully');
             } catch (error) {
                 console.error('Error loading components:', error);
             }
         }
 
-        // Call immediately since app.js defines window.app during parsing
-        // DOMContentLoaded fires too early for async loading
-        loadComponents();
+        // Load components when DOM is ready
+        document.addEventListener('DOMContentLoaded', loadComponents);
     </script>
 </body>
 </html>
