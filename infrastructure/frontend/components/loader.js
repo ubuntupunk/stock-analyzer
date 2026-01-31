@@ -5,6 +5,7 @@ class ComponentLoader {
     constructor() {
         this.cache = new Map();
         this.basePath = 'components/';
+        this.loadedSections = new Set(); // Track which sections are loaded
     }
 
     async loadComponent(componentName, containerId) {
@@ -41,6 +42,12 @@ class ComponentLoader {
     }
 
     async loadSection(sectionName, containerId = 'dynamic-content-container') {
+        // Check if section is already loaded - if so, don't reload
+        if (this.loadedSections.has(sectionName)) {
+            console.log('ComponentLoader: Section already loaded, skipping:', sectionName);
+            return;
+        }
+
         try {
             const response = await fetch(`sections/${sectionName}.html`);
             if (!response.ok) {
@@ -48,10 +55,29 @@ class ComponentLoader {
             }
             
             const html = await response.text();
-            this.renderComponent(html, containerId);
+            
+            // Parse and append without destroying existing content
+            const container = document.getElementById(containerId);
+            if (container) {
+                // Create a temporary container to parse the HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Get the section element
+                const section = tempDiv.firstElementChild;
+                if (section) {
+                    // Append to container without clearing
+                    container.appendChild(section);
+                    this.loadedSections.add(sectionName);
+                    console.log('ComponentLoader: Section loaded:', sectionName);
+                }
+            }
         } catch (error) {
             console.error(`Error loading section ${sectionName}:`, error);
-            this.renderComponent(`<div class="component-error">Failed to load ${sectionName}</div>`, containerId);
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML += `<div class="component-error">Failed to load ${sectionName}</div>`;
+            }
         }
     }
 
@@ -62,9 +88,15 @@ class ComponentLoader {
         await Promise.all(promises);
     }
 
+    // Check if a section is loaded
+    isSectionLoaded(sectionName) {
+        return this.loadedSections.has(sectionName);
+    }
+
     // Clear cache (useful for development)
     clearCache() {
         this.cache.clear();
+        this.loadedSections.clear();
     }
 }
 

@@ -7,6 +7,7 @@ class TabManager {
         this.eventBus = eventBus;
         this.currentTab = 'popular-stocks';
         this.tabHistory = [];
+        this.sectionsLoaded = new Set(); // Track which sections are loaded
         
         // Subscribe to tab events
         this.setupEventListeners();
@@ -51,26 +52,22 @@ class TabManager {
             console.warn('TabManager: Tab element not found for:', tabName);
         }
 
-        // Clear dynamic content container
-        const dynamicContentContainer = document.getElementById('dynamic-content-container');
-        if (dynamicContentContainer) {
-            dynamicContentContainer.innerHTML = '';
-            dynamicContentContainer.classList.remove('active');
-        }
-
-        // Hide all static content sections
+        // Hide all content sections (but DON'T destroy them)
         document.querySelectorAll('.content-section').forEach(section => {
             section.classList.remove('active');
         });
 
-        // Show the selected section
+        // Show the target section if it exists
         const targetSection = document.getElementById(tabName);
         if (targetSection) {
             targetSection.classList.add('active');
             console.log('TabManager: Section activated:', tabName);
-        } else {
-            // Try to load the section dynamically
-            this.loadSection(tabName);
+        }
+
+        // Track tab history (don't add duplicates)
+        if (this.tabHistory[this.tabHistory.length - 1] !== tabName) {
+            this.tabHistory.push(tabName);
+            if (this.tabHistory.length > 10) this.tabHistory.shift();
         }
 
         this.currentTab = tabName;
@@ -91,6 +88,14 @@ class TabManager {
     async loadSection(sectionName) {
         try {
             console.log('TabManager: Loading section:', sectionName);
+            
+            // Check if already loaded in DOM
+            const existingSection = document.getElementById(sectionName);
+            if (existingSection) {
+                console.log('TabManager: Section already in DOM:', sectionName);
+                return;
+            }
+            
             const response = await fetch(`sections/${sectionName}.html`);
             const html = await response.text();
             
@@ -98,15 +103,15 @@ class TabManager {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
             
-            // Move the section to the dynamic content container
+            // Get the section element
             const section = tempDiv.firstElementChild;
             if (section) {
+                // Append to container without clearing
                 const dynamicContainer = document.getElementById('dynamic-content-container');
                 if (dynamicContainer) {
-                    dynamicContainer.innerHTML = '';
                     dynamicContainer.appendChild(section);
-                    section.classList.add('active');
-                    console.log('TabManager: Section loaded and activated:', sectionName);
+                    this.sectionsLoaded.add(sectionName);
+                    console.log('TabManager: Section loaded:', sectionName);
                 }
             }
         } catch (error) {
