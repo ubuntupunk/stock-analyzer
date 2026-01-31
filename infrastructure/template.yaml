@@ -1,0 +1,460 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Stock Analyzer Application
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.12
+    Environment:
+      Variables:
+        FACTORS_TABLE: !Ref FactorsTable
+        WATCHLIST_TABLE: !Ref WatchlistTable
+        STOCK_UNIVERSE_TABLE: !Ref StockUniverseTable
+        FINANCIAL_API_KEY: !Ref FinancialAPIKey
+
+Parameters:
+  FinancialAPIKey:
+    Type: String
+    Default: /stock-analyzer/alpha-vantage-key
+    Description: Alpha Vantage API Key from SSM Parameter Store
+  
+Resources:
+  # SSM Parameter is now properly referenced via CloudFormation
+  # The parameter /stock-analyzer/alpha-vantage-key is fetched from SSM
+  # and passed to Lambda functions via environment variables
+  
+  # Cognito User Pool
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: stock-analyzer-users
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: false
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      UserPoolTags:
+        Application: stock-analyzer
+  
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: stock-analyzer-web
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      PreventUserExistenceErrors: ENABLED
+      RefreshTokenValidity: 30
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      TokenValidityUnits:
+        RefreshToken: days
+        AccessToken: minutes
+        IdToken: minutes
+  
+  # API Gateway
+  StockAnalyzerAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        AllowCredentials: false
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+            Identity:
+              Header: Authorization
+
+  # Lambda Functions
+  StockAPIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: lambda_handler.lambda_handler
+      Events:
+        GetMetrics:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/metrics
+            Method: get
+        GetPrice:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/price
+            Method: get
+        GetEstimates:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/estimates
+            Method: get
+        GetFinancials:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/financials
+            Method: get
+        Options:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/{proxy+}
+            Method: options
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FactorsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref WatchlistTable
+
+  ScreenerAPIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: screener_api.lambda_handler
+      Events:
+        Screen:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/screen
+            Method: post
+        GetFactors:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/factors
+            Method: get
+        SaveFactor:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/factors
+            Method: post
+            Auth:
+              Authorizer: CognitoAuthorizer
+        OptionsFactors:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/factors
+            Method: options
+        DCFAnalysis:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/dcf
+            Method: post
+        OptionsDCF:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/dcf
+            Method: options
+        OptionsScreen:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/screen
+            Method: options
+        OptionsDCF:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/dcf
+            Method: options
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref FactorsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref StockUniverseTable
+
+  WatchlistAPIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: watchlist_api.lambda_handler
+      Events:
+        GetWatchlist:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/watchlist
+            Method: get
+        AddToWatchlist:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/watchlist
+            Method: post
+        UpdateWatchlist:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/watchlist
+            Method: put
+        DeleteFromWatchlist:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/watchlist
+            Method: delete
+        OptionsWatchlist:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/watchlist
+            Method: options
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WatchlistTable
+
+  StockUniverseAPIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: stock_universe_api.lambda_handler
+      Events:
+        SearchStocks:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stocks/search
+            Method: get
+        PopularStocks:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stocks/popular
+            Method: get
+        GetSectors:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stocks/sectors
+            Method: get
+        FilterStocks:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stocks/filter
+            Method: get
+        GetStockBySymbol:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stocks/symbol/{symbol}
+            Method: get
+        OptionsStocks:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stocks/{proxy+}
+            Method: options
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref StockUniverseTable
+
+  StockUniverseSeedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: stock_universe_seed.lambda_handler
+      Timeout: 900
+      MemorySize: 1024
+      Events:
+        WeeklyUpdate:
+          Type: Schedule
+          Properties:
+            Schedule: rate(7 days)
+            Description: Weekly update of stock universe data
+            Enabled: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StockUniverseTable
+
+  # DynamoDB Tables
+  FactorsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: stock-factors
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: factorId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: factorId
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+  WatchlistTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: stock-watchlist
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: symbol
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: symbol
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+  StockUniverseTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: stock-universe
+      AttributeDefinitions:
+        - AttributeName: symbol
+          AttributeType: S
+        - AttributeName: sector
+          AttributeType: S
+        - AttributeName: marketCapBucket
+          AttributeType: S
+      KeySchema:
+        - AttributeName: symbol
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: sector-index
+          KeySchema:
+            - AttributeName: sector
+              KeyType: HASH
+            - AttributeName: symbol
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: marketcap-index
+          KeySchema:
+            - AttributeName: marketCapBucket
+              KeyType: HASH
+            - AttributeName: symbol
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: Application
+          Value: stock-analyzer
+
+  # S3 Bucket for Frontend
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+
+  # CloudFront Distribution for HTTPS
+  FrontendCloudFront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.DomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad  # Managed-CachingOptimized
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 404
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 404
+            ResponsePagePath: /index.html
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+          MinimumProtocolVersion: TLSv1.2_2019
+
+Outputs:
+  APIEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${StockAnalyzerAPI}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+  
+  WebsiteURL:
+    Description: "S3 Website URL"
+    Value: !GetAtt FrontendBucket.WebsiteURL
+  
+  CloudFrontURL:
+    Description: "CloudFront Distribution URL (HTTPS)"
+    Value: !Sub "https://${FrontendCloudFront.DomainName}"
+  
+  FrontendBucketName:
+    Description: "S3 Bucket for frontend"
+    Value: !Ref FrontendBucket
+  
+  UserPoolId:
+    Description: "Cognito User Pool ID"
+    Value: !Ref UserPool
+  
+  UserPoolClientId:
+    Description: "Cognito User Pool Client ID"
+    Value: !Ref UserPoolClient
+  
+  UserPoolArn:
+    Description: "Cognito User Pool ARN"
+    Value: !GetAtt UserPool.Arn

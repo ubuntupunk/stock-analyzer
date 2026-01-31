@@ -1,0 +1,28 @@
+<!-- News View -->
+<section id="news" class="content-section">
+    <div class="news-header">
+        <h2>Stock News</h2>
+        <div class="news-controls">
+            <select id="newsPeriod">
+                <option value="1">Last 24 Hours</option>
+                <option value="7">Last Week</option>
+                <option value="30">Last Month</option>
+            </select>
+            <button id="refreshNews" class="refresh-btn">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="news-container" id="newsContainer">
+        <div class="news-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading news...</p>
+        </div>
+    </div>
+
+    <div class="news-footer">
+        <p class="news-source">Source: <span id="newsSource">Loading...</span></p>
+        <p class="last-updated">Last updated: <span id="newsUpdated">Loading...</span></p>
+    </div>
+</section>

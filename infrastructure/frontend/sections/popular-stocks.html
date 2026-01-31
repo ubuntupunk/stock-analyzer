@@ -1,0 +1,33 @@
+<!-- Popular Stocks View -->
+<section id="popular-stocks" class="content-section">
+    <div class="popular-header">
+        <h2>Popular Stocks</h2>
+        <p>Browse the most traded stocks on the market</p>
+        <div class="popular-controls">
+            <select id="sectorFilter" class="sector-filter">
+                <option value="">All Sectors</option>
+                <option value="Technology">Technology</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Finance">Finance</option>
+                <option value="Energy">Energy</option>
+                <option value="Consumer Discretionary">Consumer Discretionary</option>
+                <option value="Industrials">Industrials</option>
+                <option value="Real Estate">Real Estate</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Materials">Materials</option>
+                <option value="Communication Services">Communication Services</option>
+            </select>
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="grid" onclick="window.stockManager.setPopularStocksView('grid')">
+                    <i class="fas fa-th"></i> Grid
+                </button>
+                <button class="view-btn" data-view="list" onclick="window.stockManager.setPopularStocksView('list')">
+                    <i class="fas fa-list"></i> List
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="popular-stocks-grid" id="popularStocksGrid">
+        <p class="empty-message">Loading popular stocks...</p>
+    </div>
+</section>

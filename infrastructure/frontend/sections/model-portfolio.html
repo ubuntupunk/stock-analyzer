@@ -1,0 +1,72 @@
+<!-- Model Portfolio View -->
+<section id="model-portfolio" class="content-section">
+    <div class="portfolio-header">
+        <h2>MODEL PORTFOLIO</h2>
+        <p>Pre-built investment portfolios for different risk profiles</p>
+    </div>
+    
+    <div class="portfolio-content">
+        <div class="portfolio-models">
+            <div class="model-card" onclick="selectModel('conservative')">
+                <h3>Conservative Portfolio</h3>
+                <p>Low risk, stable returns</p>
+                <div class="allocation">
+                    <div class="allocation-item">
+                        <span>Bonds: 60%</span>
+                    </div>
+                    <div class="allocation-item">
+                        <span>Large Cap Stocks: 30%</span>
+                    </div>
+                    <div class="allocation-item">
+                        <span>Cash: 10%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="model-card" onclick="selectModel('balanced')">
+                <h3>Balanced Portfolio</h3>
+                <p>Moderate risk, balanced growth</p>
+                <div class="allocation">
+                    <div class="allocation-item">
+                        <span>Large Cap Stocks: 40%</span>
+                    </div>
+                    <div class="allocation-item">
+                        <span>Mid Cap Stocks: 20%</span>
+                    </div>
+                    <div class="allocation-item">
+                        <span>Bonds: 30%</span>
+                    </div>
+                    <div class="allocation-item">
+                        <span>International: 10%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="model-card" onclick="selectModel('aggressive')">
+                <h3>Aggressive Portfolio</h3>
+                <p>High risk, high growth potential</p>
+                <div class="allocation">
+                    <div class="allocation-item">
+                        <span>Large Cap Stocks: 30%</span>
+                    </div>
+                    <div class="allocation-item">
+                        <span>Mid Cap Stocks: 30%</span>
+                    </div>
+                    <div class="allocation-item">
+                        <span>Small Cap Stocks: 20%</span>
+                    </div>
+                    <div class="allocation-item">
+                        <span>International: 15%</span>
+                    </div>
+                    <div class="allocation-item">
+                        <span>Bonds: 5%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="portfolio-details" id="portfolioDetails">
+            <p>Select a model portfolio to see detailed analysis</p>
+        </div>
+    </div>
+</section>

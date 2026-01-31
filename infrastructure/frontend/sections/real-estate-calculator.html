@@ -1,0 +1,65 @@
+<!-- Real Estate Calculator View -->
+<section id="real-estate-calculator" class="content-section">
+    <div class="calculator-header">
+        <h2>REAL ESTATE CALCULATOR</h2>
+        <p>Your average Bond & ROI calculator</p>
+    </div>
+    
+    <div class="calculator-content">
+        <div class="calculator-form">
+            <div class="form-group">
+                <label>Property Value ($)</label>
+                <input type="number" id="propertyValue" placeholder="300000">
+            </div>
+            
+            <div class="form-group">
+                <label>Down Payment ($)</label>
+                <input type="number" id="downPayment" placeholder="60000">
+            </div>
+            
+            <div class="form-group">
+                <label>Interest Rate (%)</label>
+                <input type="number" id="interestRate" placeholder="6.5" step="0.1">
+            </div>
+            
+            <div class="form-group">
+                <label>Loan Term (years)</label>
+                <input type="number" id="loanTerm" placeholder="30">
+            </div>
+            
+            <div class="form-group">
+                <label>Monthly Rent ($)</label>
+                <input type="number" id="monthlyRent" placeholder="2000">
+            </div>
+            
+            <div class="form-group">
+                <label>Monthly Expenses ($)</label>
+                <input type="number" id="monthlyExpenses" placeholder="300">
+            </div>
+            
+            <button class="btn-primary" onclick="calculateRealEstate()">Calculate ROI</button>
+        </div>
+        
+        <div class="calculator-results" id="realEstateResults">
+            <div class="result-card">
+                <h3>Monthly Mortgage Payment</h3>
+                <p class="result-value" id="monthlyPayment">$0</p>
+            </div>
+            
+            <div class="result-card">
+                <h3>Monthly Cash Flow</h3>
+                <p class="result-value" id="cashFlow">$0</p>
+            </div>
+            
+            <div class="result-card">
+                <h3>Annual ROI</h3>
+                <p class="result-value" id="annualROI">0%</p>
+            </div>
+            
+            <div class="result-card">
+                <h3>Cap Rate</h3>
+                <p class="result-value" id="capRate">0%</p>
+            </div>
+        </div>
+    </div>
+</section>

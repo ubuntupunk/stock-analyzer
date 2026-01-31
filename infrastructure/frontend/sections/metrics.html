@@ -1,0 +1,89 @@
+<!-- Metrics View -->
+<section id="metrics" class="content-section">
+    <div class="breadcrumb">
+        <span id="breadcrumbPath">Home > Popular Stocks</span>
+        <div class="price-indicators">
+            <span class="at-close" id="atClosePrice">-</span>
+            <span class="after-hours" id="afterHoursPrice">-</span>
+        </div>
+    </div>
+    
+    <div class="price-header">
+        <h2>NYSE AMERICAN REAL TIME PRICE</h2>
+    </div>
+
+    <div class="chart-timeframe">
+        <p>Chart showing Market Values (Change / %) [ 1W | 1M | 3M | 6M | YTD | 3YR | 5YR | 10YR | MAX | CUSTOM ]</p>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="priceChart"></canvas>
+        <p class="chart-label">Stock Price Chart</p>
+    </div>
+
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h3>Valuation</h3>
+            <div class="metric-item">
+                <span>P/E Ratio</span>
+                <span id="peRatio">-</span>
+            </div>
+            <div class="metric-item">
+                <span>Market Cap</span>
+                <span id="marketCap">-</span>
+            </div>
+            <div class="metric-item">
+                <span>Price to Book</span>
+                <span id="priceToBook">-</span>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <h3>Financial Health</h3>
+            <div class="metric-item">
+                <span>ROE</span>
+                <span id="roe">-</span>
+            </div>
+            <div class="metric-item">
+                <span>Debt to Equity</span>
+                <span id="debtToEquity">-</span>
+            </div>
+            <div class="metric-item">
+                <span>Current Ratio</span>
+                <span id="currentRatio">-</span>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <h3>Growth</h3>
+            <div class="metric-item">
+                <span>Revenue Growth</span>
+                <span id="revenueGrowth">-</span>
+            </div>
+            <div class="metric-item">
+                <span>Earnings Growth</span>
+                <span id="earningsGrowth">-</span>
+            </div>
+            <div class="metric-item">
+                <span>EPS Growth</span>
+                <span id="epsGrowth">-</span>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <h3>Profitability</h3>
+            <div class="metric-item">
+                <span>Profit Margin</span>
+                <span id="profitMargin">-</span>
+            </div>
+            <div class="metric-item">
+                <span>Operating Margin</span>
+                <span id="operatingMargin">-</span>
+            </div>
+            <div class="metric-item">
+                <span>Net Margin</span>
+                <span id="netMargin">-</span>
+            </div>
+        </div>
+    </div>
+</section>

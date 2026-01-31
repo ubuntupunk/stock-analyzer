@@ -1,0 +1,48 @@
+<!-- Factor Search View -->
+<section id="factor-search" class="content-section">
+    <div class="factor-search-header">
+        <h2>FACTOR SEARCH</h2>
+        <p>Prescreened Stock</p>
+    </div>
+    
+    <div class="factor-search-content">
+        <div class="search-filters">
+            <div class="filter-group">
+                <label>Market Cap</label>
+                <select id="marketCapFilter">
+                    <option value="">All</option>
+                    <option value="large">Large Cap</option>
+                    <option value="mid">Mid Cap</option>
+                    <option value="small">Small Cap</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Sector</label>
+                <select id="sectorFilter">
+                    <option value="">All Sectors</option>
+                    <option value="technology">Technology</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="finance">Finance</option>
+                    <option value="energy">Energy</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Min P/E Ratio</label>
+                <input type="number" id="minPERatio" placeholder="0">
+            </div>
+            
+            <div class="filter-group">
+                <label>Max P/E Ratio</label>
+                <input type="number" id="maxPERatio" placeholder="50">
+            </div>
+            
+            <button class="btn-primary" onclick="searchFactors()">Search Stocks</button>
+        </div>
+        
+        <div class="search-results" id="factorSearchResults">
+            <p>Use the filters above to search for stocks based on factors</p>
+        </div>
+    </div>
+</section>

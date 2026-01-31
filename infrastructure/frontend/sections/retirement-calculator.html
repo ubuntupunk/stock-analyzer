@@ -1,0 +1,60 @@
+<!-- Retirement Calculator View -->
+<section id="retirement-calculator" class="content-section">
+    <div class="calculator-header">
+        <h2>RETIREMENT CALCULATOR</h2>
+        <p>Calculate how much you need to invest to meet retirement criteria</p>
+    </div>
+    
+    <div class="calculator-content">
+        <div class="calculator-form">
+            <div class="form-group">
+                <label>Current Age</label>
+                <input type="number" id="currentAge" placeholder="30">
+            </div>
+            
+            <div class="form-group">
+                <label>Retirement Age</label>
+                <input type="number" id="retirementAge" placeholder="65">
+            </div>
+            
+            <div class="form-group">
+                <label>Current Savings ($)</label>
+                <input type="number" id="currentSavings" placeholder="10000">
+            </div>
+            
+            <div class="form-group">
+                <label>Monthly Contribution ($)</label>
+                <input type="number" id="monthlyContribution" placeholder="500">
+            </div>
+            
+            <div class="form-group">
+                <label>Expected Annual Return (%)</label>
+                <input type="number" id="annualReturn" placeholder="7" step="0.1">
+            </div>
+            
+            <div class="form-group">
+                <label>Retirement Goal ($)</label>
+                <input type="number" id="retirementGoal" placeholder="1000000">
+            </div>
+            
+            <button class="btn-primary" onclick="calculateRetirement()">Calculate</button>
+        </div>
+        
+        <div class="calculator-results" id="retirementResults">
+            <div class="result-card">
+                <h3>Projected Retirement Savings</h3>
+                <p class="result-value" id="projectedSavings">$0</p>
+            </div>
+            
+            <div class="result-card">
+                <h3>Monthly Contribution Needed</h3>
+                <p class="result-value" id="monthlyNeeded">$0</p>
+            </div>
+            
+            <div class="result-card">
+                <h3>Years to Retirement</h3>
+                <p class="result-value" id="yearsToRetirement">0</p>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,102 @@
+<!-- Financial Statements View -->
+<section id="financials" class="content-section">
+    <div class="financials-header">
+        <h2>Financial Statements</h2>
+        <div class="statement-tabs">
+            <button class="statement-tab active" data-statement="income">Income Statement</button>
+            <button class="statement-tab" data-statement="balance">Balance Sheet</button>
+            <button class="statement-tab" data-statement="cashflow">Cash Flow</button>
+        </div>
+    </div>
+
+    <div class="financials-content">
+        <!-- Income Statement -->
+        <div id="incomeStatement" class="statement-content active">
+            <div class="period-selector">
+                <select id="incomePeriod">
+                    <option value="annual">Annual</option>
+                    <option value="quarterly">Quarterly</option>
+                </select>
+            </div>
+            <div class="financial-table-container">
+                <table class="financial-table" id="incomeTable">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>2023</th>
+                            <th>2022</th>
+                            <th>2021</th>
+                            <th>2020</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incomeData">
+                        <tr>
+                            <td colspan="5" class="loading">Loading financial data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Balance Sheet -->
+        <div id="balanceSheet" class="statement-content">
+            <div class="period-selector">
+                <select id="balancePeriod">
+                    <option value="annual">Annual</option>
+                    <option value="quarterly">Quarterly</option>
+                </select>
+            </div>
+            <div class="financial-table-container">
+                <table class="financial-table" id="balanceTable">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>2023</th>
+                            <th>2022</th>
+                            <th>2021</th>
+                            <th>2020</th>
+                        </tr>
+                    </thead>
+                    <tbody id="balanceData">
+                        <tr>
+                            <td colspan="5" class="loading">Loading balance sheet data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Cash Flow -->
+        <div id="cashFlowStatement" class="statement-content">
+            <div class="period-selector">
+                <select id="cashflowPeriod">
+                    <option value="annual">Annual</option>
+                    <option value="quarterly">Quarterly</option>
+                </select>
+            </div>
+            <div class="financial-table-container">
+                <table class="financial-table" id="cashflowTable">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>2023</th>
+                            <th>2022</th>
+                            <th>2021</th>
+                            <th>2020</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cashflowData">
+                        <tr>
+                            <td colspan="5" class="loading">Loading cash flow data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="financials-footer">
+        <p class="data-source">Data source: <span id="financialsSource">Loading...</span></p>
+        <p class="last-updated">Last updated: <span id="financialsUpdated">Loading...</span></p>
+    </div>
+</section>

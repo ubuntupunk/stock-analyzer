@@ -1,0 +1,33 @@
+{
+  "name": "stock-analyzer",
+  "version": "1.0.0",
+  "description": "Comprehensive stock analysis platform with DCF valuation, factor screening, and portfolio management",
+  "scripts": {
+    "deploy": "./deploy.sh",
+    "deploy-backend": "cd infrastructure && sam build && sam deploy",
+    "deploy-frontend": "cd frontend && aws s3 sync . s3://$(aws cloudformation describe-stacks --stack-name stock-analyzer-stack --query 'Stacks[0].Outputs[?OutputKey==`FrontendBucketName`].OutputValue' --output text)/ --delete",
+    "logs": "sam logs -n StockAPIFunction --stack-name stock-analyzer-stack --tail",
+    "validate": "cd infrastructure && sam validate",
+    "clean": "rm -rf infrastructure/.aws-sam",
+    "test-api": "curl $(aws cloudformation describe-stacks --stack-name stock-analyzer-stack --query 'Stacks[0].Outputs[?OutputKey==`APIEndpoint`].OutputValue' --output text)/api/stock/metrics?symbol=AAPL"
+  },
+  "keywords": [
+    "stock",
+    "analysis",
+    "DCF",
+    "valuation",
+    "finance",
+    "aws",
+    "lambda",
+    "serverless"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/stock-analyzer"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

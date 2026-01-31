@@ -1,0 +1,186 @@
+<!-- Stock Analyser (DCF) View -->
+<section id="stock-analyser" class="content-section">
+    <div class="analyser-header">
+        <h2>Stock Analyser</h2>
+        <p>Years of Analysis: <select id="yearsSelect"><option>5</option><option selected>10</option></select></p>
+        <p>Number of Assumption Entries: <select id="assumptionsSelect">
+            <option>Low</option>
+            <option>Medium</option>
+            <option selected>High</option>
+        </select></p>
+    </div>
+
+    <div class="dcf-inputs">
+        <div class="input-section">
+            <h3>Historical Data</h3>
+            <table class="dcf-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>1 Year</th>
+                        <th>5 year</th>
+                        <th>10 Year</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ROIC</td>
+                        <td>28%</td>
+                        <td>23%</td>
+                        <td>21%</td>
+                    </tr>
+                    <tr>
+                        <td>Rev. Growth %</td>
+                        <td>7%</td>
+                        <td>10%</td>
+                        <td>15%</td>
+                    </tr>
+                    <tr>
+                        <td>Profit Margin</td>
+                        <td>11%</td>
+                        <td>10%</td>
+                        <td>9%</td>
+                    </tr>
+                    <tr>
+                        <td>Free Cash Flow Margin</td>
+                        <td>8%</td>
+                        <td>9%</td>
+                        <td>10%</td>
+                    </tr>
+                    <tr>
+                        <td>P/E</td>
+                        <td>14</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>P/FCF</td>
+                        <td>19</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>Desired Annual Return</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="input-section">
+            <h3>My Assumptions</h3>
+            <table class="dcf-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Low</th>
+                        <th>Mid</th>
+                        <th>High</th>
+                    </tr>
+                </thead>
+                <tbody id="assumptionsTable">
+                    <tr>
+                        <td></td>
+                        <td><input type="number" step="0.1"></td>
+                        <td><input type="number" step="0.1"></td>
+                        <td><input type="number" step="0.1"></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><input type="number" value="3"></td>
+                        <td><input type="number" value="5"></td>
+                        <td><input type="number" value="7"></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><input type="number" value="9"></td>
+                        <td><input type="number" value="10"></td>
+                        <td><input type="number" value="11"></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><input type="number" value="9"></td>
+                        <td><input type="number" value="10"></td>
+                        <td><input type="number" value="11"></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><input type="number" value="15"></td>
+                        <td><input type="number" value="18"></td>
+                        <td><input type="number" value="21"></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><input type="number" value="15"></td>
+                        <td><input type="number" value="18"></td>
+                        <td><input type="number" value="21"></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><input type="number" value="9"></td>
+                        <td><input type="number" value="9"></td>
+                        <td><input type="number" value="9"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="dcf-output">
+        <div class="current-price">
+            <h3>Current Price</h3>
+            <p class="price-display" id="currentPrice">$368</p>
+            <p class="price-change" id="priceChange">-1.7%</p>
+        </div>
+        
+        <button class="analyse-btn" id="analyseBtn">Analyse (Button)</button>
+
+        <div class="output-results">
+            <h3>Output from Analysis</h3>
+            <h4>My Assumptions</h4>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Low</th>
+                        <th>Mid</th>
+                        <th>High</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTable">
+                    <tr>
+                        <td>Multiple of Earnings Value</td>
+                        <td id="moeValueLow">—</td>
+                        <td id="moeValueMid">—</td>
+                        <td id="moeValueHigh">—</td>
+                    </tr>
+                    <tr>
+                        <td>Discounted Cash Flow Value</td>
+                        <td id="dcfValueLow">—</td>
+                        <td id="dcfValueMid">—</td>
+                        <td id="dcfValueHigh">—</td>
+                    </tr>
+                    <tr>
+                        <td>Current Price Return</td>
+                        <td id="returnLow">—</td>
+                        <td id="returnMid">—</td>
+                        <td id="returnHigh">—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="video-tutorial">
+            <h4>Learn How to Use</h4>
+            <div class="video-placeholder">
+                <p>Video Tutorial</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="disclaimer">
+        <p><strong>Disclaimer:</strong> For informational and educational purposes only should not be considered investment advice, or a recommendation to buy or follow a particular investment strategy</p>
+    </div>
+</section>

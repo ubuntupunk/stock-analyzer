@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netbones Finstat - Stock Analyzer & Fintelligence</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header will be loaded dynamically -->
+    <div id="header-container"></div>
+
+    <!-- Components will be loaded dynamically -->
+    <div id="sidebar-container"></div>
+    
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Tab Navigation -->
+        <div id="tabs-container"></div>
+
+        <!-- Content Sections -->
+        <div class="content-sections">
+            <div id="dynamic-content-container">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Authentication Modal -->
+    <div id="auth-modal-container"></div>
+
+    <!-- Scripts -->
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- AWS Amplify for authentication - using different CDN -->
+    <script src="https://unpkg.com/@aws-amplify/core@4.5.5/dist/aws-amplify-core.min.js"></script>
+    <script src="https://unpkg.com/@aws-amplify/auth@4.5.5/dist/aws-amplify-auth.min.js"></script>
+    
+    <!-- Core modules -->
+    <script src="components/loader.js?v=2"></script>
+    <script src="config.js?v=2"></script>
+    <script src="api.js?v=2"></script>
+    <script src="auth.js?v=2"></script>
+    
+    <!-- Utilities (must load first) -->
+    <script src="utils/Formatters.js?v=2"></script>
+    <script src="utils/Validators.js?v=2"></script>
+    <script src="utils/EventBus.js?v=2"></script>
+    
+    <!-- Feature modules -->
+    <script src="modules/StockManager.js?v=2"></script>
+    <script src="modules/SearchManager.js?v=2"></script>
+    <script src="modules/WatchlistManager.js?v=2"></script>
+    <script src="modules/ChartManager.js?v=2"></script>
+    <script src="modules/DataManager.js?v=2"></script>
+    <script src="modules/UIManager.js?v=2"></script>
+    <script src="modules/TabManager.js?v=2"></script>
+    
+    <!-- Main app (must load last) -->
+    <script src="app.js?v=2"></script>
+
+    <!-- Component Loader -->
+    <script>
+        // Load HTML components dynamically
+        async function loadComponents() {
+            try {
+                // Load all components in parallel
+                await componentLoader.loadAll([
+                    { name: 'sidebar', container: 'sidebar-container' },
+                    { name: 'tabs', container: 'tabs-container' },
+                    { name: 'auth-modal', container: 'auth-modal-container' }
+                ]);
+
+                // Load header (separate file in root)
+                const headerResponse = await fetch('header.html');
+                const headerHtml = await headerResponse.text();
+                document.getElementById('header-container').innerHTML = headerHtml;
+
+                // Load default section (metrics)
+                await componentLoader.loadSection('metrics');
+
+                // Initialize app after components are loaded
+                if (window.app) {
+                    console.log('Initializing app components...');
+                    window.app.initializeComponents();
+                    
+                    // Setup burger menu after components are loaded
+                    window.app.setupBurgerMenu();
+                    
+                    console.log('App components initialized');
+                } else {
+                    console.error('App not found - app.js may not have loaded properly');
+                }
+            } catch (error) {
+                console.error('Error loading components:', error);
+            }
+        }
+
+        // Load components when DOM is ready
+        document.addEventListener('DOMContentLoaded', loadComponents);
+    </script>
+</body>
+</html>
