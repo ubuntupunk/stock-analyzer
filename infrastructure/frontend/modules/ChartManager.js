@@ -203,7 +203,12 @@ class ChartManager {
             }
         };
 
-        return this.createChart(canvasId, 'line', chartData, options);
+        const chart = this.createChart(canvasId, 'line', chartData, options);
+        // Store symbol on the chart object for timeframe switching
+        if (chart) {
+            chart.symbol = symbol;
+        }
+        return chart;
     }
 
     /**
