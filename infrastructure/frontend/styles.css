@@ -1839,6 +1839,124 @@ body {
     margin: 0.25rem 0;
 }
 
+/* Metrics View Controls */
+.metrics-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-light);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.metrics-view-toggle {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.metrics-view-toggle .view-btn {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.metrics-view-toggle .view-btn:hover {
+    background-color: var(--hover-color);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.metrics-view-toggle .view-btn.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.metrics-view-toggle .view-btn i {
+    font-size: 0.8rem;
+}
+
+/* Metrics List View */
+.metrics-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.metrics-list .metric-card {
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.metrics-list .metric-card h3 {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--primary-color);
+}
+
+.metrics-list .metric-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.metrics-list .metric-item:last-child {
+    border-bottom: none;
+}
+
+.metrics-list .metric-item span:first-child {
+    color: var(--text-secondary);
+}
+
+.metrics-list .metric-item span:last-child {
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: right;
+    min-width: 120px;
+}
+
+/* Responsive Metrics View Toggle */
+@media (max-width: 768px) {
+    .metrics-controls {
+        justify-content: center;
+    }
+    
+    .metrics-view-toggle .view-btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .metrics-view-toggle .view-btn span {
+        display: none;
+    }
+    
+    .metrics-view-toggle .view-btn {
+        padding: 0.5rem;
+    }
+    
+    .metrics-view-toggle .view-btn i {
+        font-size: 1rem;
+    }
+}
+
 /* Factor Screener */
 .factor-header {
     text-align: center;

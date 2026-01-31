@@ -45,7 +45,18 @@
         <p class="chart-label">Stock Price Chart</p>
     </div>
 
-    <div class="metrics-grid">
+    <div class="metrics-controls">
+        <div class="metrics-view-toggle">
+            <button class="view-btn active" data-view="grid" onclick="window.metricsManager.setMetricsView('grid')">
+                <i class="fas fa-th"></i> Grid
+            </button>
+            <button class="view-btn" data-view="list" onclick="window.metricsManager.setMetricsView('list')">
+                <i class="fas fa-list"></i> List
+            </button>
+        </div>
+    </div>
+
+    <div class="metrics-grid" id="metricsGrid">
         <div class="metric-card">
             <h3>Valuation</h3>
             <div class="metric-item">

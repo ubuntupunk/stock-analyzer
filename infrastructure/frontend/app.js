@@ -91,10 +91,12 @@ class StockAnalyzer {
         this.modules.searchManager = new SearchManager(this.modules.dataManager, eventBus);
         this.modules.watchlistManager = new WatchlistManager(this.modules.dataManager, eventBus);
         this.modules.chartManager = new ChartManager(eventBus);
+        this.modules.metricsManager = new MetricsManager(eventBus);
 
         // Initialize modules that need setup
         this.modules.searchManager.initialize();
         this.modules.watchlistManager.initialize();
+        this.modules.metricsManager.initialize();
         this.modules.tabManager.setupTabHandlers();
     }
 
@@ -666,6 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.tabManager = app.modules.tabManager;
     window.dataManager = app.modules.dataManager;
     window.uiManager = app.modules.uiManager;
+    window.metricsManager = app.modules.metricsManager;
 });
 
 // Cleanup on page unload

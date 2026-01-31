@@ -585,6 +585,10 @@ class TabManager {
                     console.log('TabManager: Custom range handlers re-initialized');
                 }, 100);
             }
+            // Load saved metrics view preference
+            if (window.metricsManager && window.metricsManager.loadViewPreference) {
+                window.metricsManager.loadViewPreference();
+            }
         } catch (error) {
             console.error('TabManager: Failed to load metrics data:', error);
         }
