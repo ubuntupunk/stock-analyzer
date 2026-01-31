@@ -649,7 +649,9 @@ class ChartManager {
         toggle.addEventListener("click", () => {
             console.log("Custom Range toggle clicked");
             const isHidden = dateRangeDiv.style.display === "" || dateRangeDiv.style.display === "none";
+            console.log("Before: dateRangeDiv.style.display =", JSON.stringify(dateRangeDiv.style.display), "isHidden =", isHidden);
             dateRangeDiv.style.display = isHidden ? "flex" : "none";
+            console.log("After: dateRangeDiv.style.display =", JSON.stringify(dateRangeDiv.style.display));
             toggle.classList.toggle("active", isHidden);
 
             // Hide/show timeframe buttons
