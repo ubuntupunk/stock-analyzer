@@ -622,7 +622,7 @@ class ChartManager {
     /**
      * Setup custom date range handlers
      */
-    setupCustomRangeHandlers() {
+    setupCustomRangeHandlers(retryCount = 0, maxRetries = 5) {
         const toggle = document.getElementById("customRangeToggle");
         const dateRangeDiv = document.getElementById("customDateRange");
         const startDateInput = document.getElementById("startDate");
@@ -637,16 +637,36 @@ class ChartManager {
             startDateInput: !!startDateInput,
             endDateInput: !!endDateInput,
             applyBtn: !!applyBtn,
-            cancelBtn: !!cancelBtn
+            cancelBtn: !!cancelBtn,
+            retryCount
         });
 
-        if (!toggle || !dateRangeDiv) {
-            console.warn("Custom range elements not found - Metrics section may not be loaded");
+        // If elements not found, retry after a short delay
+        if ((!toggle || !dateRangeDiv) && retryCount < maxRetries) {
+            console.warn(`Custom range elements not found - retrying in 100ms (attempt ${retryCount + 1}/${maxRetries})`);
+            setTimeout(() => {
+                this.setupCustomRangeHandlers(retryCount + 1, maxRetries);
+            }, 100);
             return;
         }
 
+        if (!toggle || !dateRangeDiv) {
+            console.warn("Custom range elements not found after retries - Metrics section may not be loaded");
+            return;
+        }
+
+        // Check if already initialized (prevent duplicate handlers)
+        if (toggle.dataset.customRangeInitialized === "true") {
+            console.log("Custom range handlers already initialized, skipping");
+            return;
+        }
+
+        // Mark as initialized
+        toggle.dataset.customRangeInitialized = "true";
+
         // Toggle custom range visibility
-        toggle.addEventListener("click", () => {
+        toggle.addEventListener("click", (e) => {
+            e.preventDefault();
             console.log("Custom Range toggle clicked");
             const isHidden = dateRangeDiv.style.display === "" || dateRangeDiv.style.display === "none";
             dateRangeDiv.style.display = isHidden ? "flex" : "none";
@@ -668,16 +688,34 @@ class ChartManager {
         });
 
         // Apply custom range
-        applyBtn.addEventListener("click", () => {
-            console.log("Apply clicked");
-            const startDate = startDateInput.value;
-            const endDate = endDateInput.value;
+        if (applyBtn) {
+            applyBtn.addEventListener("click", () => {
+                console.log("Apply clicked");
+                const startDate = startDateInput?.value;
+                const endDate = endDateInput?.value;
 
-            if (startDate && endDate) {
-                console.log("Fetching data for range:", startDate, "to", endDate);
-                this.changeTimeframeCustom(startDate, endDate);
+                if (startDate && endDate) {
+                    console.log("Fetching data for range:", startDate, "to", endDate);
+                    this.changeTimeframeCustom(startDate, endDate);
 
-                // Hide custom range UI
+                    // Hide custom range UI
+                    dateRangeDiv.style.display = "none";
+                    toggle.classList.remove("active");
+
+                    // Show timeframe buttons
+                    document.querySelectorAll(".timeframe-btn").forEach(btn => {
+                        btn.style.display = "";
+                    });
+                } else {
+                    this.showChartNotification("Please select both start and end dates", "warning");
+                }
+            });
+        }
+
+        // Cancel custom range
+        if (cancelBtn) {
+            cancelBtn.addEventListener("click", () => {
+                console.log("Cancel clicked");
                 dateRangeDiv.style.display = "none";
                 toggle.classList.remove("active");
 
@@ -685,22 +723,10 @@ class ChartManager {
                 document.querySelectorAll(".timeframe-btn").forEach(btn => {
                     btn.style.display = "";
                 });
-            } else {
-                alert("Please select both start and end dates");
-            }
-        });
-
-        // Cancel custom range
-        cancelBtn.addEventListener("click", () => {
-            console.log("Cancel clicked");
-            dateRangeDiv.style.display = "none";
-            toggle.classList.remove("active");
-
-            // Show timeframe buttons
-            document.querySelectorAll(".timeframe-btn").forEach(btn => {
-                btn.style.display = "";
             });
-        });
+        }
+        
+        console.log("Custom range handlers initialized successfully");
     }
 
     /**
@@ -708,19 +734,63 @@ class ChartManager {
      */
     async changeTimeframeCustom(startDate, endDate) {
         const chart = this.charts.get("priceChart");
-        if (!chart) return;
+        
+        if (!chart) {
+            console.warn("changeTimeframeCustom: No price chart found. Please select a stock first.");
+            // Try to get symbol from stockManager as fallback
+            const symbol = window.stockManager?.getCurrentSymbol();
+            if (symbol) {
+                this.fetchAndUpdateChart(symbol, startDate, endDate);
+            } else {
+                this.showChartNotification("Please select a stock to view its price history", "warning");
+            }
+            return;
+        }
 
         const symbol = chart.symbol || "Unknown";
+        
+        // If symbol is "Unknown", try to get it from stockManager
+        if (symbol === "Unknown") {
+            const currentSymbol = window.stockManager?.getCurrentSymbol();
+            if (currentSymbol) {
+                this.fetchAndUpdateChart(currentSymbol, startDate, endDate);
+                return;
+            }
+        }
 
+        this.fetchAndUpdateChart(symbol, startDate, endDate);
+    }
+    
+    /**
+     * Fetch and update chart with custom range data
+     */
+    async fetchAndUpdateChart(symbol, startDate, endDate) {
         try {
-            // Use window.api (global) to fetch historical data for custom range
+            console.log(`Fetching ${symbol} data from ${startDate} to ${endDate}`);
             const priceData = await window.api.getStockPriceHistoryRange(symbol, startDate, endDate);
+            
             if (priceData && priceData.historicalData) {
                 const periodLabel = `${startDate} - ${endDate}`;
                 this.updatePriceChartWithData("priceChart", priceData, symbol, periodLabel);
+                this.showChartNotification(`Updated chart for ${symbol}: ${startDate} to ${endDate}`, "success");
+            } else {
+                console.warn("No historical data returned for custom range");
+                this.showChartNotification("No data available for the selected date range", "warning");
             }
         } catch (error) {
             console.error("Failed to change timeframe with custom range:", error);
+            this.showChartNotification("Failed to load data for the selected date range", "error");
+        }
+    }
+    
+    /**
+     * Show notification for chart operations
+     */
+    showChartNotification(message, type = "info") {
+        if (window.uiManager && window.uiManager.showNotification) {
+            window.uiManager.showNotification(message, type);
+        } else {
+            console.log(`Chart notification [${type}]: ${message}`);
         }
     }
 
@@ -803,6 +873,7 @@ class ChartManager {
             existingChart.data = chartData;
             existingChart.options = options;
             existingChart.dates = dates;
+            existingChart.symbol = symbol; // Preserve symbol for future custom range calls
             existingChart.update();
             return existingChart;
         }

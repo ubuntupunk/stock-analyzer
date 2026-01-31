@@ -578,6 +578,13 @@ class TabManager {
             if (currentSymbol) {
                 await this.dataManager.loadStockData(currentSymbol, 'metrics');
             }
+            // Setup custom range handlers after metrics section is loaded
+            if (window.chartManager && window.chartManager.setupCustomRangeHandlers) {
+                setTimeout(() => {
+                    window.chartManager.setupCustomRangeHandlers();
+                    console.log('TabManager: Custom range handlers re-initialized');
+                }, 100);
+            }
         } catch (error) {
             console.error('TabManager: Failed to load metrics data:', error);
         }
