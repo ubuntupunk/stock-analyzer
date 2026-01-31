@@ -506,6 +506,20 @@ class ChartManager {
     }
 
     /**
+     * Format date for chart display with year (for tooltips)
+     * @param {string} dateString - Date string
+     * @returns {string} Formatted date with year
+     */
+    formatChartDateWithYear(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+
+    /**
      * Get chart instance
      * @param {string} canvasId - Canvas element ID
      * @returns {Chart|null} Chart instance
