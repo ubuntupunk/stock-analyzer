@@ -62,7 +62,7 @@ class APIService {
     }
 
     async getStockPriceHistory(symbol, period = "3mo") {
-        return this.request(`/api/stock/price/history?symbol=${symbol}&period=${period}`);
+        return this.request(`/api/stock/price?symbol=${symbol}&period=${period}`);
     }
 
     async getAnalystEstimates(symbol) {
