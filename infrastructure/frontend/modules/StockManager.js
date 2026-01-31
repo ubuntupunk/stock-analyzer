@@ -305,9 +305,27 @@ class StockManager {
 
             container.innerHTML = stocksHtml;
             console.log('StockManager: Popular stocks rendered successfully');
+
+            // Restore prices if already loaded (fixes view switch losing prices)
+            if (this.pricesLoaded) {
+                this.restorePricesToUI();
+            }
         };
         
         tryRender();
+    }
+
+    /**
+     * Restore prices to UI after re-rendering (e.g., view switch)
+     */
+    restorePricesToUI() {
+        console.log('StockManager: Restoring prices to UI');
+        
+        this.popularStocks.forEach(stock => {
+            if (stock.price) {
+                this.updateStockPriceInUI(stock.symbol, stock.price, stock.change, stock.changePercent);
+            }
+        });
     }
 
     /**
