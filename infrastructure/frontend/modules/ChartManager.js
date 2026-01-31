@@ -568,6 +568,97 @@ class ChartManager {
             chart.update();
         }
     }
+
+    /**
+     * Setup time frame button handlers
+     */
+    setupTimeframeHandlers() {
+        const buttons = document.querySelectorAll(".timeframe-btn");
+        buttons.forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const period = e.target.dataset.period;
+                this.changeTimeframe(period);
+                
+                // Update active state
+                buttons.forEach(b => b.classList.remove("active"));
+                e.target.classList.add("active");
+            });
+        });
+    }
+
+    /**
+     * Change chart time frame
+     */
+    async changeTimeframe(period) {
+        const chart = this.charts.get("priceChart");
+        if (!chart) return;
+        
+        const symbol = chart.symbol || "Unknown";
+        const periodMap = {
+            "1W": "5d", "1M": "1mo", "3M": "3mo", "6M": "6mo",
+            "YTD": "ytd", "1Y": "1y", "3Y": "3y", "5Y": "5y", "MAX": "max"
+        };
+        
+        try {
+            const yfPeriod = periodMap[period] || "3mo";
+            const response = await fetch("/api/stock/price/history?symbol=" + symbol + "\&period=" + yfPeriod);
+            const priceData = await response.json();
+            if (priceData && priceData.historicalData) {
+                this.updatePriceChartWithData("priceChart", priceData, symbol, period);
+            }
+        } catch (error) {
+            console.error("Failed to change timeframe:", error);
+        }
+    }
+
+    /**
+     * Update price chart with new data and period
+     */
+    updatePriceChartWithData(canvasId, priceData, symbol, period) {
+        if (!priceData || !priceData.historicalData) return null;
+        
+        const dates = Object.keys(priceData.historicalData).sort();
+        const prices = dates.map(d => parseFloat(priceData.historicalData[d]["4. close"]));
+        
+        const chartData = {
+            labels: dates.map(d => this.formatChartDate(d)),
+            datasets: [{
+                label: symbol + " Price",
+                data: prices,
+                borderColor: "#4ade80",
+                backgroundColor: "rgba(74, 222, 128, 0.1)",
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1,
+                pointRadius: dates.length > 60 ? 0 : 2
+            }]
+        };
+
+        const options = {
+            plugins: {
+                title: {
+                    display: true,
+                    text: symbol + " Stock Price (" + period + ")",
+                    color: "#ffffff",
+                    font: { size: 16 }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: { callback: function(v) { return "$" + v.toFixed(2); } }
+                }
+            }
+        };
+
+        const existingChart = this.charts.get(canvasId);
+        if (existingChart) {
+            existingChart.data = chartData;
+            existingChart.options = options;
+            existingChart.update();
+            return existingChart;
+        }
+        return this.createChart(canvasId, "line", chartData, options);
+    }
 }
 
 // Export for use in other modules

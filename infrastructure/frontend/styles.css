@@ -1662,14 +1662,35 @@ body {
 }
 
 .chart-timeframe {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
-.chart-timeframe p {
-    padding: 1rem;
+.chart-timeframe .timeframe-btn {
+    padding: 0.5rem 1rem;
     background-color: var(--bg-light);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-timeframe .timeframe-btn:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.chart-timeframe .timeframe-btn.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
 }
 
 .metrics-grid {
