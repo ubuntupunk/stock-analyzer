@@ -1667,6 +1667,7 @@ body {
     gap: 0.5rem;
     flex-wrap: wrap;
     justify-content: center;
+    align-items: center;
 }
 
 .chart-timeframe .timeframe-btn {
@@ -1690,6 +1691,93 @@ body {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
+}
+
+.custom-range-toggle {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.custom-range-toggle:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.custom-date-range {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.custom-date-range .date-inputs {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.custom-date-range .date-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.custom-date-range label {
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.custom-date-range input[type="date"] {
+    padding: 0.5rem;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.custom-date-range .apply-range-btn {
+    padding: 0.5rem 1.5rem;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.custom-date-range .apply-range-btn:hover {
+    opacity: 0.9;
+}
+
+.custom-date-range .cancel-range-btn {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.custom-date-range .cancel-range-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
 }
 }
 

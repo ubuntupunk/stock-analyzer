@@ -65,6 +65,10 @@ class APIService {
         return this.request(`/api/stock/price?symbol=${symbol}&period=${period}`);
     }
 
+    async getStockPriceHistoryRange(symbol, startDate, endDate) {
+        return this.request(`/api/stock/price?symbol=${symbol}&startDate=${startDate}&endDate=${endDate}`);
+    }
+
     async getAnalystEstimates(symbol) {
         return this.request(`/api/stock/estimates?symbol=${symbol}`);
     }

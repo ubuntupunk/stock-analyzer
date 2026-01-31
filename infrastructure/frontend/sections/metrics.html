@@ -15,13 +15,29 @@
     <div class="chart-timeframe">
         <button class="timeframe-btn" data-period="1W">1W</button>
         <button class="timeframe-btn" data-period="1M">1M</button>
-        <button class="timeframe-btn" data-period="3M">3M</button>
+        <button class="timeframe-btn active" data-period="3M">3M</button>
         <button class="timeframe-btn" data-period="6M">6M</button>
         <button class="timeframe-btn" data-period="YTD">YTD</button>
         <button class="timeframe-btn" data-period="1Y">1Y</button>
         <button class="timeframe-btn" data-period="3Y">3Y</button>
         <button class="timeframe-btn" data-period="5Y">5Y</button>
         <button class="timeframe-btn" data-period="MAX">MAX</button>
+        <span class="custom-range-toggle" id="customRangeToggle">Custom Range</span>
+    </div>
+
+    <div class="custom-date-range" id="customDateRange" style="display: none;">
+        <div class="date-inputs">
+            <div class="date-input-group">
+                <label for="startDate">From:</label>
+                <input type="date" id="startDate" name="startDate">
+            </div>
+            <div class="date-input-group">
+                <label for="endDate">To:</label>
+                <input type="date" id="endDate" name="endDate">
+            </div>
+            <button id="applyCustomRange" class="apply-range-btn">Apply</button>
+            <button id="cancelCustomRange" class="cancel-range-btn">Cancel</button>
+        </div>
     </div>
 
     <div class="chart-container">

@@ -136,6 +136,7 @@ class StockAnalyzer {
                     // Setup timeframe handlers after chart is created
                     setTimeout(() => {
                         this.modules.chartManager.setupTimeframeHandlers();
+                        this.modules.chartManager.setupCustomRangeHandlers();
                     }, 100);
                 }
             }

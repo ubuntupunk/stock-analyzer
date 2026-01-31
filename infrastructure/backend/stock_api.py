@@ -82,13 +82,21 @@ class StockDataAPI:
     # SINGLE STOCK METHODS
     # ========================================================================
     
-    def get_stock_price(self, symbol: str) -> Dict:
+    def get_stock_price(self, symbol: str, period: str = '1mo', startDate: str = None, endDate: str = None) -> Dict:
         """
         Get current stock price and basic quote information
         Priority: Yahoo Finance (free) > Alpaca > Polygon > Alpha Vantage (rate limited)
         Also includes historical data for charting
+        
+        Args:
+            symbol: Stock symbol (e.g., 'AAPL')
+            period: Historical data period ('1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max')
+            startDate: Custom start date (YYYY-MM-DD) - takes precedence over period
+            endDate: Custom end date (YYYY-MM-DD)
         """
-        cache_key = self._get_cache_key('price', symbol)
+        # Cache key includes period since different periods return different data
+        # Use startDate for cache key when using custom range
+        cache_key = self._get_cache_key(f'price:{period}:{startDate or "default"}', symbol)
         cached = self._get_from_cache(cache_key)
         if cached:
             return cached
@@ -105,8 +113,11 @@ class StockDataAPI:
             price_data.update(self.yahoo.parse_price(yf_data))
             price_data['source'] = 'yahoo_finance'
         
-        # 2. Fetch historical data for charting
-        history = self.yahoo.fetch_history(symbol, '1mo')
+        # 2. Fetch historical data for charting (support custom date range)
+        if startDate and endDate:
+            history = self.yahoo.fetch_history_range(symbol, startDate, endDate)
+        else:
+            history = self.yahoo.fetch_history(symbol, period)
         if history:
             price_data['historicalData'] = history
         

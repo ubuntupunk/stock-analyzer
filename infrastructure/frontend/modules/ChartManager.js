@@ -189,6 +189,16 @@ class ChartManager {
                     font: {
                         size: 16
                     }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: (context) => {
+                            const dateIndex = context[0].dataIndex;
+                            const dateStr = recentDates[dateIndex];
+                            // Show year in tooltip for multi-year ranges
+                            return this.formatChartDateWithYear(dateStr);
+                        }
+                    }
                 }
             },
             scales: {
@@ -204,9 +214,10 @@ class ChartManager {
         };
 
         const chart = this.createChart(canvasId, 'line', chartData, options);
-        // Store symbol on the chart object for timeframe switching
+        // Store symbol and dates on the chart object for tooltip access
         if (chart) {
             chart.symbol = symbol;
+            chart.dates = recentDates;
         }
         return chart;
     }
@@ -583,12 +594,88 @@ class ChartManager {
             btn.addEventListener("click", (e) => {
                 const period = e.target.dataset.period;
                 this.changeTimeframe(period);
-                
+
                 // Update active state
                 buttons.forEach(b => b.classList.remove("active"));
                 e.target.classList.add("active");
             });
         });
+
+        // Setup custom range handlers
+        this.setupCustomRangeHandlers();
+    }
+
+    /**
+     * Setup custom date range handlers
+     */
+    setupCustomRangeHandlers() {
+        const toggle = document.getElementById("customRangeToggle");
+        const dateRangeDiv = document.getElementById("customDateRange");
+        const startDateInput = document.getElementById("startDate");
+        const endDateInput = document.getElementById("endDate");
+        const applyBtn = document.getElementById("applyCustomRange");
+        const cancelBtn = document.getElementById("cancelCustomRange");
+
+        if (!toggle || !dateRangeDiv) return;
+
+        // Toggle custom range visibility
+        toggle.addEventListener("click", () => {
+            const isHidden = dateRangeDiv.style.display === "none";
+            dateRangeDiv.style.display = isHidden ? "flex" : "none";
+            toggle.classList.toggle("active", isHidden);
+
+            // Hide timeframe buttons when custom range is active
+            document.querySelectorAll(".timeframe-btn").forEach(btn => {
+                btn.style.display = isHidden ? "none" : "inline-block";
+            });
+        });
+
+        // Apply custom range
+        applyBtn.addEventListener("click", () => {
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+
+            if (startDate && endDate) {
+                this.changeTimeframeCustom(startDate, endDate);
+
+                // Hide custom range UI
+                dateRangeDiv.style.display = "none";
+            } else {
+                alert("Please select both start and end dates");
+            }
+        });
+
+        // Cancel custom range
+        cancelBtn.addEventListener("click", () => {
+            dateRangeDiv.style.display = "none";
+            toggle.classList.remove("active");
+
+            // Show timeframe buttons
+            document.querySelectorAll(".timeframe-btn").forEach(btn => {
+                btn.style.display = "inline-block";
+            });
+        });
+    }
+
+    /**
+     * Change chart time frame with custom date range
+     */
+    async changeTimeframeCustom(startDate, endDate) {
+        const chart = this.charts.get("priceChart");
+        if (!chart) return;
+
+        const symbol = chart.symbol || "Unknown";
+
+        try {
+            // Use window.api (global) to fetch historical data for custom range
+            const priceData = await window.api.getStockPriceHistoryRange(symbol, startDate, endDate);
+            if (priceData && priceData.historicalData) {
+                const periodLabel = `${startDate} - ${endDate}`;
+                this.updatePriceChartWithData("priceChart", priceData, symbol, periodLabel);
+            }
+        } catch (error) {
+            console.error("Failed to change timeframe with custom range:", error);
+        }
     }
 
     /**
@@ -646,6 +733,16 @@ class ChartManager {
                     text: symbol + " Stock Price (" + period + ")",
                     color: "#ffffff",
                     font: { size: 16 }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: (context) => {
+                            const dateIndex = context[0].dataIndex;
+                            const dateStr = dates[dateIndex];
+                            // Show year in tooltip for multi-year ranges
+                            return this.formatChartDateWithYear(dateStr);
+                        }
+                    }
                 }
             },
             scales: {
@@ -659,6 +756,7 @@ class ChartManager {
         if (existingChart) {
             existingChart.data = chartData;
             existingChart.options = options;
+            existingChart.dates = dates;
             existingChart.update();
             return existingChart;
         }

@@ -116,7 +116,9 @@ def lambda_handler(event, context):
             elif '/price' in path:
                 # Support optional period parameter for historical data
                 period = query_params.get('period', '1mo')
-                result = api.get_stock_price(symbol, period)
+                startDate = query_params.get('startDate', None)
+                endDate = query_params.get('endDate', None)
+                result = api.get_stock_price(symbol, period, startDate, endDate)
             elif '/estimates' in path:
                 result = api.get_analyst_estimates(symbol)
             elif '/financials' in path:

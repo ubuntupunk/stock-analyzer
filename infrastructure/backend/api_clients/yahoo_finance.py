@@ -98,6 +98,40 @@ class YahooFinanceClient:
             print(f"YFinance history error for {symbol}: {str(e)}")
             return None
     
+    def fetch_history_range(self, symbol: str, startDate: str, endDate: str) -> Optional[Dict]:
+        """
+        Fetch historical price data for a custom date range
+        Returns dict with dates as keys and OHLCV data
+        
+        Args:
+            symbol: Stock symbol (e.g., 'AAPL')
+            startDate: Start date in YYYY-MM-DD format
+            endDate: End date in YYYY-MM-DD format
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(start=startDate, end=endDate)
+            
+            if hist is None or hist.empty:
+                return None
+            
+            # Convert to dict format expected by frontend
+            historical_data = {}
+            for date, row in hist.iterrows():
+                date_str = date.strftime('%Y-%m-%d')
+                historical_data[date_str] = {
+                    '1. open': float(row['Open']),
+                    '2. high': float(row['High']),
+                    '3. low': float(row['Low']),
+                    '4. close': float(row['Close']),
+                    '5. volume': int(row['Volume'])
+                }
+            
+            return historical_data
+        except Exception as e:
+            print(f"YFinance history range error for {symbol}: {str(e)}")
+            return None
+    
     def parse_history(self, historical_data: Dict) -> Dict:
         """Parse historical data into price format with historicalData key"""
         return {
