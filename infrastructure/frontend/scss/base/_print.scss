@@ -1,0 +1,87 @@
+// ============================================
+// Print Styles
+// ============================================
+
+@media print {
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+    color: black;
+    background: white;
+  }
+  
+  .sidebar,
+  .navbar,
+  .tabs-container,
+  .footer,
+  .btn,
+  .no-print {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+  
+  .content-section {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    page-break-inside: avoid;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    color: black;
+  }
+  
+  a {
+    color: black;
+    text-decoration: underline;
+    
+    &[href^="http"]::after {
+      content: " (" attr(href) ")";
+      font-size: 0.8em;
+      color: #666;
+    }
+  }
+  
+  img {
+    max-width: 100% !important;
+  }
+  
+  table {
+    page-break-inside: avoid;
+    
+    th,
+    td {
+      border-color: #ddd !important;
+    }
+  }
+  
+  .chart-container {
+    page-break-inside: avoid;
+    
+    canvas {
+      max-height: 300px;
+    }
+  }
+  
+  .metric-card,
+  .stock-card,
+  .factor-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    page-break-inside: avoid;
+  }
+  
+  @page {
+    margin: 1cm;
+    size: portrait;
+  }
+}

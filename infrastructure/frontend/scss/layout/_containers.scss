@@ -1,0 +1,63 @@
+// ============================================
+// Containers
+// ============================================
+
+.content-section {
+  background-color: $bg-white;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-xl;
+  box-shadow: $shadow-sm;
+  border: 1px solid $border-color;
+}
+
+.main-content {
+  flex: 1;
+  padding: $spacing-xl;
+  max-width: 100%;
+  overflow-x: hidden;
+  background-color: $bg-light;
+  min-height: calc(100vh - 100px);
+}
+
+.sidebar-collapsed {
+  .sidebar {
+    width: 60px;
+    
+    .nav-text,
+    .sidebar-title {
+      display: none;
+    }
+  }
+  
+  .main-content {
+    margin-left: 60px;
+  }
+}
+
+.page-header {
+  margin-bottom: $spacing-xl;
+  
+  h1, h2 {
+    margin-bottom: $spacing-sm;
+  }
+  
+  p {
+    color: $text-secondary;
+    margin-bottom: 0;
+  }
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-md;
+  border-bottom: 2px solid $primary-color;
+  
+  h2 {
+    margin: 0;
+    color: $primary-color;
+  }
+}

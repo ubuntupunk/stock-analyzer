@@ -1,0 +1,119 @@
+// ============================================
+// Auth Section
+// ============================================
+
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, $bg-light 0%, $bg-hover 100%);
+  padding: $spacing-xl;
+}
+
+.auth-card {
+  background-color: $bg-white;
+  border-radius: $border-radius-xl;
+  box-shadow: $shadow-lg;
+  padding: $spacing-2xl;
+  width: 100%;
+  max-width: 450px;
+  
+  &-header {
+    text-align: center;
+    margin-bottom: $spacing-xl;
+    
+    .logo {
+      justify-content: center;
+      margin-bottom: $spacing-md;
+    }
+    
+    h2 {
+      color: $primary-color;
+      margin-bottom: $spacing-sm;
+    }
+    
+    p {
+      color: $text-secondary;
+      margin: 0;
+    }
+  }
+  
+  &-form {
+    .form-group {
+      margin-bottom: $spacing-lg;
+    }
+    
+    .btn {
+      width: 100%;
+      margin-top: $spacing-md;
+      padding: $spacing-md;
+    }
+  }
+  
+  &-footer {
+    text-align: center;
+    margin-top: $spacing-xl;
+    padding-top: $spacing-lg;
+    border-top: 1px solid $border-color;
+    
+    p {
+      color: $text-secondary;
+      margin: 0;
+      
+      a {
+        font-weight: $font-weight-medium;
+      }
+    }
+  }
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: $spacing-xl 0;
+  
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: $border-color;
+  }
+  
+  span {
+    padding: 0 $spacing-md;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+  }
+}
+
+.auth-social {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  
+  .btn-social {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+    padding: $spacing-md;
+    border: 2px solid $border-color;
+    border-radius: $border-radius-md;
+    background-color: $bg-white;
+    cursor: pointer;
+    transition: all $transition-fast;
+    
+    &:hover {
+      background-color: $bg-light;
+      border-color: $text-secondary;
+    }
+    
+    img {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}

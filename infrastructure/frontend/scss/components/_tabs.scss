@@ -1,0 +1,57 @@
+// ============================================
+// Tabs
+// ============================================
+
+.tabs {
+  display: flex;
+  border-bottom: 2px solid $border-color;
+  background-color: $bg-white;
+  padding: 0 $spacing-lg;
+  box-shadow: $shadow-sm;
+  position: sticky;
+  top: 70px;
+  z-index: 100;
+  
+  &-container {
+    background-color: $bg-white;
+    border-bottom: 2px solid $border-color;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    overflow-x: auto;
+  }
+}
+
+.tab-btn {
+  padding: $spacing-md $spacing-lg;
+  background: none;
+  border: none;
+  color: $text-secondary;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all $transition-fast;
+  white-space: nowrap;
+  
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+  }
+  
+  &.active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.tab-content {
+  display: none;
+  
+  &.active {
+    display: block;
+  }
+}

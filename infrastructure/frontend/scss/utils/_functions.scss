@@ -1,0 +1,58 @@
+// ============================================
+// Functions
+// ============================================
+
+// Color functions
+@function color($color-name) {
+  @return map-get($colors, $color-name);
+}
+
+// Color darken/lighten helpers
+@function darker($color, $amount: 10%) {
+  @return darken($color, $amount);
+}
+
+@function lighter($color, $amount: 10%) {
+  @return lighten($color, $amount);
+}
+
+// Spacing function
+@function spacing($multiplier: 1) {
+  @return $spacing-base * $multiplier;
+}
+
+// Rem calculation
+@function rem($px, $base: 16px) {
+  @return calc($px / $base) * 1rem;
+}
+
+// Calculate width for columns
+@function column-width($columns, $total: 12) {
+  @return calc(($columns / $total) * 100%);
+}
+
+// Luminance for contrast calculation
+@function luminance($color) {
+  $rgb: (
+    'r': red($color),
+    'g': green($color),
+    'b': blue($color)
+  );
+
+  @return (
+    0.2126 * map-get($rgb, 'r') +
+    0.7152 * map-get($rgb, 'g') +
+    0.0722 * map-get($rgb, 'b')
+  ) / 255;
+}
+
+// Get contrast color (black or white)
+@function contrast-color($color) {
+  $luminance: luminance($color);
+  
+  @if $luminance > 0.5 {
+    @return #000000;
+  } @else {
+    @return #ffffff;
+  }
+}

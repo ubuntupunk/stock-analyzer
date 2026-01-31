@@ -1,0 +1,136 @@
+// ============================================
+// Metrics Section
+// ============================================
+
+.metrics {
+  &-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-lg;
+  }
+  
+  &-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+    
+    .metric-card {
+      background-color: $bg-white;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-lg;
+      padding: $spacing-xl;
+      box-shadow: $shadow-sm;
+      
+      h3 {
+        margin-bottom: $spacing-md;
+        padding-bottom: $spacing-sm;
+        border-bottom: 2px solid $primary-color;
+        color: $primary-color;
+      }
+    }
+    
+    .metric-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: $spacing-lg;
+      padding: $spacing-sm 0;
+      border-bottom: 1px solid $border-color;
+      
+      &:last-child {
+        border-bottom: none;
+      }
+      
+      span:first-child {
+        color: $text-secondary;
+        font-size: $font-size-sm;
+      }
+      
+      span:last-child {
+        font-weight: $font-weight-semibold;
+        color: $text-primary;
+        text-align: right;
+        min-width: 120px;
+      }
+    }
+  }
+  
+  &-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: $spacing-lg;
+    padding: $spacing-md $spacing-lg;
+    background-color: $bg-light;
+    border-radius: $border-radius-md;
+    border: 1px solid $border-color;
+  }
+  
+  &-view-toggle {
+    display: flex;
+    gap: $spacing-xs;
+  }
+}
+
+.metric-card {
+  @include card;
+  padding: $spacing-lg;
+  
+  h3 {
+    margin-bottom: $spacing-md;
+    color: $primary-color;
+    border-bottom: 2px solid $primary-color;
+    padding-bottom: $spacing-sm;
+  }
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid $border-color;
+  
+  &:hover {
+    background-color: $bg-hover;
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  span:first-child {
+    color: $text-secondary;
+    font-size: $font-size-sm;
+  }
+  
+  span:last-child {
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+  }
+  
+  &.highlight {
+    background-color: rgba($warning-color, 0.1);
+  }
+}
+
+// Responsive adjustments for metrics view toggle
+@include sm {
+  .metrics-controls {
+    justify-content: center;
+  }
+}
+
+@include xs {
+  .metrics-view-toggle {
+    .view-btn {
+      span {
+        display: none;
+      }
+      
+      padding: $spacing-sm;
+      
+      i {
+        font-size: $font-size-lg;
+      }
+    }
+  }
+}

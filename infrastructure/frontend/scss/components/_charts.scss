@@ -1,0 +1,181 @@
+// ============================================
+// Charts
+// ============================================
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  padding: $spacing-lg;
+  background-color: $bg-white;
+  border-radius: $border-radius-lg;
+  border: 1px solid $border-color;
+  margin-bottom: $spacing-xl;
+  box-shadow: $shadow-sm;
+  
+  canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 400px;
+  }
+}
+
+.chart-label {
+  text-align: center;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  margin-top: $spacing-md;
+  margin-bottom: 0;
+}
+
+.chart-timeframe {
+  display: flex;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: $spacing-md;
+  background-color: $bg-light;
+  border-radius: $border-radius-md;
+  border: 1px solid $border-color;
+}
+
+.timeframe-btn {
+  padding: $spacing-xs $spacing-md;
+  background-color: $bg-white;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+  
+  &:hover {
+    border-color: $primary-color;
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+  }
+  
+  &.active {
+    background-color: $primary-color;
+    border-color: $primary-color;
+    color: white;
+  }
+}
+
+.custom-range-toggle {
+  padding: $spacing-xs $spacing-md;
+  color: $primary-color;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  margin-left: auto;
+  border: 1px dashed $primary-color;
+  border-radius: $border-radius-sm;
+  transition: all $transition-fast;
+  
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+  }
+  
+  &.active {
+    background-color: $primary-color;
+    color: white;
+    border-style: solid;
+  }
+}
+
+.custom-date-range {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background-color: $bg-light;
+  border-radius: $border-radius-md;
+  border: 1px solid $border-color;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  
+  label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    font-weight: $font-weight-medium;
+  }
+  
+  input[type="date"] {
+    padding: $spacing-sm $spacing-md;
+    border: 2px solid $border-color;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    color: $text-primary;
+    background-color: $bg-white;
+    
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+}
+
+.apply-range-btn {
+  padding: $spacing-sm $spacing-lg;
+  background-color: $primary-color;
+  color: white;
+  border: none;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+  
+  &:hover {
+    background-color: darker($primary-color);
+    transform: translateY(-1px);
+  }
+}
+
+.cancel-range-btn {
+  padding: $spacing-sm $spacing-lg;
+  background-color: transparent;
+  color: $text-secondary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+  
+  &:hover {
+    border-color: $text-secondary;
+    color: $text-primary;
+  }
+}
+
+.chart-legend {
+  display: flex;
+  gap: $spacing-lg;
+  justify-content: center;
+  margin-top: $spacing-md;
+  flex-wrap: wrap;
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+  }
+}

@@ -1,0 +1,112 @@
+// ============================================
+// Responsive Utilities
+// ============================================
+
+// Hide on specific breakpoints
+.hide-xs {
+  @include xs {
+    display: none !important;
+  }
+}
+
+.hide-sm {
+  @include sm {
+    display: none !important;
+  }
+}
+
+.hide-md {
+  @include md {
+    display: none !important;
+  }
+}
+
+.hide-lg {
+  @include lg {
+    display: none !important;
+  }
+}
+
+// Show on specific breakpoints
+.show-xs {
+  display: none !important;
+  
+  @include xs {
+    display: block !important;
+  }
+}
+
+.show-sm {
+  display: none !important;
+  
+  @include sm {
+    display: block !important;
+  }
+}
+
+.show-md {
+  display: none !important;
+  
+  @include md {
+    display: block !important;
+  }
+}
+
+.show-lg {
+  display: none !important;
+  
+  @include lg {
+    display: block !important;
+  }
+}
+
+// Container max-width utilities
+.container-sm { max-width: 540px; }
+.container-md { max-width: 720px; }
+.container-lg { max-width: 960px; }
+.container-xl { max-width: 1140px; }
+
+// Responsive padding
+.responsive-padding {
+  padding: $spacing-md;
+  
+  @include sm {
+    padding: $spacing-lg;
+  }
+  
+  @include md {
+    padding: $spacing-xl;
+  }
+}
+
+// Responsive margins
+.responsive-margin {
+  margin: $spacing-md;
+  
+  @include sm {
+    margin: $spacing-lg;
+  }
+  
+  @include md {
+    margin: $spacing-xl;
+  }
+}
+
+// Responsive grid columns
+.grid-responsive {
+  display: grid;
+  gap: $spacing-md;
+  grid-template-columns: 1fr;
+  
+  @include sm {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @include md {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  @include lg {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

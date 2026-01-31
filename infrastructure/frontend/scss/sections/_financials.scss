@@ -1,0 +1,100 @@
+// ============================================
+// Financials Section
+// ============================================
+
+.financials {
+  &-section {
+    margin-bottom: $spacing-xl;
+  }
+  
+  &-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-md;
+    border-bottom: 2px solid $primary-color;
+    
+    h3 {
+      margin: 0;
+      color: $primary-color;
+    }
+  }
+}
+
+.financials-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: $bg-white;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-sm;
+  
+  th, td {
+    padding: $spacing-md;
+    text-align: left;
+    border-bottom: 1px solid $border-color;
+  }
+  
+  th {
+    background-color: $bg-light;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+  }
+  
+  td {
+    color: $text-secondary;
+    
+    &:last-child {
+      font-weight: $font-weight-medium;
+      color: $text-primary;
+    }
+  }
+  
+  tr:last-child td {
+    border-bottom: none;
+  }
+  
+  tr:hover td {
+    background-color: $bg-hover;
+  }
+}
+
+.financials-tabs {
+  display: flex;
+  border-bottom: 2px solid $border-color;
+  margin-bottom: $spacing-xl;
+  overflow-x: auto;
+  
+  .tab-btn {
+    padding: $spacing-md $spacing-lg;
+    background: none;
+    border: none;
+    color: $text-secondary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all $transition-fast;
+    white-space: nowrap;
+    
+    &:hover {
+      color: $primary-color;
+    }
+    
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+      font-weight: $font-weight-semibold;
+    }
+  }
+}
+
+.financials-content {
+  display: none;
+  
+  &.active {
+    display: block;
+  }
+}

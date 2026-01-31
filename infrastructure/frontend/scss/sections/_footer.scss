@@ -1,0 +1,62 @@
+// ============================================
+// Footer Section
+// ============================================
+
+.footer {
+  background-color: $bg-white;
+  border-top: 2px solid $border-color;
+  padding: $spacing-xl;
+  text-align: center;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  margin-top: auto;
+  
+  a {
+    color: $primary-color;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  
+  &-links {
+    display: flex;
+    justify-content: center;
+    gap: $spacing-lg;
+    margin-bottom: $spacing-md;
+    flex-wrap: wrap;
+  }
+  
+  &-copyright {
+    margin-bottom: 0;
+  }
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  
+  .main-wrapper {
+    display: flex;
+    flex: 1;
+  }
+  
+  .main-content {
+    flex: 1;
+    margin-left: 240px;
+    padding: $spacing-xl;
+    background-color: $bg-light;
+    min-height: calc(100vh - 100px);
+  }
+}
+
+.sidebar-hidden {
+  .sidebar {
+    display: none;
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+}

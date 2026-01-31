@@ -1,0 +1,88 @@
+// ============================================
+// Popular Stocks Section
+// ============================================
+
+.popular-stocks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: $spacing-lg;
+}
+
+.popular-header {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+  
+  h2 {
+    color: $primary-color;
+    margin-bottom: $spacing-sm;
+  }
+  
+  p {
+    color: $text-secondary;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.popular-controls {
+  display: flex;
+  gap: $spacing-lg;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+  padding: $spacing-md $spacing-lg;
+  background-color: $bg-light;
+  border-radius: $border-radius-md;
+  border: 1px solid $border-color;
+}
+
+.popular-stocks-list {
+  .stock-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: $spacing-md $spacing-lg;
+    border-bottom: 1px solid $border-color;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+    
+    &:hover {
+      background-color: $bg-hover;
+    }
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+  
+  .stock-symbol {
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    font-size: $font-size-lg;
+  }
+  
+  .stock-price {
+    font-weight: $font-weight-semibold;
+    text-align: center;
+  }
+  
+  .stock-change {
+    text-align: right;
+    font-weight: $font-weight-medium;
+    
+    &.positive {
+      color: $success-color;
+    }
+    
+    &.negative {
+      color: $danger-color;
+    }
+  }
+}
+
+.empty-message {
+  text-align: center;
+  color: $text-secondary;
+  padding: $spacing-2xl;
+  font-size: $font-size-lg;
+}

@@ -1,0 +1,112 @@
+// ============================================
+// Cards
+// ============================================
+
+.card {
+  background-color: $bg-white;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-sm;
+  border: 1px solid $border-color;
+  transition: transform $transition-fast, box-shadow $transition-fast;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+  
+  &-header {
+    padding: $spacing-md $spacing-lg;
+    border-bottom: 1px solid $border-color;
+    
+    h3, h4, h5 {
+      margin: 0;
+    }
+  }
+  
+  &-body {
+    padding: $spacing-lg;
+  }
+  
+  &-footer {
+    padding: $spacing-md $spacing-lg;
+    border-top: 1px solid $border-color;
+    background-color: $bg-light;
+    border-radius: 0 0 $border-radius-lg $border-radius-lg;
+  }
+}
+
+.metric-card {
+  @include card;
+  padding: $spacing-lg;
+  
+  h3 {
+    margin-bottom: $spacing-md;
+    color: $primary-color;
+    border-bottom: 2px solid $primary-color;
+    padding-bottom: $spacing-sm;
+  }
+}
+
+.stock-card {
+  @include card;
+  padding: $spacing-lg;
+  cursor: pointer;
+  
+  .stock-symbol {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    margin-bottom: $spacing-xs;
+  }
+  
+  .stock-name {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-bottom: $spacing-md;
+  }
+  
+  .stock-price {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $text-primary;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .stock-change {
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    
+    &.positive {
+      color: $success-color;
+    }
+    
+    &.negative {
+      color: $danger-color;
+    }
+  }
+}
+
+.factor-card {
+  @include card;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  
+  .factor-name {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .factor-description {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-bottom: $spacing-md;
+  }
+  
+  .factor-controls {
+    display: flex;
+    gap: $spacing-sm;
+    align-items: center;
+  }
+}

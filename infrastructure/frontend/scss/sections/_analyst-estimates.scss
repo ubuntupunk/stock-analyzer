@@ -1,0 +1,78 @@
+// ============================================
+// Analyst Estimates Section
+// ============================================
+
+.analyst-estimates {
+  &-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-lg;
+  }
+}
+
+.estimate-card {
+  @include card;
+  padding: $spacing-lg;
+  text-align: center;
+  
+  .estimate-label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .estimate-value {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .estimate-detail {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+}
+
+.analyst-ratings {
+  .rating-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-md;
+    border-bottom: 1px solid $border-color;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+  
+  .rating-firm {
+    font-weight: $font-weight-medium;
+    color: $text-primary;
+  }
+  
+  .rating-action {
+    font-weight: $font-weight-semibold;
+    
+    &.strong-buy { color: $success-color; }
+    &.buy { color: lighten($success-color, 10%); }
+    &.hold { color: $warning-color; }
+    &.sell { color: lighten($danger-color, 10%); }
+    &.strong-sell { color: $danger-color; }
+  }
+}
+
+.rating-bar {
+  height: 8px;
+  background-color: $bg-light;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: $spacing-sm;
+  
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width $transition-base;
+  }
+}

@@ -1,0 +1,109 @@
+// ============================================
+// Sidebar Section
+// ============================================
+
+.sidebar {
+  width: 240px;
+  background-color: $bg-white;
+  border-right: 2px solid $border-color;
+  height: calc(100vh - 70px);
+  position: sticky;
+  top: 70px;
+  overflow-y: auto;
+  transition: width $transition-base;
+  box-shadow: $shadow-sm;
+  
+  &-title {
+    padding: $spacing-lg;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid $border-color;
+    background-color: $bg-light;
+  }
+  
+  &-nav {
+    padding: $spacing-md 0;
+  }
+  
+  &-item {
+    display: flex;
+    align-items: center;
+    padding: $spacing-md $spacing-lg;
+    color: $text-secondary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    transition: all $transition-fast;
+    border-left: 3px solid transparent;
+    
+    i {
+      margin-right: $spacing-md;
+      width: 20px;
+      text-align: center;
+    }
+    
+    &:hover {
+      background-color: $bg-hover;
+      color: $primary-color;
+    }
+    
+    &.active {
+      background-color: $bg-hover;
+      color: $primary-color;
+      border-left-color: $primary-color;
+      font-weight: $font-weight-semibold;
+    }
+  }
+  
+  &-section {
+    margin-bottom: $spacing-lg;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.sidebar-collapsed {
+  .sidebar {
+    width: 60px;
+    
+    .nav-text,
+    .sidebar-title {
+      display: none;
+    }
+    
+    .sidebar-item {
+      justify-content: center;
+      padding: $spacing-md;
+      
+      i {
+        margin-right: 0;
+      }
+    }
+  }
+  
+  .main-content {
+    margin-left: 60px;
+  }
+}
+
+@media (max-width: $breakpoint-md) {
+  .sidebar {
+    position: fixed;
+    left: -240px;
+    z-index: $z-fixed;
+    
+    &.show {
+      left: 0;
+      width: 240px;
+    }
+    
+    &-collapsed &-show {
+      left: 0;
+    }
+  }
+}

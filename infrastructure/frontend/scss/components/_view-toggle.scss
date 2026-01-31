@@ -1,0 +1,66 @@
+// ============================================
+// View Toggle
+// ============================================
+
+.view-toggle {
+  display: flex;
+  gap: $spacing-xs;
+}
+
+.view-btn {
+  padding: $spacing-sm $spacing-md;
+  background-color: transparent;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  
+  i {
+    font-size: $font-size-sm;
+  }
+  
+  &:hover {
+    background-color: $hover-color;
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+  
+  &.active {
+    background-color: $primary-color;
+    border-color: $primary-color;
+    color: white;
+  }
+}
+
+.popular-controls {
+  display: flex;
+  gap: $spacing-lg;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+  padding: $spacing-md $spacing-lg;
+  background-color: $bg-light;
+  border-radius: $border-radius-md;
+  border: 1px solid $border-color;
+}
+
+.popular-header {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+  
+  h2 {
+    color: $primary-color;
+    margin-bottom: $spacing-sm;
+  }
+  
+  p {
+    color: $text-secondary;
+    margin-bottom: 0;
+  }
+}
