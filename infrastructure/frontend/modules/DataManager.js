@@ -43,9 +43,11 @@ class DataManager {
                     // Transform metrics data
                     const transformedMetrics = this.transformMetricsData(metricsData);
                     // Combine price (with historicalData) and metrics
+                    // Spread metrics fields at root level for UI compatibility
                     data = {
                         ...priceData,
-                        metrics: transformedMetrics,
+                        ...transformedMetrics,  // Spread metrics at root level for UI
+                        metrics: transformedMetrics,  // Also keep nested version
                         hasHistoricalData: !!priceData?.historicalData
                     };
                     break;
