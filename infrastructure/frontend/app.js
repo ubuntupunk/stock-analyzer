@@ -2,18 +2,26 @@
 // Coordinates all modules and provides the main application interface
 
 class StockAnalyzer {
-    constructor() {
+    constructor(autoInit = true) {
         this.modules = {};
         this.isInitialized = false;
         
-        // Initialize immediately
-        this.init();
+        if (autoInit) {
+            // Initialize immediately
+            this.init();
+        }
     }
 
     /**
-     * Initialize the application
+     * Initialize the application (callable manually after sections are loaded)
      */
     async init() {
+        // Skip if already initialized
+        if (this.isInitialized) {
+            console.log('StockAnalyzer: Already initialized, skipping');
+            return;
+        }
+        
         try {
             console.log('Initializing Stock Analyzer...');
             
@@ -46,6 +54,13 @@ class StockAnalyzer {
             console.error('Failed to initialize Stock Analyzer:', error);
             this.showFatalError(error);
         }
+    }
+
+    /**
+     * Initialize components (called by index.html after sections are loaded)
+     */
+    async initializeComponents() {
+        await this.init();
     }
 
     /**
@@ -606,8 +621,12 @@ class StockAnalyzer {
 let app;
 
 // Initialize application when DOM is ready
+// NOTE: Initialization is controlled by index.html's loadComponents() function
+// which calls app.initializeComponents() after sections are loaded
 document.addEventListener('DOMContentLoaded', () => {
-    app = new StockAnalyzer();
+    // Create the app instance but don't initialize yet
+    // wait for loadComponents() to call initializeComponents()
+    app = new StockAnalyzer(false); // Pass false to skip auto-init
     
     // Make app globally available
     window.app = app;

@@ -78,10 +78,25 @@
                 const headerHtml = await headerResponse.text();
                 document.getElementById('header-container').innerHTML = headerHtml;
 
-                // Load default section (metrics)
+                // Load default sections - SEQUENTIALLY to ensure both load
+                console.log('Loading metrics section...');
                 await componentLoader.loadSection('metrics');
+                console.log('Metrics section loaded, checking for popular-stocks...');
+                
+                // Check if popular-stocks is already loaded by previous section
+                if (!componentLoader.isSectionLoaded('popular-stocks')) {
+                    console.log('Loading popular-stocks section...');
+                    await componentLoader.loadSection('popular-stocks');
+                    console.log('Popular-stocks section loaded');
+                } else {
+                    console.log('Popular-stocks section already loaded');
+                }
 
-                // Initialize app after components are loaded
+                // Verify popular-stocks is in DOM
+                const popularSection = document.getElementById('popular-stocks');
+                console.log('Popular-stocks section in DOM:', !!popularSection);
+
+                // Initialize app AFTER sections are loaded
                 if (window.app) {
                     console.log('Initializing app components...');
                     window.app.initializeComponents();
@@ -98,8 +113,9 @@
             }
         }
 
-        // Load components when DOM is ready
-        document.addEventListener('DOMContentLoaded', loadComponents);
+        // Call immediately since app.js defines window.app during parsing
+        // DOMContentLoaded fires too early for async loading
+        loadComponents();
     </script>
 </body>
 </html>
