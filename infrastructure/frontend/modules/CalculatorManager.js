@@ -223,6 +223,17 @@ window.selectModel = function(modelType) {
         return;
     }
 
+    // Remove selected class from all cards
+    document.querySelectorAll('.model-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+
+    // Add selected class to clicked card
+    const selectedCard = document.querySelector(`.model-card[data-risk="${modelType === 'conservative' ? 'low' : modelType === 'balanced' ? 'medium' : 'high'}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+    }
+
     const portfolios = {
         'conservative': {
             title: 'Conservative Portfolio',
@@ -230,8 +241,8 @@ window.selectModel = function(modelType) {
             expectedReturn: '4-6%',
             bestFor: 'Near-term goals, risk-averse investors',
             allocation: [
-                { asset: 'Bonds', percent: 60, color: '#3498db' },
-                { asset: 'Large Cap Stocks', percent: 30, color: '#2ecc71' },
+                { asset: 'Bonds', percent: 60, color: '#27ae60' },
+                { asset: 'Large Cap Stocks', percent: 30, color: '#3498db' },
                 { asset: 'Cash', percent: 10, color: '#95a5a6' }
             ]
         },
@@ -241,9 +252,9 @@ window.selectModel = function(modelType) {
             expectedReturn: '6-8%',
             bestFor: 'Medium-term goals, moderate risk tolerance',
             allocation: [
-                { asset: 'Large Cap Stocks', percent: 40, color: '#2ecc71' },
+                { asset: 'Large Cap Stocks', percent: 40, color: '#3498db' },
                 { asset: 'Mid Cap Stocks', percent: 20, color: '#1abc9c' },
-                { asset: 'Bonds', percent: 30, color: '#3498db' },
+                { asset: 'Bonds', percent: 30, color: '#27ae60' },
                 { asset: 'International', percent: 10, color: '#9b59b6' }
             ]
         },
@@ -253,11 +264,11 @@ window.selectModel = function(modelType) {
             expectedReturn: '8-12%',
             bestFor: 'Long-term goals, high risk tolerance',
             allocation: [
-                { asset: 'Large Cap Stocks', percent: 30, color: '#2ecc71' },
+                { asset: 'Large Cap Stocks', percent: 30, color: '#3498db' },
                 { asset: 'Mid Cap Stocks', percent: 30, color: '#1abc9c' },
                 { asset: 'Small Cap Stocks', percent: 20, color: '#e74c3c' },
                 { asset: 'International', percent: 15, color: '#9b59b6' },
-                { asset: 'Bonds', percent: 5, color: '#3498db' }
+                { asset: 'Bonds', percent: 5, color: '#27ae60' }
             ]
         }
     };
