@@ -18,6 +18,30 @@
     }
   }
   
+  &-header {
+    text-align: center;
+    margin-bottom: var(--spacing-2xl);
+    
+    h2 {
+      color: var(--primary-color);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    p {
+      color: var(--text-secondary);
+    }
+  }
+  
+  &-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2xl);
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+  
   &-form {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -35,17 +59,58 @@
         font-size: var(--font-size-sm);
       }
       
-      .form-control {
+      input {
         width: 100%;
         padding: var(--spacing-sm) var(--spacing-md);
         border: 2px solid var(--border-color);
         border-radius: var(--border-radius-md);
         font-size: var(--font-size-base);
         transition: border-color var(--transition-fast);
+        background-color: var(--bg-white);
         
         &:focus {
           outline: none;
           border-color: var(--primary-color);
+        }
+      }
+    }
+    
+    .btn-primary {
+      grid-column: 1 / -1;
+      margin-top: var(--spacing-md);
+    }
+  }
+  
+  &-results {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+    align-content: start;
+    
+    .result-card {
+      background-color: var(--bg-light);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius-lg);
+      text-align: center;
+      
+      h3 {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-sm);
+        font-weight: var(--font-weight-normal);
+      }
+      
+      .result-value {
+        font-size: var(--font-size-2xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--primary-color);
+        
+        &.positive {
+          color: var(--success-color);
+        }
+        
+        &.negative {
+          color: var(--danger-color);
         }
       }
     }

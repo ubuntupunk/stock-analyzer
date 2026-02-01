@@ -124,3 +124,184 @@ const calculatorManager = new CalculatorManager();
 window.calculateRetirement = function() {
     calculatorManager.calculateRetirement();
 };
+
+/**
+ * Calculate Real Estate ROI and display results
+ */
+window.calculateRealEstate = function() {
+    console.log('CalculatorManager: calculateRealEstate called');
+
+    // Get input values
+    const propertyValue = parseFloat(document.getElementById('propertyValue')?.value) || 0;
+    const downPayment = parseFloat(document.getElementById('downPayment')?.value) || 0;
+    const interestRate = parseFloat(document.getElementById('interestRate')?.value) || 6.5;
+    const loanTerm = parseFloat(document.getElementById('loanTerm')?.value) || 30;
+    const monthlyRent = parseFloat(document.getElementById('monthlyRent')?.value) || 0;
+    const monthlyExpenses = parseFloat(document.getElementById('monthlyExpenses')?.value) || 0;
+
+    // Validate inputs
+    if (propertyValue <= 0 || downPayment < 0) {
+        calculatorManager.showError('Please enter valid property values');
+        return;
+    }
+
+    // Calculate loan amount
+    const loanAmount = propertyValue - downPayment;
+
+    // Calculate monthly mortgage payment (P&I)
+    const monthlyRate = interestRate / 100 / 12;
+    const totalPayments = loanTerm * 12;
+
+    let monthlyPayment;
+    if (monthlyRate === 0) {
+        monthlyPayment = loanAmount / totalPayments;
+    } else {
+        monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) /
+                         (Math.pow(1 + monthlyRate, totalPayments) - 1);
+    }
+
+    // Calculate cash flow
+    const totalMonthlyExpenses = monthlyExpenses + monthlyPayment;
+    const cashFlow = monthlyRent - totalMonthlyExpenses;
+
+    // Calculate Annual ROI (Cash-on-Cash Return)
+    const annualCashFlow = cashFlow * 12;
+    const annualROI = downPayment > 0 ? (annualCashFlow / downPayment) * 100 : 0;
+
+    // Calculate Cap Rate (Net Operating Income / Property Value)
+    const annualRent = monthlyRent * 12;
+    const annualExpenses = monthlyExpenses * 12;
+    const netOperatingIncome = annualRent - annualExpenses;
+    const capRate = propertyValue > 0 ? (netOperatingIncome / propertyValue) * 100 : 0;
+
+    // Display results
+    calculatorManager.displayRealEstateResults({
+        monthlyPayment: monthlyPayment || 0,
+        cashFlow: cashFlow || 0,
+        annualROI: annualROI || 0,
+        capRate: capRate || 0
+    });
+};
+
+/**
+ * Display real estate calculation results
+ */
+calculatorManager.displayRealEstateResults = function(results) {
+    console.log('CalculatorManager: Displaying real estate results', results);
+
+    const monthlyPaymentEl = document.getElementById('monthlyPayment');
+    const cashFlowEl = document.getElementById('cashFlow');
+    const annualROIEl = document.getElementById('annualROI');
+    const capRateEl = document.getElementById('capRate');
+
+    if (monthlyPaymentEl) {
+        monthlyPaymentEl.textContent = this.formatCurrency(results.monthlyPayment);
+    }
+    if (cashFlowEl) {
+        const prefix = results.cashFlow >= 0 ? '+' : '';
+        cashFlowEl.textContent = prefix + this.formatCurrency(results.cashFlow);
+        cashFlowEl.className = 'result-value ' + (results.cashFlow >= 0 ? 'positive' : 'negative');
+    }
+    if (annualROIEl) {
+        annualROIEl.textContent = results.annualROI.toFixed(2) + '%';
+        annualROIEl.className = 'result-value ' + (results.annualROI >= 0 ? 'positive' : 'negative');
+    }
+    if (capRateEl) {
+        capRateEl.textContent = results.capRate.toFixed(2) + '%';
+    }
+};
+
+/**
+ * Select a model portfolio and display details
+ */
+window.selectModel = function(modelType) {
+    console.log('CalculatorManager: selectModel called with:', modelType);
+
+    const portfolioDetails = document.getElementById('portfolioDetails');
+    if (!portfolioDetails) {
+        console.error('CalculatorManager: portfolioDetails element not found');
+        return;
+    }
+
+    const portfolios = {
+        'conservative': {
+            title: 'Conservative Portfolio',
+            description: 'Low risk, stable returns',
+            expectedReturn: '4-6%',
+            bestFor: 'Near-term goals, risk-averse investors',
+            allocation: [
+                { asset: 'Bonds', percent: 60, color: '#3498db' },
+                { asset: 'Large Cap Stocks', percent: 30, color: '#2ecc71' },
+                { asset: 'Cash', percent: 10, color: '#95a5a6' }
+            ]
+        },
+        'balanced': {
+            title: 'Balanced Portfolio',
+            description: 'Moderate risk, balanced growth',
+            expectedReturn: '6-8%',
+            bestFor: 'Medium-term goals, moderate risk tolerance',
+            allocation: [
+                { asset: 'Large Cap Stocks', percent: 40, color: '#2ecc71' },
+                { asset: 'Mid Cap Stocks', percent: 20, color: '#1abc9c' },
+                { asset: 'Bonds', percent: 30, color: '#3498db' },
+                { asset: 'International', percent: 10, color: '#9b59b6' }
+            ]
+        },
+        'aggressive': {
+            title: 'Aggressive Portfolio',
+            description: 'High risk, high growth potential',
+            expectedReturn: '8-12%',
+            bestFor: 'Long-term goals, high risk tolerance',
+            allocation: [
+                { asset: 'Large Cap Stocks', percent: 30, color: '#2ecc71' },
+                { asset: 'Mid Cap Stocks', percent: 30, color: '#1abc9c' },
+                { asset: 'Small Cap Stocks', percent: 20, color: '#e74c3c' },
+                { asset: 'International', percent: 15, color: '#9b59b6' },
+                { asset: 'Bonds', percent: 5, color: '#3498db' }
+            ]
+        }
+    };
+
+    const portfolio = portfolios[modelType];
+    if (!portfolio) {
+        console.error('CalculatorManager: Unknown portfolio type:', modelType);
+        return;
+    }
+
+    // Generate allocation bars HTML
+    const allocationBars = portfolio.allocation.map(item => `
+        <div class="allocation-bar-item">
+            <div class="allocation-label">
+                <span class="allocation-color" style="background-color: ${item.color}"></span>
+                <span>${item.asset}</span>
+                <span class="allocation-percent">${item.percent}%</span>
+            </div>
+            <div class="allocation-bar">
+                <div class="allocation-fill" style="width: ${item.percent}%; background-color: ${item.color}"></div>
+            </div>
+        </div>
+    `).join('');
+
+    portfolioDetails.innerHTML = `
+        <div class="portfolio-detail-card">
+            <h3>${portfolio.title}</h3>
+            <p class="portfolio-description">${portfolio.description}</p>
+            
+            <div class="portfolio-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Expected Annual Return</span>
+                    <span class="stat-value">${portfolio.expectedReturn}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Best For</span>
+                    <span class="stat-value">${portfolio.bestFor}</span>
+                </div>
+            </div>
+            
+            <div class="allocation-breakdown">
+                <h4>Asset Allocation</h4>
+                ${allocationBars}
+            </div>
+        </div>
+    `;
+};
