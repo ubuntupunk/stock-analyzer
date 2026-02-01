@@ -175,9 +175,17 @@ class WatchlistManager {
         if (isOnWatchlist) {
             await this.removeFromWatchlist(symbol);
         } else {
+            // Get stock info from popular stocks list or fetch it
+            let stockName = symbol;
+            const popularStocks = window.stockManager?.getPopularStocks() || [];
+            const stock = popularStocks.find(s => s.symbol === symbol);
+            if (stock && stock.name) {
+                stockName = stock.name;
+            }
+            
             const stockData = {
                 symbol: symbol,
-                name: symbol,
+                name: stockName,
                 notes: '',
                 alertPrice: null,
                 tags: []
@@ -597,38 +605,52 @@ class WatchlistManager {
         const item = this.watchlist.find(item => item.symbol === symbol);
         if (!item) return;
 
-        // Create edit modal
+        // Create edit modal with overlay
         const modal = document.createElement('div');
-        modal.className = 'modal';
+        modal.className = 'watchlist-modal-overlay';
         modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Edit Watchlist Item</h3>
-                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+            <div class="watchlist-modal">
+                <div class="watchlist-modal-header">
+                    <h3>Edit ${item.symbol}</h3>
+                    <button class="watchlist-modal-close" onclick="this.closest('.watchlist-modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <div class="modal-body">
+                <div class="watchlist-modal-body">
                     <div class="form-group">
                         <label>Stock Symbol</label>
-                        <input type="text" value="${item.symbol}" readonly>
+                        <input type="text" class="form-control" value="${item.symbol}" readonly>
                     </div>
                     <div class="form-group">
                         <label>Notes</label>
-                        <textarea id="editNotes">${item.notes || ''}</textarea>
+                        <textarea id="editNotes" class="form-control" rows="3" placeholder="Add notes about this stock...">${item.notes || ''}</textarea>
                     </div>
                     <div class="form-group">
-                        <label>Price Alert</label>
-                        <input type="number" id="editAlertPrice" value="${item.alertPrice || ''}" step="0.01">
+                        <label>Price Alert ($)</label>
+                        <input type="number" id="editAlertPrice" class="form-control" value="${item.alertPrice || ''}" step="0.01" placeholder="Alert when price reaches...">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                <div class="watchlist-modal-footer">
+                    <button class="btn-secondary" onclick="this.closest('.watchlist-modal-overlay').remove()">Cancel</button>
                     <button class="btn-primary" onclick="window.watchlistManager.handleEditWatchlistItem('${symbol}')">Save Changes</button>
                 </div>
             </div>
         `;
 
         document.body.appendChild(modal);
-        modal.style.display = 'block';
+        
+        // Add click handler to close on overlay click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        // Focus on notes field
+        setTimeout(() => {
+            const notesField = document.getElementById('editNotes');
+            if (notesField) notesField.focus();
+        }, 100);
     }
 
     /**
@@ -638,13 +660,16 @@ class WatchlistManager {
         const notes = document.getElementById('editNotes').value;
         const alertPrice = document.getElementById('editAlertPrice').value;
 
+        // Get the original item to preserve name
+        const originalItem = this.watchlist.find(item => item.symbol === symbol);
+        
         // Remove old item
         await this.removeFromWatchlist(symbol);
         
-        // Add updated item
+        // Add updated item with preserved name
         const stockData = {
             symbol: symbol,
-            name: symbol,
+            name: originalItem?.name || symbol,
             notes: notes,
             alertPrice: alertPrice ? parseFloat(alertPrice) : null
         };
@@ -652,7 +677,7 @@ class WatchlistManager {
         await this.addToWatchlist(stockData);
         
         // Close modal
-        const modal = document.querySelector('.modal');
+        const modal = document.querySelector('.watchlist-modal-overlay');
         if (modal) {
             modal.remove();
         }
