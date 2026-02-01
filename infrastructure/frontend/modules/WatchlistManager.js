@@ -107,10 +107,13 @@ class WatchlistManager {
             const result = await this.dataManager.addToWatchlist(stockData);
             
             if (result.success) {
+                // Ensure name is properly set
+                const stockName = stockData.name || this.getStockName(stockData.symbol);
+                
                 // Add to local watchlist
                 const watchlistItem = {
                     symbol: stockData.symbol,
-                    name: stockData.name || stockData.symbol,
+                    name: stockName,
                     addedAt: new Date().toISOString(),
                     notes: stockData.notes || '',
                     alertPrice: stockData.alertPrice || null,
@@ -175,13 +178,8 @@ class WatchlistManager {
         if (isOnWatchlist) {
             await this.removeFromWatchlist(symbol);
         } else {
-            // Get stock info from popular stocks list or fetch it
-            let stockName = symbol;
-            const popularStocks = window.stockManager?.getPopularStocks() || [];
-            const stock = popularStocks.find(s => s.symbol === symbol);
-            if (stock && stock.name) {
-                stockName = stock.name;
-            }
+            // Get stock info from popular stocks list
+            let stockName = this.getStockName(symbol);
             
             const stockData = {
                 symbol: symbol,
@@ -194,6 +192,149 @@ class WatchlistManager {
         }
         
         console.log('WatchlistManager: Watchlist after toggle:', this.watchlist.map(i => i.symbol));
+    }
+    
+    /**
+     * Get stock name from various sources
+     * @param {string} symbol - Stock symbol
+     * @returns {string} Stock name
+     */
+    getStockName(symbol) {
+        // Try to get name from popular stocks
+        const popularStocks = window.stockManager?.getPopularStocks() || [];
+        const stock = popularStocks.find(s => s.symbol === symbol);
+        if (stock?.name) {
+            return stock.name;
+        }
+        
+        // Try to get name from search results
+        const searchResults = window.stockManager?.getSearchResults() || [];
+        const searchResult = searchResults.find(s => s.symbol === symbol);
+        if (searchResult?.name) {
+            return searchResult.name;
+        }
+        
+        // Try to get name from current watchlist (if editing)
+        const watchlistItem = this.watchlist.find(item => item.symbol === symbol);
+        if (watchlistItem?.name && watchlistItem.name !== symbol) {
+            return watchlistItem.name;
+        }
+        
+        // Fallback to symbol - use a more readable format
+        return this.formatSymbolAsName(symbol);
+    }
+    
+    /**
+     * Format symbol as a readable name
+     * @param {string} symbol - Stock symbol
+     * @returns {string} Formatted name
+     */
+    formatSymbolAsName(symbol) {
+        // Common stock name mappings
+        const stockNames = {
+            'AAPL': 'Apple Inc.',
+            'MSFT': 'Microsoft Corporation',
+            'GOOGL': 'Alphabet Inc.',
+            'AMZN': 'Amazon.com Inc.',
+            'NVDA': 'NVIDIA Corporation',
+            'META': 'Meta Platforms Inc.',
+            'TSLA': 'Tesla Inc.',
+            'JPM': 'JPMorgan Chase & Co.',
+            'V': 'Visa Inc.',
+            'JNJ': 'Johnson & Johnson',
+            'WMT': 'Walmart Inc.',
+            'PG': 'Procter & Gamble Co.',
+            'MA': 'Mastercard Inc.',
+            'HD': 'The Home Depot Inc.',
+            'DIS': 'The Walt Disney Company',
+            'NFLX': 'Netflix Inc.',
+            'ADBE': 'Adobe Inc.',
+            'CRM': 'Salesforce Inc.',
+            'PYPL': 'PayPal Holdings Inc.',
+            'INTC': 'Intel Corporation',
+            'AMD': 'Advanced Micro Devices Inc.',
+            'QCOM': 'Qualcomm Inc.',
+            'TXN': 'Texas Instruments Inc.',
+            'NKE': 'Nike Inc.',
+            'MCD': "McDonald's Corporation",
+            'KO': 'The Coca-Cola Company',
+            'PEP': 'PepsiCo Inc.',
+            'COST': 'Costco Wholesale Corporation',
+            'MRK': 'Merck & Co. Inc.',
+            'ABBV': 'AbbVie Inc.',
+            'LLY': 'Eli Lilly and Company',
+            'UNH': 'UnitedHealth Group Inc.',
+            'GS': 'Goldman Sachs Group Inc.',
+            'BAC': 'Bank of America Corp.',
+            'C': 'Citigroup Inc.',
+            'WFC': 'Wells Fargo & Company',
+            'MS': 'Morgan Stanley',
+            'BLK': 'BlackRock Inc.',
+            'SCHW': 'Charles Schwab Corporation',
+            'AXP': 'American Express Company',
+            'USB': 'U.S. Bancorp',
+            'PNC': 'PNC Financial Services Group',
+            'TFC': 'Truist Financial Corporation',
+            'COF': 'Capital One Financial Corp.',
+            'SPGI': 'S&P Global Inc.',
+            'MCO': "Moody's Corporation",
+            'CME': 'CME Group Inc.',
+            'ICE': 'Intercontinental Exchange Inc.',
+            'MSCI': 'MSCI Inc.',
+            'NDAQ': 'Nasdaq Inc.',
+            'CBRE': 'CBRE Group Inc.',
+            'DHI': 'D.R. Horton Inc.',
+            'LEN': 'Lennar Corporation',
+            'PLD': 'Prologis Inc.',
+            'AMT': 'American Tower Corporation',
+            'EQIX': 'Equinix Inc.',
+            'CCI': 'Crown Castle Inc.',
+            'PSA': 'Public Storage',
+            'SPG': 'Simon Property Group Inc.',
+            'O': 'Realty Income Corporation',
+            'WELL': 'Welltower Inc.',
+            'HCP': 'Healthpeak Properties Inc.',
+            'VTR': 'Ventas Inc.',
+            'SNY': 'Sanofi',
+            'NVS': 'Novartis AG',
+            'AZN': 'AstraZeneca PLC',
+            'BMY': 'Bristol-Myers Squibb Company',
+            'MRK_EU': 'Merck KGaA',
+            'GSK': 'GSK PLC',
+            'CVS': 'CVS Health Corporation',
+            'CI': 'Cigna Group',
+            'ELV': 'Elevance Health Inc.',
+            'HUM': 'Humana Inc.',
+            'CNC': 'Centene Corporation',
+            'UNH': 'UnitedHealth Group Inc.',
+            'BC': 'Brunswick Corporation',
+            'MAR': 'Marriott International Inc.',
+            'HLT': 'Hilton Worldwide Holdings Inc.',
+            'H': 'Hyatt Hotels Corporation',
+            'CCL': 'Carnival Corporation',
+            'RCL': 'Royal Caribbean Cruises Ltd.',
+            'NCLH': 'Norwegian Cruise Line Holdings Ltd.',
+            'DAL': 'Delta Air Lines Inc.',
+            'UAL': 'United Airlines Holdings Inc.',
+            'AAL': 'American Airlines Group Inc.',
+            'LUV': 'Southwest Airlines Co.',
+            'ALK': 'Alaska Air Group Inc.',
+            'GE': 'General Electric Company',
+            'BA': 'The Boeing Company',
+            'RTX': 'RTX Corporation',
+            'LMT': 'Lockheed Martin Corporation',
+            'NOC': 'Northrop Grumman Corporation',
+            'GD': 'General Dynamics Corporation',
+            'CAT': 'Caterpillar Inc.',
+            'DE': 'Deere & Company',
+            'MMM': '3M Company',
+            'HON': 'Honeywell International Inc.',
+            'UPS': 'United Parcel Service Inc.',
+            'FDX': 'FedEx Corporation',
+            'FDX': 'FedEx Corporation',
+        };
+        
+        return stockNames[symbol] || symbol;
     }
 
     /**
@@ -663,27 +804,28 @@ class WatchlistManager {
         const notes = document.getElementById('editNotes').value;
         const alertPrice = document.getElementById('editAlertPrice').value;
 
-        // Get the original item to preserve name
+        // Get the original item to preserve all data
         const originalItem = this.watchlist.find(item => item.symbol === symbol);
+        if (!originalItem) return;
         
-        // Remove old item
-        await this.removeFromWatchlist(symbol);
+        // Update the item directly instead of remove/add (preserves addedAt)
+        originalItem.notes = notes;
+        originalItem.alertPrice = alertPrice ? parseFloat(alertPrice) : null;
         
-        // Add updated item with preserved name
-        const stockData = {
-            symbol: symbol,
-            name: originalItem?.name || symbol,
-            notes: notes,
-            alertPrice: alertPrice ? parseFloat(alertPrice) : null
-        };
-
-        await this.addToWatchlist(stockData);
+        // Save to localStorage
+        await this.dataManager.saveWatchlistToLocalStorage(this.watchlist);
+        
+        // Re-render
+        this.renderWatchlist();
+        this.updateStockCardWatchlistButtons(symbol);
         
         // Close modal
         const modal = document.querySelector('.watchlist-modal-overlay');
         if (modal) {
             modal.remove();
         }
+        
+        this.showNotification(`${symbol} updated successfully`, 'success');
     }
 
     /**
