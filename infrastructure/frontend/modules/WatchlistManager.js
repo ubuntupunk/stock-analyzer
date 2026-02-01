@@ -183,31 +183,88 @@ class WatchlistManager {
     }
 
     /**
+     * Format currency
+     * @param {number} value - Value to format
+     * @returns {string} Formatted currency
+     */
+    formatCurrency(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2
+        }).format(value);
+    }
+
+    /**
+     * Format date
+     * @param {string} dateString - Date string
+     * @returns {string} Formatted date
+     */
+    formatDate(dateString) {
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        } catch (error) {
+            return dateString;
+        }
+    }
+
+    /**
+     * Update watchlist count
+     * @param {number} count - Count to display
+     */
+    updateWatchlistCount(count) {
+        const countEl = document.getElementById('watchlistCount');
+        if (countEl) {
+            countEl.textContent = count;
+        }
+    }
+
+    /**
+     * Update watchlist timestamp
+     */
+    updateWatchlistTimestamp() {
+        const timestampEl = document.getElementById('watchlistUpdated');
+        if (timestampEl) {
+            const now = new Date();
+            timestampEl.textContent = now.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    }
+
+    /**
      * Render watchlist in the UI
      */
     renderWatchlist() {
+        const container = document.getElementById('watchlistContainer');
         const grid = document.getElementById('watchlistGrid');
-        if (!grid) return;
+        const empty = document.getElementById('watchlistEmpty');
+        
+        if (!container) return;
 
         if (this.watchlist.length === 0) {
-            grid.innerHTML = `
-                <div class="empty-watchlist">
-                    <i class="fas fa-star"></i>
-                    <h3>Your watchlist is empty</h3>
-                    <p>Add stocks to track their performance</p>
-                    <button class="btn-primary" onclick="window.watchlistManager.showAddToWatchlistDialog()">
-                        <i class="fas fa-plus"></i> Add Stock
-                    </button>
-                </div>
-            `;
+            if (empty) empty.style.display = 'block';
+            if (grid) grid.style.display = 'none';
+            this.updateWatchlistCount(0);
             return;
         }
+
+        if (empty) empty.style.display = 'none';
+        if (grid) grid.style.display = 'grid';
 
         const watchlistHtml = this.watchlist.map(item => `
             <div class="watchlist-item" data-symbol="${item.symbol}">
                 <div class="watchlist-header">
-                    <div class="watchlist-symbol">${item.symbol}</div>
-                    <div class="watchlist-name">${item.name}</div>
+                    <div class="watchlist-symbol">
+                        <span class="symbol">${item.symbol}</span>
+                        <span class="name">${item.name}</span>
+                    </div>
                     <button class="watchlist-remove" onclick="window.watchlistManager.removeFromWatchlist('${item.symbol}')" title="Remove from watchlist">
                         <i class="fas fa-times"></i>
                     </button>
@@ -221,14 +278,18 @@ class WatchlistManager {
                     </div>
                     ${item.alertPrice ? `
                         <div class="watchlist-alert">
-                            Alert: ${Formatters.formatStockPrice(item.alertPrice)}
+                            <i class="fas fa-bell"></i> Alert: ${this.formatCurrency(item.alertPrice)}
                         </div>
                     ` : ''}
                     ${item.notes ? `
-                        <div class="watchlist-notes">${item.notes}</div>
+                        <div class="watchlist-notes">
+                            <i class="fas fa-sticky-note"></i> ${item.notes}
+                        </div>
                     ` : ''}
                     <div class="watchlist-meta">
-                        Added: ${Formatters.formatDate(item.addedAt, 'short')}
+                        <span class="added-date">
+                            <i class="fas fa-calendar-plus"></i> Added: ${this.formatDate(item.addedAt)}
+                        </span>
                     </div>
                 </div>
                 <div class="watchlist-actions">
@@ -243,6 +304,12 @@ class WatchlistManager {
         `).join('');
 
         grid.innerHTML = watchlistHtml;
+        
+        // Update count
+        this.updateWatchlistCount(this.watchlist.length);
+        
+        // Update timestamp
+        this.updateWatchlistTimestamp();
 
         // Load prices for all watchlist items
         this.loadWatchlistPrices();

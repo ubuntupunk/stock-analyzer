@@ -175,9 +175,94 @@ class DataManager {
             return watchlist;
 
         } catch (error) {
-            console.error('Failed to load watchlist:', error);
-            this.eventBus.emit('watchlist:error', { error: error.message });
-            throw error;
+            console.warn('Failed to load watchlist from API, falling back to localStorage:', error);
+            
+            // Fallback to localStorage
+            const localWatchlist = this.loadWatchlistFromLocalStorage();
+            this.eventBus.emit('watchlist:loaded', { watchlist: localWatchlist });
+            return localWatchlist;
+        }
+    }
+
+    /**
+     * Load watchlist from localStorage
+     * @returns {Array} Watchlist data
+     */
+    loadWatchlistFromLocalStorage() {
+        try {
+            const data = localStorage.getItem('stock_analyzer_watchlist');
+            if (data) {
+                return JSON.parse(data);
+            }
+            
+            // If no data exists, seed with sample watchlist
+            const sampleWatchlist = this.getSampleWatchlistData();
+            this.saveWatchlistToLocalStorage(sampleWatchlist);
+            return sampleWatchlist;
+        } catch (error) {
+            console.error('Failed to load watchlist from localStorage:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get sample watchlist data for demo purposes
+     * @returns {Array} Sample watchlist data
+     */
+    getSampleWatchlistData() {
+        return [
+            {
+                symbol: 'AAPL',
+                name: 'Apple Inc.',
+                addedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                notes: 'Strong tech stock, good dividends',
+                alertPrice: null,
+                tags: ['tech', 'dividend']
+            },
+            {
+                symbol: 'MSFT',
+                name: 'Microsoft Corporation',
+                addedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                notes: 'Cloud computing leader',
+                alertPrice: 400,
+                tags: ['tech', 'cloud']
+            },
+            {
+                symbol: 'GOOGL',
+                name: 'Alphabet Inc.',
+                addedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                notes: 'Google parent company',
+                alertPrice: null,
+                tags: ['tech', 'ai']
+            },
+            {
+                symbol: 'AMZN',
+                name: 'Amazon.com Inc.',
+                addedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                notes: 'E-commerce and cloud giant',
+                alertPrice: 180,
+                tags: ['tech', 'ecommerce']
+            },
+            {
+                symbol: 'NVDA',
+                name: 'NVIDIA Corporation',
+                addedAt: new Date().toISOString(),
+                notes: 'AI and GPU leader',
+                alertPrice: null,
+                tags: ['tech', 'ai', 'gpu']
+            }
+        ];
+    }
+
+    /**
+     * Save watchlist to localStorage
+     * @param {Array} watchlist - Watchlist data to save
+     */
+    saveWatchlistToLocalStorage(watchlist) {
+        try {
+            localStorage.setItem('stock_analyzer_watchlist', JSON.stringify(watchlist));
+        } catch (error) {
+            console.error('Failed to save watchlist to localStorage:', error);
         }
     }
 
@@ -204,9 +289,28 @@ class DataManager {
             return result;
 
         } catch (error) {
-            console.error('Failed to add to watchlist:', error);
-            this.eventBus.emit('watchlist:error', { error: error.message });
-            throw error;
+            console.warn('Failed to add to watchlist via API, saving to localStorage:', error);
+            
+            // Fallback to localStorage
+            const watchlist = this.loadWatchlistFromLocalStorage();
+            
+            // Check if already exists
+            const exists = watchlist.some(item => item.symbol === stockData.symbol);
+            if (!exists) {
+                const watchlistItem = {
+                    symbol: stockData.symbol,
+                    name: stockData.name || stockData.symbol,
+                    addedAt: new Date().toISOString(),
+                    notes: stockData.notes || '',
+                    alertPrice: stockData.alertPrice || null,
+                    tags: stockData.tags || []
+                };
+                watchlist.push(watchlistItem);
+                this.saveWatchlistToLocalStorage(watchlist);
+            }
+            
+            this.eventBus.emit('watchlist:added', { stockData, result: { success: true, local: true } });
+            return { success: true, local: true };
         }
     }
 
@@ -228,9 +332,15 @@ class DataManager {
             return result;
 
         } catch (error) {
-            console.error('Failed to remove from watchlist:', error);
-            this.eventBus.emit('watchlist:error', { error: error.message });
-            throw error;
+            console.warn('Failed to remove from watchlist via API, removing from localStorage:', error);
+            
+            // Fallback to localStorage
+            let watchlist = this.loadWatchlistFromLocalStorage();
+            watchlist = watchlist.filter(item => item.symbol !== symbol);
+            this.saveWatchlistToLocalStorage(watchlist);
+            
+            this.eventBus.emit('watchlist:removed', { symbol, result: { success: true, local: true } });
+            return { success: true, local: true };
         }
     }
 
