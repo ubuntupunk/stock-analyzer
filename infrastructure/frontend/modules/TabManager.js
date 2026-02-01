@@ -674,7 +674,8 @@ class TabManager {
     async loadWatchlistData() {
         console.log('TabManager: loadWatchlistData called');
         try {
-            await this.dataManager.loadWatchlist();
+            // Call watchlistManager.loadWatchlist() which properly renders the UI
+            await window.watchlistManager?.loadWatchlist();
         } catch (error) {
             console.error('TabManager: Failed to load watchlist data:', error);
         }

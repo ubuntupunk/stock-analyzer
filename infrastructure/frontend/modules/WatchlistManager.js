@@ -166,20 +166,26 @@ class WatchlistManager {
      * @param {string} symbol - Stock symbol to toggle
      */
     async toggleWatchlist(symbol) {
+        console.log('WatchlistManager: toggleWatchlist called for:', symbol);
+        console.log('WatchlistManager: Current watchlist before toggle:', this.watchlist.map(i => i.symbol));
+        
         const isOnWatchlist = this.watchlist.some(item => item.symbol === symbol);
+        console.log('WatchlistManager: Is on watchlist?', isOnWatchlist);
         
         if (isOnWatchlist) {
             await this.removeFromWatchlist(symbol);
         } else {
             const stockData = {
                 symbol: symbol,
-                name: symbol, // Will be updated with real name
+                name: symbol,
                 notes: '',
                 alertPrice: null,
                 tags: []
             };
             await this.addToWatchlist(stockData);
         }
+        
+        console.log('WatchlistManager: Watchlist after toggle:', this.watchlist.map(i => i.symbol));
     }
 
     /**
