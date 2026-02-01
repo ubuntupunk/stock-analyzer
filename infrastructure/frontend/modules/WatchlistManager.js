@@ -77,15 +77,26 @@ class WatchlistManager {
         try {
             this.eventBus.emit('watchlist:loading');
             
+            console.log('WatchlistManager: Loading watchlist...');
+            
             const watchlistData = await this.dataManager.loadWatchlist();
             this.watchlist = watchlistData || [];
+            
+            console.log('WatchlistManager: Loaded watchlist:', this.watchlist.length, 'items');
+            console.log('WatchlistManager: Watchlist contents:', this.watchlist.map(i => `${i.symbol} - ${i.name || 'no name'}`).join(', '));
+            
+            // Ensure all items have proper names
+            this.watchlist = this.watchlist.map(item => ({
+                ...item,
+                name: item.name || this.getStockName(item.symbol)
+            }));
             
             this.renderWatchlist();
             this.updateAllWatchlistButtons();
             
             this.eventBus.emit('watchlist:loaded', { watchlist: this.watchlist });
         } catch (error) {
-            console.error('Failed to load watchlist:', error);
+            console.error('WatchlistManager: Failed to load watchlist:', error);
             this.eventBus.emit('watchlist:error', { error: error.message });
         }
     }
@@ -396,7 +407,7 @@ class WatchlistManager {
     /**
      * Render watchlist in the UI
      */
-    renderWatchlist() {
+    async renderWatchlist() {
         const container = document.getElementById('watchlistContainer');
         const grid = document.getElementById('watchlistGrid');
         const empty = document.getElementById('watchlistEmpty');
@@ -413,12 +424,17 @@ class WatchlistManager {
         if (empty) empty.style.display = 'none';
         if (grid) grid.style.display = 'grid';
 
-        const watchlistHtml = this.watchlist.map(item => `
+        // Build watchlist HTML
+        const watchlistHtml = this.watchlist.map(item => {
+            // Ensure name is set
+            const displayName = item.name || this.getStockName(item.symbol);
+            
+            return `
             <div class="watchlist-item" data-symbol="${item.symbol}">
                 <div class="watchlist-header">
                     <div class="watchlist-symbol">
                         <span class="symbol">${item.symbol}</span>
-                        <span class="name">${item.name}</span>
+                        <span class="name">${displayName}</span>
                     </div>
                     <button class="watchlist-remove" onclick="window.watchlistManager.removeFromWatchlist('${item.symbol}')" title="Remove from watchlist">
                         <i class="fas fa-times"></i>
@@ -456,10 +472,10 @@ class WatchlistManager {
                     </button>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
 
         grid.innerHTML = watchlistHtml;
-        
+
         // Update count
         this.updateWatchlistCount(this.watchlist.length);
         
