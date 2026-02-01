@@ -295,6 +295,29 @@
 // ============================================
 
 .watchlist-modal {
+  // The vertical rectangle card container
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-xl);
+  max-width: 420px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
   &-overlay {
     position: fixed;
     top: 0;
@@ -307,30 +330,11 @@
     justify-content: center;
     z-index: 10000;
     animation: fadeIn 0.2s ease-out;
+    padding: var(--spacing-lg);
     
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
-    }
-  }
-  
-  &-content {
-    background-color: var(--bg-white);
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-xl);
-    max-width: 400px;
-    width: 90%;
-    animation: slideUp 0.3s ease-out;
-    
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
     }
   }
   
@@ -340,11 +344,13 @@
     align-items: center;
     padding: var(--spacing-lg);
     border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
     
     h3 {
       margin: 0;
       color: var(--primary-color);
       font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
     }
   }
   
@@ -367,6 +373,8 @@
   
   &-body {
     padding: var(--spacing-lg);
+    overflow-y: auto;
+    flex: 1;
     
     .form-group {
       margin-bottom: var(--spacing-md);
@@ -391,6 +399,7 @@
         font-size: var(--font-size-base);
         transition: border-color var(--transition-fast);
         background-color: var(--bg-white);
+        box-sizing: border-box;
         
         &:focus {
           outline: none;
@@ -400,6 +409,7 @@
         &:read-only {
           background-color: var(--bg-light);
           cursor: not-allowed;
+          color: var(--text-secondary);
         }
       }
     }
@@ -412,6 +422,6 @@
     padding: var(--spacing-lg);
     border-top: 1px solid var(--border-color);
     background-color: var(--bg-light);
-    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+    flex-shrink: 0;
   }
 }

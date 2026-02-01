@@ -606,43 +606,46 @@ class WatchlistManager {
         if (!item) return;
 
         // Create edit modal with overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'watchlist-modal-overlay';
+        
+        // Create the modal card (vertical rectangle)
         const modal = document.createElement('div');
-        modal.className = 'watchlist-modal-overlay';
+        modal.className = 'watchlist-modal';
         modal.innerHTML = `
-            <div class="watchlist-modal">
-                <div class="watchlist-modal-header">
-                    <h3>Edit ${item.symbol}</h3>
-                    <button class="watchlist-modal-close" onclick="this.closest('.watchlist-modal-overlay').remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
+            <div class="watchlist-modal-header">
+                <h3>Edit ${item.symbol}</h3>
+                <button class="watchlist-modal-close" onclick="this.closest('.watchlist-modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="watchlist-modal-body">
+                <div class="form-group">
+                    <label>Stock Symbol</label>
+                    <input type="text" class="form-control" value="${item.symbol}" readonly>
                 </div>
-                <div class="watchlist-modal-body">
-                    <div class="form-group">
-                        <label>Stock Symbol</label>
-                        <input type="text" class="form-control" value="${item.symbol}" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Notes</label>
-                        <textarea id="editNotes" class="form-control" rows="3" placeholder="Add notes about this stock...">${item.notes || ''}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Price Alert ($)</label>
-                        <input type="number" id="editAlertPrice" class="form-control" value="${item.alertPrice || ''}" step="0.01" placeholder="Alert when price reaches...">
-                    </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="editNotes" class="form-control" rows="3" placeholder="Add notes about this stock...">${item.notes || ''}</textarea>
                 </div>
-                <div class="watchlist-modal-footer">
-                    <button class="btn-secondary" onclick="this.closest('.watchlist-modal-overlay').remove()">Cancel</button>
-                    <button class="btn-primary" onclick="window.watchlistManager.handleEditWatchlistItem('${symbol}')">Save Changes</button>
+                <div class="form-group">
+                    <label>Price Alert ($)</label>
+                    <input type="number" id="editAlertPrice" class="form-control" value="${item.alertPrice || ''}" step="0.01" placeholder="Alert when price reaches...">
                 </div>
+            </div>
+            <div class="watchlist-modal-footer">
+                <button class="btn-secondary" onclick="this.closest('.watchlist-modal-overlay').remove()">Cancel</button>
+                <button class="btn-primary" onclick="window.watchlistManager.handleEditWatchlistItem('${symbol}')">Save Changes</button>
             </div>
         `;
 
-        document.body.appendChild(modal);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
         
         // Add click handler to close on overlay click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
             }
         });
         
