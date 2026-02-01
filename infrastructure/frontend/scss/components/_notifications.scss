@@ -4,13 +4,13 @@
 
 .notification {
   position: fixed;
-  top: $spacing-lg;
-  right: $spacing-lg;
-  padding: $spacing-md $spacing-lg;
-  background-color: $bg-white;
-  border-radius: $border-radius-md;
-  box-shadow: $shadow-lg;
-  z-index: $z-tooltip;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-tooltip);
   max-width: 350px;
   display: none;
   animation: slideIn 0.3s ease;
@@ -20,30 +20,30 @@
   }
   
   &.success {
-    border-left: 4px solid $success-color;
+    border-left: 4px solid var(--success-color);
   }
   
   &.error {
-    border-left: 4px solid $danger-color;
+    border-left: 4px solid var(--danger-color);
   }
   
   &.warning {
-    border-left: 4px solid $warning-color;
+    border-left: 4px solid var(--warning-color);
   }
   
   &.info {
-    border-left: 4px solid $info-color;
+    border-left: 4px solid var(--info-color);
   }
 }
 
 .notification-title {
-  font-weight: $font-weight-semibold;
-  margin-bottom: $spacing-xs;
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-xs);
 }
 
 .notification-message {
-  font-size: $font-size-sm;
-  color: $text-secondary;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 @keyframes slideIn {
@@ -59,22 +59,22 @@
 
 .empty-message {
   text-align: center;
-  color: $text-secondary;
-  padding: $spacing-2xl;
-  font-size: $font-size-lg;
+  color: var(--text-secondary);
+  padding: var(--spacing-2xl);
+  font-size: var(--font-size-lg);
 }
 
 .success-message {
-  color: $success-color;
-  font-weight: $font-weight-medium;
+  color: var(--success-color);
+  font-weight: var(--font-weight-medium);
 }
 
 .error-message {
-  color: $danger-color;
-  font-weight: $font-weight-medium;
+  color: var(--danger-color);
+  font-weight: var(--font-weight-medium);
 }
 
 .warning-message {
-  color: $warning-color;
-  font-weight: $font-weight-medium;
+  color: var(--warning-color);
+  font-weight: var(--font-weight-medium);
 }

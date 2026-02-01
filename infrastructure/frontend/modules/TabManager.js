@@ -41,7 +41,7 @@ class TabManager {
         console.log('TabManager: switchTab called with:', tabName);
         
         // Update tab buttons
-        document.querySelectorAll('.tab').forEach(tab => {
+        document.querySelectorAll('.tab-btn').forEach(tab => {
             tab.classList.remove('active');
         });
         const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
@@ -318,7 +318,7 @@ class TabManager {
      */
     updateTabButtons(activeTabName) {
         // Remove active class from all tabs
-        document.querySelectorAll('.tab').forEach(tab => {
+        document.querySelectorAll('.tab-btn').forEach(tab => {
             tab.classList.remove('active');
         });
 
@@ -444,7 +444,7 @@ class TabManager {
         console.log('TabManager: setupTabHandlers called');
         // Wait a moment for DOM to be ready
         setTimeout(() => {
-            const tabs = document.querySelectorAll('.tab');
+            const tabs = document.querySelectorAll('.tab-btn');
             console.log('TabManager: Found', tabs.length, 'tab elements');
             
             if (tabs.length === 0) {
@@ -537,7 +537,7 @@ class TabManager {
      * @returns {object} Tab statistics
      */
     getTabStats() {
-        const tabs = document.querySelectorAll('.tab');
+        const tabs = document.querySelectorAll('.tab-btn');
         const stats = {
             total: tabs.length,
             active: 0,

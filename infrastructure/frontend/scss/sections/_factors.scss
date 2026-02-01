@@ -4,14 +4,14 @@
 
 .factor-header {
   text-align: center;
-  padding: $spacing-xl;
-  background-color: $primary-color;
+  padding: var(--spacing-xl);
+  background-color: var(--primary-color);
   color: white;
-  border-radius: $border-radius-lg;
-  margin-bottom: $spacing-xl;
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--spacing-xl);
   
   h2 {
-    margin-bottom: $spacing-md;
+    margin-bottom: var(--spacing-md);
     color: white;
   }
   
@@ -22,15 +22,15 @@
 }
 
 .add-factor-btn {
-  margin-top: $spacing-lg;
-  padding: $spacing-md $spacing-xl;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-xl);
   background-color: white;
   border: none;
   border-radius: 25px;
   cursor: pointer;
-  font-size: $font-size-xl;
-  color: $primary-color;
-  transition: transform $transition-base;
+  font-size: var(--font-size-xl);
+  color: var(--primary-color);
+  transition: transform var(--transition-base);
   
   &:hover {
     transform: scale(1.1);
@@ -38,20 +38,20 @@
 }
 
 .factors-list {
-  padding: $spacing-xl;
-  background-color: $secondary-color;
-  border-radius: $border-radius-lg;
+  padding: var(--spacing-xl);
+  background-color: var(--secondary-color);
+  border-radius: var(--border-radius-lg);
 }
 
 .factor-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: $spacing-lg;
-  padding: $spacing-lg;
-  background-color: $bg-white;
-  border-radius: $border-radius-md;
-  margin-bottom: $spacing-md;
-  box-shadow: $shadow-sm;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
   align-items: center;
   
   &:last-child {
@@ -59,37 +59,37 @@
   }
   
   .factor-name {
-    font-weight: $font-weight-semibold;
-    color: $text-primary;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
   }
   
   .factor-value {
-    font-weight: $font-weight-bold;
-    color: $primary-color;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary-color);
   }
   
   .factor-comparison {
     display: flex;
     align-items: center;
-    gap: $spacing-sm;
+    gap: var(--spacing-sm);
     
     .comparison-bar {
       flex: 1;
       height: 8px;
-      background-color: $bg-light;
+      background-color: var(--bg-light);
       border-radius: 4px;
       overflow: hidden;
       
       .fill {
         height: 100%;
-        background-color: $primary-color;
+        background-color: var(--primary-color);
         border-radius: 4px;
       }
     }
     
     .comparison-value {
-      font-size: $font-size-sm;
-      color: $text-secondary;
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
       min-width: 50px;
     }
   }
@@ -97,54 +97,54 @@
   .factor-controls {
     display: flex;
     justify-content: flex-end;
-    gap: $spacing-sm;
+    gap: var(--spacing-sm);
   }
 }
 
 .factor-operator {
   display: inline-block;
-  padding: $spacing-xs $spacing-sm;
-  background-color: $primary-color;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--primary-color);
   color: white;
-  border-radius: $border-radius-sm;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .factor-value-input {
   width: 80px;
-  padding: $spacing-xs $spacing-sm;
-  border: 2px solid $border-color;
-  border-radius: $border-radius-sm;
-  font-size: $font-size-sm;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
   text-align: center;
   
   &:focus {
     outline: none;
-    border-color: $primary-color;
+    border-color: var(--primary-color);
   }
 }
 
 .remove-factor-btn {
-  padding: $spacing-xs $spacing-sm;
+  padding: var(--spacing-xs) var(--spacing-sm);
   background-color: transparent;
-  color: $danger-color;
-  border: 1px solid $danger-color;
-  border-radius: $border-radius-sm;
+  color: var(--danger-color);
+  border: 1px solid var(--danger-color);
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
-  font-size: $font-size-sm;
-  transition: all $transition-fast;
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-fast);
   
   &:hover {
-    background-color: $danger-color;
+    background-color: var(--danger-color);
     color: white;
   }
 }
 
 .factors-results {
-  margin-top: $spacing-xl;
-  padding: $spacing-xl;
-  background-color: $bg-white;
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow-sm;
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-xl);
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
 }

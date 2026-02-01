@@ -3,20 +3,25 @@
 // ============================================
 
 .content-section {
-  background-color: $bg-white;
-  border-radius: $border-radius-lg;
-  padding: $spacing-xl;
-  margin-bottom: $spacing-xl;
-  box-shadow: $shadow-sm;
-  border: 1px solid $border-color;
+  display: none;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  
+  &.active {
+    display: block;
+  }
 }
 
 .main-content {
   flex: 1;
-  padding: $spacing-xl;
+  padding: var(--spacing-xl);
   max-width: 100%;
   overflow-x: hidden;
-  background-color: $bg-light;
+  background-color: var(--bg-light);
   min-height: calc(100vh - 100px);
 }
 
@@ -36,14 +41,14 @@
 }
 
 .page-header {
-  margin-bottom: $spacing-xl;
+  margin-bottom: var(--spacing-xl);
   
   h1, h2 {
-    margin-bottom: $spacing-sm;
+    margin-bottom: var(--spacing-sm);
   }
   
   p {
-    color: $text-secondary;
+    color: var(--text-secondary);
     margin-bottom: 0;
   }
 }
@@ -52,12 +57,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-lg;
-  padding-bottom: $spacing-md;
-  border-bottom: 2px solid $primary-color;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--primary-color);
   
   h2 {
     margin: 0;
-    color: $primary-color;
+    color: var(--primary-color);
   }
 }

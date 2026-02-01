@@ -2,56 +2,58 @@
 // Watchlist Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .watchlist {
   &-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: $spacing-xl;
-    padding-bottom: $spacing-md;
-    border-bottom: 2px solid $primary-color;
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--primary-color);
     
     h2 {
       margin: 0;
-      color: $primary-color;
+      color: var(--primary-color);
     }
   }
   
   &-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: $spacing-lg;
+    gap: var(--spacing-lg);
   }
   
   &-table {
     width: 100%;
     border-collapse: collapse;
-    background-color: $bg-white;
-    border-radius: $border-radius-lg;
+    background-color: var(--bg-white);
+    border-radius: var(--border-radius-lg);
     overflow: hidden;
-    box-shadow: $shadow-sm;
+    box-shadow: var(--shadow-sm);
     
     th, td {
-      padding: $spacing-md;
+      padding: var(--spacing-md);
       text-align: left;
-      border-bottom: 1px solid $border-color;
+      border-bottom: 1px solid var(--border-color);
     }
     
     th {
-      background-color: $bg-light;
-      font-weight: $font-weight-semibold;
+      background-color: var(--bg-light);
+      font-weight: var(--font-weight-semibold);
     }
     
     .stock-symbol {
-      font-weight: $font-weight-bold;
-      color: $primary-color;
+      font-weight: var(--font-weight-bold);
+      color: var(--primary-color);
     }
     
     .stock-change {
-      font-weight: $font-weight-medium;
+      font-weight: var(--font-weight-medium);
       
-      &.positive { color: $success-color; }
-      &.negative { color: $danger-color; }
+      &.positive { color: var(--success-color); }
+      &.negative { color: var(--danger-color); }
     }
     
     tr:last-child td {
@@ -59,55 +61,55 @@
     }
     
     tr:hover td {
-      background-color: $bg-hover;
+      background-color: var(--bg-hover);
     }
   }
 }
 
 .watchlist-card {
   @include card;
-  padding: $spacing-lg;
+  padding: var(--spacing-lg);
   position: relative;
   
   .remove-btn {
     position: absolute;
-    top: $spacing-sm;
-    right: $spacing-sm;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
     background: none;
     border: none;
-    color: $text-muted;
+    color: var(--text-muted);
     cursor: pointer;
-    font-size: $font-size-lg;
-    transition: color $transition-fast;
+    font-size: var(--font-size-lg);
+    transition: color var(--transition-fast);
     
     &:hover {
-      color: $danger-color;
+      color: var(--danger-color);
     }
   }
   
   .stock-symbol {
-    font-size: $font-size-xl;
-    font-weight: $font-weight-bold;
-    color: $primary-color;
-    margin-bottom: $spacing-xs;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-xs);
   }
   
   .stock-name {
-    font-size: $font-size-sm;
-    color: $text-secondary;
-    margin-bottom: $spacing-md;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
   }
   
   .stock-price {
-    font-size: $font-size-2xl;
-    font-weight: $font-weight-bold;
-    margin-bottom: $spacing-sm;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-sm);
   }
   
   .stock-change {
-    font-weight: $font-weight-medium;
+    font-weight: var(--font-weight-medium);
     
-    &.positive { color: $success-color; }
-    &.negative { color: $danger-color; }
+    &.positive { color: var(--success-color); }
+    &.negative { color: var(--danger-color); }
   }
 }

@@ -3,71 +3,71 @@
 // ============================================
 
 .dcf-section {
-  background-color: $bg-white;
-  border-radius: $border-radius-lg;
-  padding: $spacing-xl;
-  margin-bottom: $spacing-xl;
-  box-shadow: $shadow-sm;
-  border: 1px solid $border-color;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
   
   h3 {
-    color: $primary-color;
-    margin-bottom: $spacing-lg;
-    padding-bottom: $spacing-sm;
-    border-bottom: 2px solid $primary-color;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid var(--primary-color);
   }
 }
 
 .dcf-inputs {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: $spacing-lg;
-  margin-bottom: $spacing-xl;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .dcf-result {
   text-align: center;
-  padding: $spacing-2xl;
-  background-color: $bg-light;
-  border-radius: $border-radius-lg;
-  border: 2px solid $primary-color;
+  padding: var(--spacing-2xl);
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius-lg);
+  border: 2px solid var(--primary-color);
   
   .result-label {
-    font-size: $font-size-lg;
-    color: $text-secondary;
-    margin-bottom: $spacing-md;
+    font-size: var(--font-size-lg);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
   }
   
   .result-value {
-    font-size: $font-size-4xl;
-    font-weight: $font-weight-bold;
-    color: $primary-color;
-    margin-bottom: $spacing-sm;
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-sm);
   }
   
   .result-comparison {
-    font-size: $font-size-base;
+    font-size: var(--font-size-base);
     
     &.undervalued {
-      color: $success-color;
+      color: var(--success-color);
     }
     
     &.overvalued {
-      color: $danger-color;
+      color: var(--danger-color);
     }
     
     &.fair {
-      color: $warning-color;
+      color: var(--warning-color);
     }
   }
 }
 
 .income-statement {
-  margin-top: $spacing-xl;
+  margin-top: var(--spacing-xl);
   
   h4 {
-    color: $primary-color;
-    margin-bottom: $spacing-md;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-md);
   }
 }
 
@@ -76,22 +76,22 @@
   border-collapse: collapse;
   
   th, td {
-    padding: $spacing-md;
+    padding: var(--spacing-md);
     text-align: left;
-    border-bottom: 1px solid $border-color;
+    border-bottom: 1px solid var(--border-color);
   }
   
   th {
-    background-color: $bg-light;
-    font-weight: $font-weight-semibold;
+    background-color: var(--bg-light);
+    font-weight: var(--font-weight-semibold);
   }
   
   td {
-    color: $text-secondary;
+    color: var(--text-secondary);
   }
   
   tr:hover td {
-    background-color: $bg-hover;
+    background-color: var(--bg-hover);
   }
 }
 
@@ -99,7 +99,7 @@
   position: relative;
   width: 100%;
   height: 400px;
-  margin: $spacing-xl 0;
+  margin: var(--spacing-xl) 0;
   
   canvas {
     width: 100% !important;

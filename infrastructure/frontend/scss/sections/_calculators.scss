@@ -2,48 +2,50 @@
 // Calculators Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .calculator {
   &-card {
     @include card;
-    padding: $spacing-xl;
-    margin-bottom: $spacing-xl;
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
     
     h3 {
-      color: $primary-color;
-      margin-bottom: $spacing-lg;
-      padding-bottom: $spacing-sm;
-      border-bottom: 2px solid $primary-color;
+      color: var(--primary-color);
+      margin-bottom: var(--spacing-lg);
+      padding-bottom: var(--spacing-sm);
+      border-bottom: 2px solid var(--primary-color);
     }
   }
   
   &-form {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: $spacing-lg;
-    margin-bottom: $spacing-xl;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
     
     .form-group {
       margin-bottom: 0;
       
       label {
         display: block;
-        margin-bottom: $spacing-xs;
-        font-weight: $font-weight-medium;
-        color: $text-primary;
-        font-size: $font-size-sm;
+        margin-bottom: var(--spacing-xs);
+        font-weight: var(--font-weight-medium);
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
       }
       
       .form-control {
         width: 100%;
-        padding: $spacing-sm $spacing-md;
-        border: 2px solid $border-color;
-        border-radius: $border-radius-md;
-        font-size: $font-size-base;
-        transition: border-color $transition-fast;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius-md);
+        font-size: var(--font-size-base);
+        transition: border-color var(--transition-fast);
         
         &:focus {
           outline: none;
-          border-color: $primary-color;
+          border-color: var(--primary-color);
         }
       }
     }
@@ -51,20 +53,20 @@
   
   &-result {
     text-align: center;
-    padding: $spacing-xl;
-    background-color: $bg-light;
-    border-radius: $border-radius-lg;
+    padding: var(--spacing-xl);
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius-lg);
     
     .result-value {
-      font-size: $font-size-4xl;
-      font-weight: $font-weight-bold;
-      color: $primary-color;
-      margin-bottom: $spacing-sm;
+      font-size: var(--font-size-4xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--primary-color);
+      margin-bottom: var(--spacing-sm);
     }
     
     .result-label {
-      font-size: $font-size-lg;
-      color: $text-secondary;
+      font-size: var(--font-size-lg);
+      color: var(--text-secondary);
     }
   }
 }
@@ -72,41 +74,41 @@
 .sip-calculator {
   .investment-period {
     display: flex;
-    gap: $spacing-md;
-    margin-top: $spacing-md;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
     
     .period-option {
       flex: 1;
-      padding: $spacing-md;
-      background-color: $bg-light;
-      border: 2px solid $border-color;
-      border-radius: $border-radius-md;
+      padding: var(--spacing-md);
+      background-color: var(--bg-light);
+      border: 2px solid var(--border-color);
+      border-radius: var(--border-radius-md);
       text-align: center;
       cursor: pointer;
-      transition: all $transition-fast;
+      transition: all var(--transition-fast);
       
       &:hover {
-        border-color: $primary-color;
+        border-color: var(--primary-color);
       }
       
       &.active {
-        border-color: $primary-color;
-        background-color: rgba($primary-color, 0.1);
+        border-color: var(--primary-color);
+        background-color: rgba(91, 163, 208, 0.1);
         
         .period-value {
-          color: $primary-color;
+          color: var(--primary-color);
         }
       }
       
       .period-value {
-        font-size: $font-size-xl;
-        font-weight: $font-weight-bold;
-        color: $text-primary;
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--text-primary);
       }
       
       .period-label {
-        font-size: $font-size-sm;
-        color: $text-secondary;
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
       }
     }
   }
@@ -114,30 +116,30 @@
 
 .cagr-calculator {
   .result-comparison {
-    margin-top: $spacing-lg;
-    padding: $spacing-lg;
-    background-color: $bg-white;
-    border-radius: $border-radius-md;
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background-color: var(--bg-white);
+    border-radius: var(--border-radius-md);
     
     .comparison-item {
       display: flex;
       justify-content: space-between;
-      padding: $spacing-sm 0;
-      border-bottom: 1px solid $border-color;
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px solid var(--border-color);
       
       &:last-child {
         border-bottom: none;
       }
       
       .label {
-        color: $text-secondary;
+        color: var(--text-secondary);
       }
       
       .value {
-        font-weight: $font-weight-semibold;
+        font-weight: var(--font-weight-semibold);
         
-        &.positive { color: $success-color; }
-        &.negative { color: $danger-color; }
+        &.positive { color: var(--success-color); }
+        &.negative { color: var(--danger-color); }
       }
     }
   }

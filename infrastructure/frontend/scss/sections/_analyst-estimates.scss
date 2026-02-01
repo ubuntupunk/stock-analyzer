@@ -2,35 +2,37 @@
 // Analyst Estimates Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .analyst-estimates {
   &-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: $spacing-lg;
+    gap: var(--spacing-lg);
   }
 }
 
 .estimate-card {
   @include card;
-  padding: $spacing-lg;
+  padding: var(--spacing-lg);
   text-align: center;
   
   .estimate-label {
-    font-size: $font-size-sm;
-    color: $text-secondary;
-    margin-bottom: $spacing-sm;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
   }
   
   .estimate-value {
-    font-size: $font-size-3xl;
-    font-weight: $font-weight-bold;
-    color: $primary-color;
-    margin-bottom: $spacing-sm;
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-sm);
   }
   
   .estimate-detail {
-    font-size: $font-size-sm;
-    color: $text-secondary;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
   }
 }
 
@@ -39,8 +41,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: $spacing-md;
-    border-bottom: 1px solid $border-color;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
     
     &:last-child {
       border-bottom: none;
@@ -48,31 +50,31 @@
   }
   
   .rating-firm {
-    font-weight: $font-weight-medium;
-    color: $text-primary;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
   }
   
   .rating-action {
-    font-weight: $font-weight-semibold;
+    font-weight: var(--font-weight-semibold);
     
-    &.strong-buy { color: $success-color; }
-    &.buy { color: lighten($success-color, 10%); }
-    &.hold { color: $warning-color; }
-    &.sell { color: lighten($danger-color, 10%); }
-    &.strong-sell { color: $danger-color; }
+    &.strong-buy { color: var(--success-color); }
+    &.buy { color: color-mix(in srgb, var(--success-color), white 15%); }
+    &.hold { color: var(--warning-color); }
+    &.sell { color: color-mix(in srgb, var(--danger-color), white 15%); }
+    &.strong-sell { color: var(--danger-color); }
   }
 }
 
 .rating-bar {
   height: 8px;
-  background-color: $bg-light;
+  background-color: var(--bg-light);
   border-radius: 4px;
   overflow: hidden;
-  margin-top: $spacing-sm;
+  margin-top: var(--spacing-sm);
   
   .bar-fill {
     height: 100%;
     border-radius: 4px;
-    transition: width $transition-base;
+    transition: width var(--transition-base);
   }
 }

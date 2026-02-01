@@ -3,68 +3,68 @@
 // ============================================
 
 body {
-  font-family: $font-family-base;
-  font-size: $font-size-base;
-  line-height: $line-height-base;
-  color: $text-primary;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--text-primary);
 }
 
 h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
-  margin-bottom: $spacing-md;
-  font-weight: $font-weight-bold;
-  line-height: $line-height-tight;
+  margin-bottom: var(--spacing-md);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
 }
 
 h1 {
-  font-size: $font-size-4xl;
-  color: $primary-color;
-  font-family: $font-family-base;
+  font-size: var(--font-size-4xl);
+  color: var(--primary-color);
+  font-family: var(--font-family-base);
 }
 
 h2 {
-  font-size: $font-size-3xl;
-  color: $primary-color;
-  font-family: $font-family-base;
+  font-size: var(--font-size-3xl);
+  color: var(--primary-color);
+  font-family: var(--font-family-base);
 }
 
 h3 {
-  font-size: $font-size-2xl;
-  color: $text-primary;
-  font-family: $font-family-base;
+  font-size: var(--font-size-2xl);
+  color: var(--text-primary);
+  font-family: var(--font-family-base);
 }
 
 h4 {
-  font-size: $font-size-xl;
-  color: $text-primary;
-  font-family: $font-family-base;
+  font-size: var(--font-size-xl);
+  color: var(--text-primary);
+  font-family: var(--font-family-base);
 }
 
 h5 {
-  font-size: $font-size-lg;
-  color: $text-primary;
-  font-family: $font-family-base;
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+  font-family: var(--font-family-base);
 }
 
 h6 {
-  font-size: $font-size-base;
-  color: $text-primary;
-  font-family: $font-family-base;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-family: var(--font-family-base);
 }
 
 p {
   margin-top: 0;
-  margin-bottom: $spacing-md;
+  margin-bottom: var(--spacing-md);
 }
 
 a {
-  color: $primary-color;
+  color: var(--primary-color);
   text-decoration: none;
-  font-weight: $font-weight-medium;
+  font-weight: var(--font-weight-medium);
   transition: color 0.2s ease;
-  
+
   &:hover {
-    color: darker($primary-color);
+    color: color-mix(in srgb, var(--primary-color), black 10%);
     text-decoration: underline;
   }
 }
@@ -73,27 +73,27 @@ a {
 .text-right { text-align: right; }
 .text-left { text-align: left; }
 
-.text-primary { color: $primary-color; }
-.text-secondary { color: $text-secondary; }
-.text-success { color: $success-color; }
-.text-danger { color: $danger-color; }
-.text-warning { color: $warning-color; }
-.text-muted { color: $text-muted; }
+.text-primary { color: var(--primary-color); }
+.text-secondary { color: var(--text-secondary); }
+.text-success { color: var(--success-color); }
+.text-danger { color: var(--danger-color); }
+.text-warning { color: var(--warning-color); }
+.text-muted { color: var(--text-muted); }
 
-.font-bold { font-weight: $font-weight-bold; }
-.font-semibold { font-weight: $font-weight-semibold; }
-.font-medium { font-weight: $font-weight-medium; }
-.font-normal { font-weight: $font-weight-normal; }
+.font-bold { font-weight: var(--font-weight-bold); }
+.font-semibold { font-weight: var(--font-weight-semibold); }
+.font-medium { font-weight: var(--font-weight-medium); }
+.font-normal { font-weight: var(--font-weight-normal); }
 
 .lead {
-  font-size: $font-size-xl;
-  font-weight: $font-weight-light;
-  color: $text-secondary;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-light);
+  color: var(--text-secondary);
 }
 
 .small {
-  font-size: $font-size-sm;
-  color: $text-secondary;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .text-truncate {

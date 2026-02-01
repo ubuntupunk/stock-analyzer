@@ -4,20 +4,20 @@
 
 .financials {
   &-section {
-    margin-bottom: $spacing-xl;
+    margin-bottom: var(--spacing-xl);
   }
   
   &-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: $spacing-lg;
-    padding-bottom: $spacing-md;
-    border-bottom: 2px solid $primary-color;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--primary-color);
     
     h3 {
       margin: 0;
-      color: $primary-color;
+      color: var(--primary-color);
     }
   }
 }
@@ -25,29 +25,29 @@
 .financials-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: $bg-white;
-  border-radius: $border-radius-lg;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
-  box-shadow: $shadow-sm;
+  box-shadow: var(--shadow-sm);
   
   th, td {
-    padding: $spacing-md;
+    padding: var(--spacing-md);
     text-align: left;
-    border-bottom: 1px solid $border-color;
+    border-bottom: 1px solid var(--border-color);
   }
   
   th {
-    background-color: $bg-light;
-    font-weight: $font-weight-semibold;
-    color: $text-primary;
+    background-color: var(--bg-light);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
   }
   
   td {
-    color: $text-secondary;
+    color: var(--text-secondary);
     
     &:last-child {
-      font-weight: $font-weight-medium;
-      color: $text-primary;
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
     }
   }
   
@@ -56,37 +56,37 @@
   }
   
   tr:hover td {
-    background-color: $bg-hover;
+    background-color: var(--bg-hover);
   }
 }
 
 .financials-tabs {
   display: flex;
-  border-bottom: 2px solid $border-color;
-  margin-bottom: $spacing-xl;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: var(--spacing-xl);
   overflow-x: auto;
   
   .tab-btn {
-    padding: $spacing-md $spacing-lg;
+    padding: var(--spacing-md) var(--spacing-lg);
     background: none;
     border: none;
-    color: $text-secondary;
-    font-size: $font-size-base;
-    font-weight: $font-weight-medium;
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     margin-bottom: -2px;
-    transition: all $transition-fast;
+    transition: all var(--transition-fast);
     white-space: nowrap;
     
     &:hover {
-      color: $primary-color;
+      color: var(--primary-color);
     }
     
     &.active {
-      color: $primary-color;
-      border-bottom-color: $primary-color;
-      font-weight: $font-weight-semibold;
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      font-weight: var(--font-weight-semibold);
     }
   }
 }

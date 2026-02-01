@@ -2,6 +2,8 @@
 // Responsive Utilities
 // ============================================
 
+@use 'mixins' as *;
+
 // Hide on specific breakpoints
 .hide-xs {
   @include xs {
@@ -68,34 +70,34 @@
 
 // Responsive padding
 .responsive-padding {
-  padding: $spacing-md;
+  padding: var(--spacing-md);
   
   @include sm {
-    padding: $spacing-lg;
+    padding: var(--spacing-lg);
   }
   
   @include md {
-    padding: $spacing-xl;
+    padding: var(--spacing-xl);
   }
 }
 
 // Responsive margins
 .responsive-margin {
-  margin: $spacing-md;
+  margin: var(--spacing-md);
   
   @include sm {
-    margin: $spacing-lg;
+    margin: var(--spacing-lg);
   }
   
   @include md {
-    margin: $spacing-xl;
+    margin: var(--spacing-xl);
   }
 }
 
 // Responsive grid columns
 .grid-responsive {
   display: grid;
-  gap: $spacing-md;
+  gap: var(--spacing-md);
   grid-template-columns: 1fr;
   
   @include sm {

@@ -3,20 +3,20 @@
 // ============================================
 
 .card {
-  background-color: $bg-white;
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow-sm;
-  border: 1px solid $border-color;
-  transition: transform $transition-fast, box-shadow $transition-fast;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: $shadow-md;
+    box-shadow: var(--shadow-md);
   }
   
   &-header {
-    padding: $spacing-md $spacing-lg;
-    border-bottom: 1px solid $border-color;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
     
     h3, h4, h5 {
       margin: 0;
@@ -24,89 +24,116 @@
   }
   
   &-body {
-    padding: $spacing-lg;
+    padding: var(--spacing-lg);
   }
   
   &-footer {
-    padding: $spacing-md $spacing-lg;
-    border-top: 1px solid $border-color;
-    background-color: $bg-light;
-    border-radius: 0 0 $border-radius-lg $border-radius-lg;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-light);
+    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
   }
 }
 
 .metric-card {
-  @include card;
-  padding: $spacing-lg;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  padding: var(--spacing-lg);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
   
   h3 {
-    margin-bottom: $spacing-md;
-    color: $primary-color;
-    border-bottom: 2px solid $primary-color;
-    padding-bottom: $spacing-sm;
+    margin-bottom: var(--spacing-md);
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: var(--spacing-sm);
   }
 }
 
 .stock-card {
-  @include card;
-  padding: $spacing-lg;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  padding: var(--spacing-lg);
   cursor: pointer;
   
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  
   .stock-symbol {
-    font-size: $font-size-xl;
-    font-weight: $font-weight-bold;
-    color: $primary-color;
-    margin-bottom: $spacing-xs;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-xs);
   }
   
   .stock-name {
-    font-size: $font-size-sm;
-    color: $text-secondary;
-    margin-bottom: $spacing-md;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
   }
   
   .stock-price {
-    font-size: $font-size-2xl;
-    font-weight: $font-weight-bold;
-    color: $text-primary;
-    margin-bottom: $spacing-sm;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
   }
   
   .stock-change {
-    font-size: $font-size-base;
-    font-weight: $font-weight-medium;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
     
     &.positive {
-      color: $success-color;
+      color: var(--success-color);
     }
     
     &.negative {
-      color: $danger-color;
+      color: var(--danger-color);
     }
   }
 }
 
 .factor-card {
-  @include card;
-  padding: $spacing-lg;
-  margin-bottom: $spacing-md;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
   
   .factor-name {
-    font-size: $font-size-lg;
-    font-weight: $font-weight-semibold;
-    color: $text-primary;
-    margin-bottom: $spacing-sm;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
   }
   
   .factor-description {
-    font-size: $font-size-sm;
-    color: $text-secondary;
-    margin-bottom: $spacing-md;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
   }
   
   .factor-controls {
     display: flex;
-    gap: $spacing-sm;
+    gap: var(--spacing-sm);
     align-items: center;
   }
 }

@@ -2,20 +2,16 @@
 // Mixins
 // ============================================
 
-// Clearfix
 @mixin clearfix {
-  &::before,
-  &::after {
+  &::before, &::after {
     content: '';
     display: table;
   }
-  
   &::after {
     clear: both;
   }
 }
 
-// Screen reader only
 @mixin sr-only {
   position: absolute;
   width: 1px;
@@ -28,169 +24,75 @@
   border: 0;
 }
 
-// Hide element
-@mixin hide {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-// Truncate text
-@mixin truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-// Flex center
 @mixin flex-center {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-// Flex between
 @mixin flex-between {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-// Grid helpers
-@mixin grid($columns, $gap: $spacing-md) {
-  display: grid;
-  grid-template-columns: repeat($columns, 1fr);
-  gap: $gap;
-}
-
-// Responsive breakpoints
-@mixin xs {
-  @media (max-width: $breakpoint-xs) {
-    @content;
-  }
-}
-
-@mixin sm {
-  @media (max-width: $breakpoint-sm) {
-    @content;
-  }
-}
-
-@mixin md {
-  @media (max-width: $breakpoint-md) {
-    @content;
-  }
-}
-
-@mixin lg {
-  @media (max-width: $breakpoint-lg) {
-    @content;
-  }
-}
-
-// Hover state
-@mixin hover {
-  &:hover {
-    @content;
-  }
-}
-
-// Focus state
-@mixin focus {
-  &:focus {
-    @content;
-  }
-}
-
-// Button variants
-@mixin button-variant($background, $color, $border: $background) {
-  background-color: $background;
-  color: $color;
-  border-color: $border;
-  
-  &:hover {
-    background-color: darken($background, 8%);
-    border-color: darken($border, 8%);
-  }
-  
-  &:active {
-    background-color: darken($background, 12%);
-    border-color: darken($border, 12%);
-  }
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-
-// Card styles
 @mixin card {
-  background-color: $bg-white;
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow-sm;
-  border: 1px solid $border-color;
-  transition: transform $transition-fast, box-shadow $transition-fast;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: $shadow-md;
+    box-shadow: var(--shadow-md);
   }
 }
 
-// Input styles
 @mixin input {
   width: 100%;
-  padding: $spacing-sm $spacing-md;
-  border: 2px solid $border-color;
-  border-radius: $border-radius-md;
-  font-size: $font-size-base;
-  transition: border-color $transition-fast, box-shadow $transition-fast;
-  background-color: $bg-white;
-  color: $text-primary;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  background-color: var(--bg-white);
+  color: var(--text-primary);
   box-sizing: border-box;
   
   &:focus {
     outline: none;
-    border-color: $primary-color;
-    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
-  }
-  
-  &::placeholder {
-    color: $text-secondary;
-    opacity: 0.7;
-  }
-}
-
-// Badge styles
-@mixin badge($color) {
-  display: inline-block;
-  padding: $spacing-xs $spacing-sm;
-  background-color: rgba($color, 0.1);
-  color: $color;
-  border-radius: $border-radius-xl;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
-}
-
-// Loading spinner
-@mixin spinner($size: 16px, $color: $primary-color) {
-  &::after {
-    content: '';
-    position: absolute;
-    width: $size;
-    height: $size;
-    top: 50%;
-    left: 50%;
-    margin-left: -$size / 2;
-    margin-top: -$size / 2;
-    border: 2px solid transparent;
-    border-top-color: $color;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(91, 163, 208, 0.1);
   }
 }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+// Responsive mixins
+@mixin sm {
+  @media (max-width: 768px) {
+    @content;
+  }
+}
+
+@mixin xs {
+  @media (max-width: 480px) {
+    @content;
+  }
+}
+
+@mixin md {
+  @media (max-width: 1024px) {
+    @content;
+  }
+}
+
+@mixin lg {
+  @media (max-width: 1400px) {
+    @content;
+  }
 }

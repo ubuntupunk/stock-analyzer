@@ -6,12 +6,12 @@
   position: relative;
   width: 100%;
   min-height: 400px;
-  padding: $spacing-lg;
-  background-color: $bg-white;
-  border-radius: $border-radius-lg;
-  border: 1px solid $border-color;
-  margin-bottom: $spacing-xl;
-  box-shadow: $shadow-sm;
+  padding: var(--spacing-lg);
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
   
   canvas {
     width: 100% !important;
@@ -22,65 +22,65 @@
 
 .chart-label {
   text-align: center;
-  color: $text-secondary;
-  font-size: $font-size-sm;
-  margin-top: $spacing-md;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-md);
   margin-bottom: 0;
 }
 
 .chart-timeframe {
   display: flex;
-  gap: $spacing-xs;
-  margin-bottom: $spacing-md;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
   flex-wrap: wrap;
   align-items: center;
-  padding: $spacing-md;
-  background-color: $bg-light;
-  border-radius: $border-radius-md;
-  border: 1px solid $border-color;
+  padding: var(--spacing-md);
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
 }
 
 .timeframe-btn {
-  padding: $spacing-xs $spacing-md;
-  background-color: $bg-white;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-sm;
-  color: $text-secondary;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background-color: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: all var(--transition-fast);
   
   &:hover {
-    border-color: $primary-color;
-    color: $primary-color;
-    background-color: rgba($primary-color, 0.05);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background-color: rgba(91, 163, 208, 0.05);
   }
   
   &.active {
-    background-color: $primary-color;
-    border-color: $primary-color;
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
     color: white;
   }
 }
 
 .custom-range-toggle {
-  padding: $spacing-xs $spacing-md;
-  color: $primary-color;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  padding: var(--spacing-xs) var(--spacing-md);
+  color: var(--primary-color);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
   margin-left: auto;
-  border: 1px dashed $primary-color;
-  border-radius: $border-radius-sm;
-  transition: all $transition-fast;
+  border: 1px dashed var(--primary-color);
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-fast);
   
   &:hover {
-    background-color: rgba($primary-color, 0.1);
+    background-color: rgba(91, 163, 208, 0.1);
   }
   
   &.active {
-    background-color: $primary-color;
+    background-color: var(--primary-color);
     color: white;
     border-style: solid;
   }
@@ -88,12 +88,12 @@
 
 .custom-date-range {
   display: flex;
-  gap: $spacing-md;
-  padding: $spacing-md;
-  background-color: $bg-light;
-  border-radius: $border-radius-md;
-  border: 1px solid $border-color;
-  margin-bottom: $spacing-md;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  margin-bottom: var(--spacing-md);
   flex-wrap: wrap;
   align-items: flex-end;
 }
@@ -101,76 +101,76 @@
 .date-input-group {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xs;
+  gap: var(--spacing-xs);
   
   label {
-    font-size: $font-size-sm;
-    color: $text-secondary;
-    font-weight: $font-weight-medium;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
   }
   
   input[type="date"] {
-    padding: $spacing-sm $spacing-md;
-    border: 2px solid $border-color;
-    border-radius: $border-radius-sm;
-    font-size: $font-size-sm;
-    color: $text-primary;
-    background-color: $bg-white;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    background-color: var(--bg-white);
     
     &:focus {
       outline: none;
-      border-color: $primary-color;
+      border-color: var(--primary-color);
     }
   }
 }
 
 .apply-range-btn {
-  padding: $spacing-sm $spacing-lg;
-  background-color: $primary-color;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background-color: var(--primary-color);
   color: white;
   border: none;
-  border-radius: $border-radius-sm;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: all var(--transition-fast);
   
   &:hover {
-    background-color: darker($primary-color);
+    background-color: color-mix(in srgb, var(--primary-color), black 10%);
     transform: translateY(-1px);
   }
 }
 
 .cancel-range-btn {
-  padding: $spacing-sm $spacing-lg;
+  padding: var(--spacing-sm) var(--spacing-lg);
   background-color: transparent;
-  color: $text-secondary;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-sm;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: all var(--transition-fast);
   
   &:hover {
-    border-color: $text-secondary;
-    color: $text-primary;
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
   }
 }
 
 .chart-legend {
   display: flex;
-  gap: $spacing-lg;
+  gap: var(--spacing-lg);
   justify-content: center;
-  margin-top: $spacing-md;
+  margin-top: var(--spacing-md);
   flex-wrap: wrap;
   
   .legend-item {
     display: flex;
     align-items: center;
-    gap: $spacing-xs;
-    font-size: $font-size-sm;
-    color: $text-secondary;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
     
     .legend-color {
       width: 12px;

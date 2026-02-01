@@ -2,52 +2,54 @@
 // Metrics Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .metrics {
   &-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: $spacing-lg;
+    gap: var(--spacing-lg);
   }
   
   &-list {
     display: flex;
     flex-direction: column;
-    gap: $spacing-lg;
+    gap: var(--spacing-lg);
     
     .metric-card {
-      background-color: $bg-white;
-      border: 1px solid $border-color;
-      border-radius: $border-radius-lg;
-      padding: $spacing-xl;
-      box-shadow: $shadow-sm;
+      background-color: var(--bg-white);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--spacing-xl);
+      box-shadow: var(--shadow-sm);
       
       h3 {
-        margin-bottom: $spacing-md;
-        padding-bottom: $spacing-sm;
-        border-bottom: 2px solid $primary-color;
-        color: $primary-color;
+        margin-bottom: var(--spacing-md);
+        padding-bottom: var(--spacing-sm);
+        border-bottom: 2px solid var(--primary-color);
+        color: var(--primary-color);
       }
     }
     
     .metric-item {
       display: grid;
       grid-template-columns: 1fr auto;
-      gap: $spacing-lg;
-      padding: $spacing-sm 0;
-      border-bottom: 1px solid $border-color;
+      gap: var(--spacing-lg);
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px solid var(--border-color);
       
       &:last-child {
         border-bottom: none;
       }
       
       span:first-child {
-        color: $text-secondary;
-        font-size: $font-size-sm;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
       }
       
       span:last-child {
-        font-weight: $font-weight-semibold;
-        color: $text-primary;
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
         text-align: right;
         min-width: 120px;
       }
@@ -58,39 +60,39 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    margin-bottom: $spacing-lg;
-    padding: $spacing-md $spacing-lg;
-    background-color: $bg-light;
-    border-radius: $border-radius-md;
-    border: 1px solid $border-color;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
   }
   
   &-view-toggle {
     display: flex;
-    gap: $spacing-xs;
+    gap: var(--spacing-xs);
   }
 }
 
 .metric-card {
   @include card;
-  padding: $spacing-lg;
+  padding: var(--spacing-lg);
   
   h3 {
-    margin-bottom: $spacing-md;
-    color: $primary-color;
-    border-bottom: 2px solid $primary-color;
-    padding-bottom: $spacing-sm;
+    margin-bottom: var(--spacing-md);
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: var(--spacing-sm);
   }
 }
 
 .metric-item {
   display: flex;
   justify-content: space-between;
-  padding: $spacing-sm $spacing-md;
-  border-bottom: 1px solid $border-color;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
   
   &:hover {
-    background-color: $bg-hover;
+    background-color: var(--bg-hover);
   }
   
   &:last-child {
@@ -98,17 +100,17 @@
   }
   
   span:first-child {
-    color: $text-secondary;
-    font-size: $font-size-sm;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
   }
   
   span:last-child {
-    font-weight: $font-weight-semibold;
-    color: $text-primary;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
   }
   
   &.highlight {
-    background-color: rgba($warning-color, 0.1);
+    background-color: rgba(243, 156, 18, 0.1);
   }
 }
 
@@ -126,10 +128,10 @@
         display: none;
       }
       
-      padding: $spacing-sm;
+      padding: var(--spacing-sm);
       
       i {
-        font-size: $font-size-lg;
+        font-size: var(--font-size-lg);
       }
     }
   }

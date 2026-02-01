@@ -5,49 +5,49 @@
 .popular-stocks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: $spacing-lg;
+  gap: var(--spacing-lg);
 }
 
 .popular-header {
   text-align: center;
-  margin-bottom: $spacing-xl;
+  margin-bottom: var(--spacing-xl);
   
   h2 {
-    color: $primary-color;
-    margin-bottom: $spacing-sm;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-sm);
   }
   
   p {
-    color: $text-secondary;
-    margin-bottom: $spacing-lg;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
   }
 }
 
 .popular-controls {
   display: flex;
-  gap: $spacing-lg;
+  gap: var(--spacing-lg);
   align-items: center;
   flex-wrap: wrap;
   justify-content: space-between;
-  margin-bottom: $spacing-lg;
-  padding: $spacing-md $spacing-lg;
-  background-color: $bg-light;
-  border-radius: $border-radius-md;
-  border: 1px solid $border-color;
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
 }
 
 .popular-stocks-list {
   .stock-row {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    padding: $spacing-md $spacing-lg;
-    border-bottom: 1px solid $border-color;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
     align-items: center;
     cursor: pointer;
-    transition: background-color $transition-fast;
+    transition: background-color var(--transition-fast);
     
     &:hover {
-      background-color: $bg-hover;
+      background-color: var(--bg-hover);
     }
     
     &:last-child {
@@ -56,33 +56,170 @@
   }
   
   .stock-symbol {
-    font-weight: $font-weight-bold;
-    color: $primary-color;
-    font-size: $font-size-lg;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary-color);
+    font-size: var(--font-size-lg);
   }
   
   .stock-price {
-    font-weight: $font-weight-semibold;
+    font-weight: var(--font-weight-semibold);
     text-align: center;
   }
   
   .stock-change {
     text-align: right;
-    font-weight: $font-weight-medium;
+    font-weight: var(--font-weight-medium);
     
     &.positive {
-      color: $success-color;
+      color: var(--success-color);
     }
     
     &.negative {
-      color: $danger-color;
+      color: var(--danger-color);
     }
   }
 }
 
 .empty-message {
   text-align: center;
-  color: $text-secondary;
-  padding: $spacing-2xl;
-  font-size: $font-size-lg;
+  color: var(--text-secondary);
+  padding: var(--spacing-2xl);
+  font-size: var(--font-size-lg);
+}
+
+// ============================================
+// Stock Cards
+// ============================================
+
+.stock-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  &.in-watchlist {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
+  }
+}
+
+.stock-symbol {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+.stock-name {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.stock-sector {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background-color: var(--bg-light);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.stock-price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'monospace';
+  margin-bottom: 1rem;
+  
+  &:not(.loaded) {
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+  
+  &.loaded {
+    animation: priceLoaded 0.3s ease-in;
+  }
+  
+  &.positive {
+    color: var(--success-color);
+  }
+  
+  &.negative {
+    color: var(--danger-color);
+  }
+}
+
+@keyframes priceLoaded {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.stock-change {
+  font-size: 0.9rem;
+  font-weight: 600;
+  
+  &.positive {
+    color: var(--success-color);
+  }
+  
+  &.negative {
+    color: var(--danger-color);
+  }
+}
+
+// ============================================
+// Watchlist Star Button
+// ============================================
+
+.add-to-watchlist-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: #2c3e50;
+  border: 2px solid #2c3e50;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  font-size: 1rem;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  
+  &:hover {
+    background: #34495e;
+    border-color: #34495e;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  &.added {
+    background: var(--success-color);
+    border-color: var(--success-color);
+    color: white;
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+    
+    &:hover {
+      background: #27ae60;
+      border-color: #27ae60;
+      box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    }
+  }
 }
