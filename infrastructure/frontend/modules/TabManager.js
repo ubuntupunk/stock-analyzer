@@ -129,34 +129,42 @@ class TabManager {
             switch (tabName) {
                 case 'analyst-estimates':
                     console.log('TabManager: Loading analyst-estimates data');
+                    await this.loadSection('analyst-estimates');
                     await this.loadAnalystEstimatesData();
                     break;
                 case 'metrics':
                     console.log('TabManager: Loading metrics data');
+                    await this.loadSection('metrics');
                     await this.loadMetricsData();
                     break;
                 case 'financials':
                     console.log('TabManager: Loading financials data');
+                    await this.loadSection('financials');
                     await this.loadFinancialsData();
                     break;
                 case 'factors':
                     console.log('TabManager: Loading factors data');
+                    await this.loadSection('factors');
                     await this.loadFactorsData();
                     break;
                 case 'stock-analyser':
                     console.log('TabManager: Loading stock-analyser data');
+                    await this.loadSection('stock-analyser');
                     await this.loadStockAnalyserData();
                     break;
                 case 'watchlist':
                     console.log('TabManager: Loading watchlist data');
+                    await this.loadSection('watchlist');
                     await this.loadWatchlistData();
                     break;
                 case 'popular-stocks':
                     console.log('TabManager: Loading popular-stocks data');
+                    await this.loadSection('popular-stocks');
                     await this.loadPopularStocksData();
                     break;
                 case 'news':
                     console.log('TabManager: Loading news data');
+                    await this.loadSection('news');
                     await this.loadNewsData();
                     break;
                 case 'retirement-calculator':
