@@ -159,6 +159,18 @@ class TabManager {
                     console.log('TabManager: Loading news data');
                     await this.loadNewsData();
                     break;
+                case 'retirement-calculator':
+                    console.log('TabManager: Loading retirement-calculator');
+                    await this.loadSection('retirement-calculator');
+                    break;
+                case 'real-estate-calculator':
+                    console.log('TabManager: Loading real-estate-calculator');
+                    await this.loadSection('real-estate-calculator');
+                    break;
+                case 'model-portfolio':
+                    console.log('TabManager: Loading model-portfolio');
+                    await this.loadSection('model-portfolio');
+                    break;
                 default:
                     console.warn('Unknown tab:', tabName);
             }
