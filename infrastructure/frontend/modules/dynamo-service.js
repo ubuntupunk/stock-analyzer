@@ -1,17 +1,39 @@
 /**
  * DynamoDB Service Layer
  * Handles all DynamoDB operations for users, watchlists, and stocks
- * Uses AWS SDK v3 for DynamoDB
+ * Uses existing tables from template.yaml:
+ *   - stock-watchlist (userId + symbol)
+ *   - stock-factors (userId + factorId)
+ *   - stock-universe (symbol)
  */
+
+/**
+ * Get environment variable safely (works in both Node.js and browser)
+ */
+function getEnvVar(name, defaultValue) {
+    // Check if process.env is available (Node.js)
+    if (typeof process !== 'undefined' && process.env && process.env[name]) {
+        return process.env[name];
+    }
+    // Check window.env if defined (browser with script tag config)
+    if (typeof window !== 'undefined' && window.env && window.env[name]) {
+        return window.env[name];
+    }
+    return defaultValue;
+}
 
 class DynamoDBService {
     constructor(config = {}) {
         this.config = {
-            region: config.region || process.env.AWS_REGION || 'us-east-1',
-            endpoint: config.endpoint || process.env.DYNAMODB_ENDPOINT,
-            accessKeyId: config.accessKeyId || process.env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: config.secretAccessKey || process.env.AWS_SECRET_ACCESS_KEY,
-            tableName: config.tableName || process.env.DYNAMODB_TABLE_NAME || 'StockAnalyzer'
+            region: config.region || getEnvVar('AWS_REGION', 'us-east-1'),
+            endpoint: config.endpoint || getEnvVar('DYNAMODB_ENDPOINT', undefined),
+            accessKeyId: config.accessKeyId || getEnvVar('AWS_ACCESS_KEY_ID', undefined),
+            secretAccessKey: config.secretAccessKey || getEnvVar('AWS_SECRET_ACCESS_KEY', undefined),
+            // Use table names from template.yaml environment variables or defaults
+            watchlistTable: config.watchlistTable || getEnvVar('WATCHLIST_TABLE', 'stock-watchlist'),
+            factorsTable: config.factorsTable || getEnvVar('FACTORS_TABLE', 'stock-factors'),
+            universeTable: config.universeTable || getEnvVar('STOCK_UNIVERSE_TABLE', 'stock-universe'),
+            usersTable: config.usersTable || getEnvVar('USERS_TABLE', 'stock-users')
         };
         
         this.dynamoDB = null;
@@ -69,12 +91,18 @@ class DynamoDBService {
     /**
      * Get table name
      */
-    getTableName() {
-        return this.config.tableName;
+    getTableName(table = 'watchlist') {
+        const tables = {
+            watchlist: this.config.watchlistTable,
+            factors: this.config.factorsTable,
+            universe: this.config.universeTable,
+            users: this.config.usersTable
+        };
+        return tables[table] || this.config.watchlistTable;
     }
     
     // ============================================
-    // USER OPERATIONS
+    // USER OPERATIONS (uses single-table design with prefix)
     // ============================================
     
     /**
@@ -88,10 +116,10 @@ class DynamoDBService {
         
         const userItem = {
             PK: `USER#${userId}`,
-            SK: 'METADATA#profile',
+            SK: 'PROFILE',
             entityType: 'USER',
             userId,
-            email,
+            email: email.toLowerCase(),
             name: name || email.split('@')[0],
             createdAt: timestamp,
             updatedAt: timestamp,
@@ -99,15 +127,10 @@ class DynamoDBService {
                 theme: 'dark',
                 notifications: true,
                 defaultView: 'dashboard'
-            },
-            // GSI for email lookup
-            emailIndex: {
-                email: email.toLowerCase(),
-                userId
             }
         };
         
-        await this.putItem(userItem);
+        await this.putItem(userItem, 'users');
         return userItem;
     }
     
@@ -119,8 +142,8 @@ class DynamoDBService {
     async getUser(userId) {
         const result = await this.getItem({
             PK: `USER#${userId}`,
-            SK: 'METADATA#profile'
-        });
+            SK: 'PROFILE'
+        }, 'users');
         return result;
     }
     
@@ -130,15 +153,15 @@ class DynamoDBService {
      * @returns {Promise} User data
      */
     async getUserByEmail(email) {
-        // In a real implementation, you would use a GSI query
-        // For now, we'll use scan with filter (not recommended for production)
+        // Note: For production, add a GSI to users table for email lookup
+        // For now, we scan (not recommended for large tables)
         const result = await this.scan({
             FilterExpression: 'entityType = :type AND email = :email',
             ExpressionAttributeValues: {
                 ':type': 'USER',
                 ':email': email.toLowerCase()
             }
-        });
+        }, 'users');
         return result.Items?.[0];
     }
     
@@ -165,12 +188,12 @@ class DynamoDBService {
         const result = await this.updateItem({
             Key: {
                 PK: `USER#${userId}`,
-                SK: 'METADATA#profile'
+                SK: 'PROFILE'
             },
             UpdateExpression: `SET ${updateParts.join(', ')}`,
             ExpressionAttributeValues: expressionValues,
             ReturnValues: 'ALL_NEW'
-        });
+        }, 'users');
         
         return result.Attributes;
     }
@@ -186,20 +209,20 @@ class DynamoDBService {
         // Delete all watchlist items
         for (const item of watchlist) {
             await this.deleteItem({
-                PK: `USER#${userId}`,
-                SK: `WATCHLIST#${item.symbol}`
-            });
+                PK: userId,
+                SK: item.symbol
+            }, 'watchlist');
         }
         
         // Delete user profile
         await this.deleteItem({
             PK: `USER#${userId}`,
-            SK: 'METADATA#profile'
-        });
+            SK: 'PROFILE'
+        }, 'users');
     }
     
     // ============================================
-    // WATCHLIST OPERATIONS
+    // WATCHLIST OPERATIONS (uses stock-watchlist table)
     // ============================================
     
     /**
@@ -213,19 +236,18 @@ class DynamoDBService {
         const timestamp = new Date().toISOString();
         
         const watchlistItem = {
-            PK: `USER#${userId}`,
-            SK: `WATCHLIST#${symbol}`,
-            entityType: 'WATCHLIST_ITEM',
+            PK: userId,              // userId as partition key
+            SK: symbol.toUpperCase(), // symbol as sort key
+            userId,
             symbol: symbol.toUpperCase(),
             name: name || this.formatSymbolAsName(symbol),
             notes: notes || '',
             alertPrice: alertPrice || null,
             tags: tags || [],
-            addedAt: timestamp,
-            userId
+            addedAt: timestamp
         };
         
-        await this.putItem(watchlistItem);
+        await this.putItem(watchlistItem, 'watchlist');
         return watchlistItem;
     }
     
@@ -236,12 +258,11 @@ class DynamoDBService {
      */
     async getUserWatchlist(userId) {
         const result = await this.query({
-            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+            KeyConditionExpression: 'PK = :pk',
             ExpressionAttributeValues: {
-                ':pk': `USER#${userId}`,
-                ':prefix': 'WATCHLIST#'
+                ':pk': userId
             }
-        });
+        }, 'watchlist');
         
         return result.Items || [];
     }
@@ -254,9 +275,9 @@ class DynamoDBService {
      */
     async getWatchlistItem(userId, symbol) {
         const result = await this.getItem({
-            PK: `USER#${userId}`,
-            SK: `WATCHLIST#${symbol.toUpperCase()}`
-        });
+            PK: userId,
+            SK: symbol.toUpperCase()
+        }, 'watchlist');
         return result;
     }
     
@@ -277,21 +298,21 @@ class DynamoDBService {
         };
         
         Object.entries(updates).forEach(([key, value], index) => {
-            // Skip PK, SK, entityType, userId
-            if (['PK', 'SK', 'entityType', 'userId', 'symbol', 'addedAt'].includes(key)) return;
+            // Skip partition/sort keys
+            if (['PK', 'SK', 'userId', 'symbol', 'addedAt'].includes(key)) return;
             updateParts.push(`${key} = :val${index}`);
             expressionValues[`:val${index}`] = value;
         });
         
         const result = await this.updateItem({
             Key: {
-                PK: `USER#${userId}`,
-                SK: `WATCHLIST#${symbol.toUpperCase()}`
+                PK: userId,
+                SK: symbol.toUpperCase()
             },
             UpdateExpression: `SET ${updateParts.join(', ')}`,
             ExpressionAttributeValues: expressionValues,
             ReturnValues: 'ALL_NEW'
-        });
+        }, 'watchlist');
         
         return result.Attributes;
     }
@@ -303,9 +324,9 @@ class DynamoDBService {
      */
     async removeFromWatchlist(userId, symbol) {
         await this.deleteItem({
-            PK: `USER#${userId}`,
-            SK: `WATCHLIST#${symbol.toUpperCase()}`
-        });
+            PK: userId,
+            SK: symbol.toUpperCase()
+        }, 'watchlist');
     }
     
     /**
@@ -326,14 +347,145 @@ class DynamoDBService {
      */
     async getWatchlistCount(userId) {
         const result = await this.query({
-            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+            KeyConditionExpression: 'PK = :pk',
             Select: 'COUNT',
             ExpressionAttributeValues: {
-                ':pk': `USER#${userId}`,
-                ':prefix': 'WATCHLIST#'
+                ':pk': userId
             }
-        });
+        }, 'watchlist');
         return result.Count || 0;
+    }
+    
+    // ============================================
+    // FACTORS OPERATIONS (uses stock-factors table)
+    // ============================================
+    
+    /**
+     * Save user's factor
+     * @param {string} userId - User ID
+     * @param {object} factorData - Factor data
+     * @returns {Promise} Created/updated item
+     */
+    async saveFactor(userId, factorData) {
+        const { factorId, name, weight, category } = factorData;
+        const timestamp = new Date().toISOString();
+        
+        const factorItem = {
+            PK: userId,
+            SK: factorId || `FACTOR#${Date.now()}`,
+            userId,
+            factorId: factorId || `FACTOR#${Date.now()}`,
+            name,
+            weight: weight || 1.0,
+            category: category || 'custom',
+            createdAt: timestamp,
+            updatedAt: timestamp
+        };
+        
+        await this.putItem(factorItem, 'factors');
+        return factorItem;
+    }
+    
+    /**
+     * Get user's factors
+     * @param {string} userId - User ID
+     * @returns {Promise} Array of factors
+     */
+    async getUserFactors(userId) {
+        const result = await this.query({
+            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+            ExpressionAttributeValues: {
+                ':pk': userId,
+                ':prefix': 'FACTOR#'
+            }
+        }, 'factors');
+        
+        return result.Items || [];
+    }
+    
+    /**
+     * Delete factor
+     * @param {string} userId - User ID
+     * @param {string} factorId - Factor ID
+     */
+    async deleteFactor(userId, factorId) {
+        await this.deleteItem({
+            PK: userId,
+            SK: factorId
+        }, 'factors');
+    }
+    
+    // ============================================
+    // STOCK UNIVERSE OPERATIONS (uses stock-universe table)
+    // ============================================
+    
+    /**
+     * Get stock by symbol
+     * @param {string} symbol - Stock symbol
+     * @returns {Promise} Stock data
+     */
+    async getStockBySymbol(symbol) {
+        const result = await this.getItem({
+            PK: symbol.toUpperCase(),
+            SK: 'INFO'
+        }, 'universe');
+        return result;
+    }
+    
+    /**
+     * Search stocks
+     * @param {string} query - Search query
+     * @param {number} limit - Max results
+     * @returns {Promise} Array of stocks
+     */
+    async searchStocks(query, limit = 10) {
+        // Note: For production, use a GSI with search capability
+        // For now, we scan with filter
+        const result = await this.scan({
+            FilterExpression: 'contains(#name, :query) OR contains(PK, :queryUpper)',
+            ExpressionAttributeNames: {
+                '#name': 'name'
+            },
+            ExpressionAttributeValues: {
+                ':query': query.toLowerCase(),
+                ':queryUpper': query.toUpperCase()
+            },
+            Limit: limit
+        }, 'universe');
+        
+        return result.Items || [];
+    }
+    
+    /**
+     * Get popular stocks
+     * @param {number} limit - Max results
+     * @returns {Promise} Array of stocks
+     */
+    async getPopularStocks(limit = 12) {
+        const result = await this.scan({
+            Limit: limit,
+            FilterExpression: 'attribute_exists(PK)'
+        }, 'universe');
+        
+        return result.Items || [];
+    }
+    
+    /**
+     * Get stocks by sector
+     * @param {string} sector - Sector name
+     * @returns {Promise} Array of stocks
+     */
+    async getStocksBySector(sector) {
+        // Use GSI if available, otherwise scan
+        const result = await this.query({
+            IndexName: 'sector-index',
+            KeyConditionExpression: 'sector = :sector',
+            ExpressionAttributeValues: {
+                ':sector': sector
+            }
+        }, 'universe');
+        
+        return result.Items || [];
     }
     
     // ============================================

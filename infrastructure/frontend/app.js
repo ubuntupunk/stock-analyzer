@@ -86,6 +86,9 @@ class StockAnalyzer {
         this.modules.uiManager = new UIManager(eventBus);
         this.modules.tabManager = new TabManager(this.modules.dataManager, eventBus);
         
+        // Auth module (depends on DynamoDBService)
+        this.modules.userManager = new UserManager(eventBus);
+
         // Feature modules
         this.modules.stockManager = new StockManager(this.modules.dataManager, eventBus);
         this.modules.searchManager = new SearchManager(this.modules.dataManager, eventBus);
@@ -689,6 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app = app;
     window.stockManager = app.modules.stockManager;
     window.searchManager = app.modules.searchManager;
+    window.userManager = app.modules.userManager;
     window.watchlistManager = app.modules.watchlistManager;
     window.chartManager = app.modules.chartManager;
     window.tabManager = app.modules.tabManager;

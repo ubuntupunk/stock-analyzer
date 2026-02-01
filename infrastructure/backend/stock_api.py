@@ -298,34 +298,56 @@ class StockDataAPI:
     async def get_multiple_stock_prices_async(self, symbols: List[str]) -> Dict[str, Dict]:
         """Fetch stock prices for multiple symbols concurrently"""
         results = {}
-        
+        print(f"get_multiple_stock_prices_async: Fetching prices for {symbols}")
+
         async with aiohttp.ClientSession() as session:
             tasks = [self.yahoo.fetch_data_async(session, symbol) for symbol in symbols]
             responses = await asyncio.gather(*tasks, return_exceptions=True)
-            
+
+            print(f"get_multiple_stock_prices_async: Got {len(responses)} responses")
+
             for item in responses:
                 if isinstance(item, Exception):
+                    print(f"get_multiple_stock_prices_async: Exception in response: {item}")
                     continue
-                    
+
                 symbol, data = item
+                print(f"get_multiple_stock_prices_async: Processing {symbol}, data is {'truthy' if data else 'falsy'}")
+
                 if data:
                     price_data = {
                         'symbol': symbol,
                         'timestamp': datetime.now().isoformat(),
                         'source': 'yahoo_finance'
                     }
-                    price_data.update(self.yahoo.parse_price(data))
-                    results[symbol] = price_data
-                    
-                    cache_key = self._get_cache_key('price', symbol)
-                    self._set_cache(cache_key, price_data)
+
+                    # Parse the price data
+                    parsed = self.yahoo.parse_price(data)
+                    print(f"get_multiple_stock_prices_async: Parsed price for {symbol}: {parsed}")
+
+                    if parsed:
+                        price_data.update(parsed)
+                        results[symbol] = price_data
+
+                        cache_key = self._get_cache_key('price', symbol)
+                        self._set_cache(cache_key, price_data)
+                    else:
+                        # If parsing failed, store error
+                        results[symbol] = {
+                            'symbol': symbol,
+                            'error': 'Failed to parse price data',
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        print(f"get_multiple_stock_prices_async: WARNING - no parsed data for {symbol}")
                 else:
                     results[symbol] = {
                         'symbol': symbol,
                         'error': 'Failed to fetch data',
                         'timestamp': datetime.now().isoformat()
                     }
-        
+                    print(f"get_multiple_stock_prices_async: WARNING - no data for {symbol}")
+
+        print(f"get_multiple_stock_prices_async: Final results: {results}")
         return results
     
     async def get_multiple_stock_metrics_async(self, symbols: List[str]) -> Dict[str, Dict]:

@@ -39,10 +39,15 @@ class YahooFinanceClient:
             import yfinance as yf
             ticker = yf.Ticker(symbol)
             info = ticker.info
-            
+
+            # Debug: log what we received
             if info:
+                has_price = 'currentPrice' in info or 'regularMarketPrice' in info
+                print(f"YFinance async: {symbol} - info keys: {len(info)}, has price key: {has_price}")
                 return (symbol, info)
-            return (symbol, None)
+            else:
+                print(f"YFinance async: {symbol} - info is empty or None")
+                return (symbol, None)
         except Exception as e:
             print(f"YFinance async error for {symbol}: {str(e)}")
             return (symbol, None)

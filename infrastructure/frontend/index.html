@@ -48,10 +48,14 @@
     <script src="utils/Formatters.js?v=2"></script>
     <script src="utils/Validators.js?v=2"></script>
     <script src="utils/EventBus.js?v=2"></script>
-    
+
+    <!-- DynamoDB Service (must load before UserManager) -->
+    <script src="modules/dynamo-service.js?v=1"></script>
+
     <!-- Feature modules -->
     <script src="modules/StockManager.js?v=2"></script>
     <script src="modules/SearchManager.js?v=2"></script>
+    <script src="modules/UserManager.js?v=1"></script>
     <script src="modules/WatchlistManager.js?v=2"></script>
     <script src="modules/ChartManager.js?v=2"></script>
     <script src="modules/MetricsManager.js?v=2"></script>

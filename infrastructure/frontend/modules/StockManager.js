@@ -608,20 +608,24 @@ class StockManager {
         }
         
         stockCards.forEach(card => {
+            // Determine if price change is positive or negative
+            const isPositive = change >= 0;
+            const changeClass = isPositive ? 'positive' : 'negative';
+            
             // Update price
             const priceElement = card.querySelector('.stock-price, .stock-list-price');
             if (priceElement) {
                 priceElement.textContent = Formatters.formatStockPrice(price);
                 priceElement.classList.add('loaded');
+                priceElement.classList.add(changeClass);
             }
             
             // Update change if available
             if (change !== null && changePercent !== null) {
                 const changeElement = card.querySelector('.stock-change, .stock-list-change');
                 if (changeElement) {
-                    const isPositive = change >= 0;
                     changeElement.innerHTML = `
-                        <span class="${isPositive ? 'positive' : 'negative'}">
+                        <span class="${changeClass}">
                             ${isPositive ? '+' : ''}${Formatters.formatStockPrice(change)} 
                             (${isPositive ? '+' : ''}${changePercent.toFixed(2)}%)
                         </span>

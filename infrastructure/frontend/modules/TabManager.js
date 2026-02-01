@@ -673,11 +673,22 @@ class TabManager {
      */
     async loadWatchlistData() {
         console.log('TabManager: loadWatchlistData called');
+        
+        // Prevent duplicate loading
+        if (this._watchlistLoading) {
+            console.log('TabManager: Watchlist already loading, skipping');
+            return;
+        }
+        
+        this._watchlistLoading = true;
+        
         try {
             // Call watchlistManager.loadWatchlist() which properly renders the UI
             await window.watchlistManager?.loadWatchlist();
         } catch (error) {
             console.error('TabManager: Failed to load watchlist data:', error);
+        } finally {
+            this._watchlistLoading = false;
         }
     }
 
