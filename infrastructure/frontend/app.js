@@ -189,6 +189,9 @@ class StockAnalyzer {
         window.addEventListener('resize', () => {
             this.modules.chartManager.resizeAllCharts();
         });
+
+        // Setup burger menu
+        this.setupBurgerMenu();
     }
 
     /**
@@ -196,32 +199,56 @@ class StockAnalyzer {
      */
     setupBurgerMenu() {
         console.log('App: Setting up burger menu...');
-        const menuBtn = document.getElementById('menuBtn');
-        const toolsMenu = document.getElementById('toolsMenu');
-        const closeMenu = document.getElementById('closeMenu');
+        
+        // Wait for elements to be available (they load via componentLoader)
+        const maxAttempts = 50; // 2.5 seconds max
+        let attempts = 0;
+        
+        const trySetup = () => {
+            const menuBtn = document.getElementById('menuBtn');
+            const toolsMenu = document.getElementById('toolsMenu');
+            const closeMenu = document.getElementById('closeMenu');
 
-        console.log('App: Burger menu elements found:', {
-            menuBtn: !!menuBtn,
-            toolsMenu: !!toolsMenu,
-            closeMenu: !!closeMenu
-        });
-
-        if (menuBtn && toolsMenu) {
-            menuBtn.addEventListener('click', () => {
-                console.log('App: Menu button clicked');
-                toolsMenu.classList.add('active');
+            console.log('App: Burger menu elements found:', {
+                menuBtn: !!menuBtn,
+                toolsMenu: !!toolsMenu,
+                closeMenu: !!closeMenu,
+                attempts: attempts
             });
-        }
 
-        if (closeMenu && toolsMenu) {
-            closeMenu.addEventListener('click', () => {
-                console.log('App: Close menu clicked');
-                toolsMenu.classList.remove('active');
-            });
-        }
+            if (menuBtn && toolsMenu && closeMenu) {
+                // Elements found, setup handlers
+                menuBtn.addEventListener('click', () => {
+                    console.log('App: Menu button clicked');
+                    toolsMenu.classList.add('active');
+                });
 
-        // Setup tool item click handlers
-        const toolItems = document.querySelectorAll('.tool-item');
+                closeMenu.addEventListener('click', () => {
+                    console.log('App: Close menu clicked');
+                    toolsMenu.classList.remove('active');
+                });
+                
+                this.setupToolMenuItems(toolsMenu);
+                
+                console.log('App: Burger menu setup complete');
+            } else if (attempts < maxAttempts) {
+                // Try again
+                attempts++;
+                setTimeout(trySetup, 50);
+            } else {
+                console.warn('App: Burger menu elements not found after timeout');
+            }
+        };
+        
+        trySetup();
+    }
+    
+    /**
+     * Setup tool menu item handlers
+     */
+    setupToolMenuItems(toolsMenu) {
+
+        const toolItems = toolsMenu.querySelectorAll('.tool-item');
         console.log('App: Found tool items:', toolItems.length);
         
         toolItems.forEach(item => {
@@ -250,13 +277,12 @@ class StockAnalyzer {
         });
 
         // Close menu when clicking outside
+        const menuBtn = document.getElementById('menuBtn');
         document.addEventListener('click', (e) => {
-            if (toolsMenu && !toolsMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+            if (toolsMenu && !toolsMenu.contains(e.target) && menuBtn && !menuBtn.contains(e.target)) {
                 toolsMenu.classList.remove('active');
             }
         });
-
-        console.log('App: Burger menu setup complete');
     }
 
     /**
