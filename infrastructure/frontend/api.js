@@ -133,6 +133,19 @@ class APIService {
         });
     }
 
+    // Stock Analyser Data (combined metrics and price)
+    async getStockAnalyserData(symbol) {
+        const [priceData, metricsData] = await Promise.all([
+            this.getStockPrice(symbol),
+            this.getStockMetrics(symbol)
+        ]);
+        return {
+            price: priceData,
+            metrics: metricsData,
+            combined: true
+        };
+    }
+
     // Watchlist APIs
     async getWatchlist() {
         return this.request('/api/watchlist');

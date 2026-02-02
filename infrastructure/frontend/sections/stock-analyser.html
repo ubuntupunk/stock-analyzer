@@ -2,11 +2,14 @@
 <section id="stock-analyser" class="content-section">
     <div class="analyser-header">
         <h2>Stock Analyser</h2>
-        <p>Years of Analysis: <select id="yearsSelect"><option>5</option><option selected>10</option></select></p>
+        <p>Years of Analysis: <select id="yearsSelect">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+        </select></p>
         <p>Number of Assumption Entries: <select id="assumptionsSelect">
-            <option>Low</option>
-            <option>Medium</option>
-            <option selected>High</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high" selected>High</option>
         </select></p>
     </div>
 
@@ -18,52 +21,52 @@
                     <tr>
                         <th></th>
                         <th>1 Year</th>
-                        <th>5 year</th>
+                        <th>5 Year</th>
                         <th>10 Year</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td>ROIC</td>
-                        <td>28%</td>
-                        <td>23%</td>
-                        <td>21%</td>
+                        <td id="roic-1y">—</td>
+                        <td id="roic-5y">—</td>
+                        <td id="roic-10y">—</td>
                     </tr>
                     <tr>
                         <td>Rev. Growth %</td>
-                        <td>7%</td>
-                        <td>10%</td>
-                        <td>15%</td>
+                        <td id="rev-growth-1y">—</td>
+                        <td id="rev-growth-5y">—</td>
+                        <td id="rev-growth-10y">—</td>
                     </tr>
                     <tr>
                         <td>Profit Margin</td>
-                        <td>11%</td>
-                        <td>10%</td>
-                        <td>9%</td>
+                        <td id="profit-margin-1y">—</td>
+                        <td id="profit-margin-5y">—</td>
+                        <td id="profit-margin-10y">—</td>
                     </tr>
                     <tr>
                         <td>Free Cash Flow Margin</td>
-                        <td>8%</td>
-                        <td>9%</td>
-                        <td>10%</td>
+                        <td id="fcf-margin-1y">—</td>
+                        <td id="fcf-margin-5y">—</td>
+                        <td id="fcf-margin-10y">—</td>
                     </tr>
                     <tr>
                         <td>P/E</td>
-                        <td>14</td>
-                        <td>—</td>
-                        <td>—</td>
+                        <td id="pe-1y">—</td>
+                        <td id="pe-5y">—</td>
+                        <td id="pe-10y">—</td>
                     </tr>
                     <tr>
                         <td>P/FCF</td>
-                        <td>19</td>
-                        <td>—</td>
-                        <td>—</td>
+                        <td id="pfcf-1y">—</td>
+                        <td id="pfcf-5y">—</td>
+                        <td id="pfcf-10y">—</td>
                     </tr>
                     <tr>
                         <td>Desired Annual Return</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>—</td>
+                        <td id="desired-return-1y">—</td>
+                        <td id="desired-return-5y">—</td>
+                        <td id="desired-return-10y">—</td>
                     </tr>
                 </tbody>
             </table>
@@ -82,46 +85,30 @@
                 </thead>
                 <tbody id="assumptionsTable">
                     <tr>
-                        <td></td>
-                        <td><input type="number" step="0.1"></td>
-                        <td><input type="number" step="0.1"></td>
-                        <td><input type="number" step="0.1"></td>
+                        <td>Rev. Growth %</td>
+                        <td><input type="number" id="assumption-rev-growth-low" value="3" step="0.1"></td>
+                        <td><input type="number" id="assumption-rev-growth-mid" value="6" step="0.1"></td>
+                        <td><input type="number" id="assumption-rev-growth-high" value="9" step="0.1"></td>
                     </tr>
                     <tr>
-                        <td></td>
-                        <td><input type="number" value="3"></td>
-                        <td><input type="number" value="5"></td>
-                        <td><input type="number" value="7"></td>
+                        <td>Profit Margin %</td>
+                        <td><input type="number" id="assumption-profit-margin-low" value="8" step="0.1"></td>
+                        <td><input type="number" id="assumption-profit-margin-mid" value="10" step="0.1"></td>
+                        <td><input type="number" id="assumption-profit-margin-high" value="12" step="0.1"></td>
                     </tr>
                     <tr>
-                        <td></td>
-                        <td><input type="number" value="9"></td>
-                        <td><input type="number" value="10"></td>
-                        <td><input type="number" value="11"></td>
+                        <td>FCF Margin %</td>
+                        <td><input type="number" id="assumption-fcf-margin-low" value="6" step="0.1"></td>
+                        <td><input type="number" id="assumption-fcf-margin-mid" value="9" step="0.1"></td>
+                        <td><input type="number" id="assumption-fcf-margin-high" value="12" step="0.1"></td>
                     </tr>
                     <tr>
-                        <td></td>
-                        <td><input type="number" value="9"></td>
-                        <td><input type="number" value="10"></td>
-                        <td><input type="number" value="11"></td>
+                        <td>Discount Rate %</td>
+                        <td colspan="3"><input type="number" id="assumption-discount-rate" value="10" step="0.1"></td>
                     </tr>
                     <tr>
-                        <td></td>
-                        <td><input type="number" value="15"></td>
-                        <td><input type="number" value="18"></td>
-                        <td><input type="number" value="21"></td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td><input type="number" value="15"></td>
-                        <td><input type="number" value="18"></td>
-                        <td><input type="number" value="21"></td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td><input type="number" value="9"></td>
-                        <td><input type="number" value="9"></td>
-                        <td><input type="number" value="9"></td>
+                        <td>Terminal Growth %</td>
+                        <td colspan="3"><input type="number" id="assumption-terminal-growth" value="3" step="0.1"></td>
                     </tr>
                 </tbody>
             </table>
@@ -131,11 +118,11 @@
     <div class="dcf-output">
         <div class="current-price">
             <h3>Current Price</h3>
-            <p class="price-display" id="currentPrice">$368</p>
-            <p class="price-change" id="priceChange">-1.7%</p>
+            <p class="price-display" id="currentPrice">$0.00</p>
+            <p class="price-change" id="priceChange">—</p>
         </div>
         
-        <button class="analyse-btn" id="analyseBtn">Analyse (Button)</button>
+        <button class="analyse-btn" id="analyseBtn" onclick="runDCFAnalysis()">Analyse</button>
 
         <div class="output-results">
             <h3>Output from Analysis</h3>

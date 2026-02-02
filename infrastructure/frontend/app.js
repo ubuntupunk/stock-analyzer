@@ -98,6 +98,8 @@ class StockAnalyzer {
 
         // Initialize modules that need setup
         this.modules.searchManager.initialize();
+        this.modules.stockAnalyserManager = new StockAnalyserManager(eventBus, api);
+        this.modules.stockAnalyserManager.init();
         this.modules.watchlistManager.initialize();
         this.modules.metricsManager.initialize();
         this.modules.tabManager.setupTabHandlers();
