@@ -2,6 +2,8 @@
 // Stock Analyzer Section (DCF)
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .analyser-header {
   display: flex;
   justify-content: space-between;
@@ -394,5 +396,295 @@
   canvas {
     width: 100% !important;
     height: 100% !important;
+  }
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Small tablets and large phones (≤768px)
+@include sm {
+  .analyser-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    
+    h2 {
+      font-size: var(--font-size-2xl);
+    }
+    
+    .analyser-controls {
+      width: 100%;
+      justify-content: space-between;
+      
+      .symbol-input-group {
+        flex: 1;
+        
+        input {
+          width: 100%;
+          min-width: 80px;
+        }
+      }
+      
+      select {
+        min-width: 100px;
+      }
+    }
+  }
+  
+  .analyser-section {
+    padding: var(--spacing-lg);
+    
+    h3 {
+      font-size: var(--font-size-xl);
+    }
+    
+    h4 {
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  .market-data-section {
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    
+    .current-price {
+      flex: 0 0 auto;
+      width: 100%;
+      text-align: center;
+      padding: var(--spacing-md);
+      background-color: var(--bg-light);
+      border-radius: var(--border-radius-md);
+      
+      h4 {
+        margin-bottom: var(--spacing-sm);
+      }
+      
+      .price-display {
+        font-size: var(--font-size-3xl);
+      }
+      
+      .price-change {
+        font-size: var(--font-size-lg);
+      }
+    }
+    
+    .market-info {
+      width: 100%;
+      
+      h4 {
+        font-size: var(--font-size-lg);
+      }
+      
+      p {
+        font-size: var(--font-size-sm);
+      }
+    }
+    
+    .analyse-btn {
+      width: 100%;
+      max-width: none;
+      margin-top: var(--spacing-md);
+    }
+  }
+  
+  .results-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    
+    th, td {
+      padding: var(--spacing-sm);
+      font-size: var(--font-size-sm);
+      min-width: 120px;
+    }
+  }
+  
+  .dcf-inputs {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .dcf-result {
+    padding: var(--spacing-lg);
+    
+    .result-label {
+      font-size: var(--font-size-base);
+    }
+    
+    .result-value {
+      font-size: var(--font-size-3xl);
+    }
+  }
+  
+  .chart-container {
+    height: 300px;
+    margin: var(--spacing-lg) 0;
+  }
+  
+  .video-placeholder {
+    padding: var(--spacing-xl);
+    
+    p {
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  .disclaimer {
+    padding: var(--spacing-md);
+    
+    p {
+      font-size: var(--font-size-xs);
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .analyser-header {
+    gap: var(--spacing-sm);
+    
+    h2 {
+      font-size: var(--font-size-xl);
+    }
+    
+    .analyser-controls {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-md);
+      
+      .symbol-input-group {
+        width: 100%;
+        
+        input {
+          flex: 1;
+          font-size: var(--font-size-sm);
+        }
+        
+        button {
+          padding: var(--spacing-sm);
+          font-size: var(--font-size-sm);
+        }
+      }
+      
+      select {
+        width: 100%;
+        font-size: var(--font-size-sm);
+      }
+      
+      p {
+        display: none;
+      }
+    }
+  }
+  
+  .analyser-section {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    
+    h3 {
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--spacing-md);
+    }
+    
+    h4 {
+      font-size: var(--font-size-sm);
+    }
+  }
+  
+  .input-section {
+    h4 {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+    }
+  }
+  
+  .market-data-section {
+    gap: var(--spacing-md);
+    
+    .current-price {
+      padding: var(--spacing-sm);
+      
+      h4 {
+        font-size: var(--font-size-sm);
+      }
+      
+      .price-display {
+        font-size: var(--font-size-2xl);
+      }
+      
+      .price-change {
+        font-size: var(--font-size-base);
+      }
+    }
+    
+    .market-info {
+      padding: var(--spacing-sm);
+      
+      h4 {
+        font-size: var(--font-size-base);
+      }
+      
+      p {
+        font-size: var(--font-size-xs);
+      }
+    }
+    
+    .analyse-btn {
+      padding: var(--spacing-md);
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  .results-table {
+    font-size: var(--font-size-xs);
+    
+    th, td {
+      padding: var(--spacing-xs) var(--spacing-sm);
+    }
+  }
+  
+  .dcf-result {
+    padding: var(--spacing-md);
+    
+    .result-label {
+      font-size: var(--font-size-sm);
+    }
+    
+    .result-value {
+      font-size: var(--font-size-2xl);
+    }
+    
+    .result-comparison {
+      font-size: var(--font-size-sm);
+    }
+  }
+  
+  .chart-container {
+    height: 250px;
+  }
+  
+  .video-placeholder {
+    padding: var(--spacing-lg);
+  }
+  
+  .income-statement {
+    margin-top: var(--spacing-lg);
+    
+    h4 {
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--spacing-sm);
+    }
+  }
+  
+  .statement-table {
+    th, td {
+      padding: var(--spacing-xs);
+      font-size: var(--font-size-xs);
+    }
   }
 }
