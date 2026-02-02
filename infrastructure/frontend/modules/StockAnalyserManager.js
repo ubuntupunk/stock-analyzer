@@ -157,11 +157,7 @@ class StockAnalyserManager {
             }
         };
 
-        // Populate Historical Data table
-        this.populateTableCell('roic-1y', historicalData.roic['1y'], true);
-        this.populateTableCell('roic-5y', historicalData.roic['5y'], true);
-        this.populateTableCell('roic-10y', historicalData.roic['10y'], true);
-
+        // Populate Historical Data table (order matches HTML)
         this.populateTableCell('rev-growth-1y', historicalData.revenueGrowth['1y'], true);
         this.populateTableCell('rev-growth-5y', historicalData.revenueGrowth['5y'], true);
         this.populateTableCell('rev-growth-10y', historicalData.revenueGrowth['10y'], true);
@@ -173,6 +169,10 @@ class StockAnalyserManager {
         this.populateTableCell('fcf-margin-1y', historicalData.fcfMargin['1y'], true);
         this.populateTableCell('fcf-margin-5y', historicalData.fcfMargin['5y'], true);
         this.populateTableCell('fcf-margin-10y', historicalData.fcfMargin['10y'], true);
+
+        this.populateTableCell('roic-1y', historicalData.roic['1y'], true);
+        this.populateTableCell('roic-5y', historicalData.roic['5y'], true);
+        this.populateTableCell('roic-10y', historicalData.roic['10y'], true);
 
         this.populateTableCell('pe-1y', historicalData.peRatio['1y'], false);
         this.populateTableCell('pe-5y', historicalData.peRatio['5y'], false);
