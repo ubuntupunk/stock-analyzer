@@ -601,6 +601,25 @@ class StockAnalyzer {
     }
 
     /**
+     * Go to home (popular-stocks tab) and clear stock selection
+     */
+    goHome() {
+        console.log('Going home...');
+        // Clear current stock selection
+        this.modules.stockManager.currentSymbol = null;
+        this.modules.stockManager.updateStockSymbolDisplay();
+        
+        // Switch to popular-stocks tab
+        this.modules.tabManager.switchTab('popular-stocks');
+        
+        // Update URL
+        this.updateURL();
+        
+        // Clear any search results
+        this.modules.stockManager.hideSearchResults();
+    }
+
+    /**
      * Toggle authentication dropdown
      */
     toggleAuthDropdown() {
