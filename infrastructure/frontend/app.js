@@ -108,15 +108,30 @@ class StockAnalyzer {
      */
     setupModuleCommunication() {
         // Stock selection flow
-        eventBus.on('stock:selected', ({ symbol }) => {
+        eventBus.on('stock:selected', ({ symbol, targetTab }) => {
             this.modules.watchlistManager.updateWatchlistButtonState(symbol);
             this.modules.uiManager.updateBreadcrumbs(symbol, 'search');
+            // Update URL with symbol and target tab
+            this.updateURL(symbol, targetTab);
         });
 
         // Tab switching flow
         eventBus.on('tab:switched', ({ tabName }) => {
-            // Update URL hash for bookmarking
-            window.location.hash = tabName;
+            // Update URL for tab navigation (keep current symbol if any)
+            const currentSymbol = this.modules.stockManager?.currentSymbol;
+            if (currentSymbol) {
+                this.updateURL(currentSymbol, tabName);
+            } else if (tabName !== 'popular-stocks') {
+                // Update URL for tab-only navigation
+                this.updateURL(null, tabName);
+            } else {
+                // Clear URL params for default tab
+                const url = new URL(window.location.href);
+                url.searchParams.delete('symbol');
+                url.searchParams.delete('tab');
+                url.hash = '';
+                window.history.replaceState({}, '', url.toString());
+            }
         });
 
         // Error handling
@@ -172,15 +187,23 @@ class StockAnalyzer {
      * Setup global event handlers
      */
     setupGlobalHandlers() {
-        // Handle browser back/forward for tab navigation
-        window.addEventListener('popstate', (e) => {
-            const tabName = e.state?.tab;
-            if (tabName && this.modules.tabManager.isValidTab(tabName)) {
-                this.modules.tabManager.switchTab(tabName);
+        // Handle browser back/forward for navigation
+        window.addEventListener('popstate', async (e) => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const symbol = urlParams.get('symbol');
+            const tab = urlParams.get('tab');
+            
+            if (symbol) {
+                // Navigate to the stock and tab from URL
+                await this.modules.stockManager.selectStock(symbol, tab || 'metrics');
+            } else if (tab && this.modules.tabManager.isValidTab(tab)) {
+                this.modules.tabManager.switchTab(tab);
+            } else {
+                this.modules.tabManager.switchTab('popular-stocks');
             }
         });
 
-        // Handle URL hash changes
+        // Handle URL hash changes (backward compatibility)
         window.addEventListener('hashchange', () => {
             const hash = window.location.hash.slice(1);
             if (hash && this.modules.tabManager.isValidTab(hash)) {
@@ -345,17 +368,70 @@ class StockAnalyzer {
             // Load watchlist
             await this.modules.watchlistManager.loadWatchlist();
             
-            // Handle initial URL hash
-            const initialHash = window.location.hash.slice(1);
-            if (initialHash && this.modules.tabManager.isValidTab(initialHash)) {
-                this.modules.tabManager.switchTab(initialHash);
-            } else {
-                this.modules.tabManager.switchTab('popular-stocks');
-            }
+            // Handle initial URL params and hash
+            await this.handleInitialURL();
             
         } catch (error) {
             console.error('Failed to load initial data:', error);
         }
+    }
+
+    /**
+     * Handle initial URL parameters and hash
+     * Supports: ?symbol=AAPL&tab=stock-analyser or #tabName
+     */
+    async handleInitialURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const hash = window.location.hash.slice(1);
+        
+        const symbol = urlParams.get('symbol');
+        const tab = urlParams.get('tab') || hash;
+        
+        console.log('handleInitialURL: symbol=', symbol, 'tab=', tab);
+        
+        if (symbol) {
+            // Load the stock and optionally switch to specified tab
+            const targetTab = tab && this.modules.tabManager.isValidTab(tab) ? tab : 'metrics';
+            await this.modules.stockManager.selectStock(symbol, targetTab);
+        } else if (tab && this.modules.tabManager.isValidTab(tab)) {
+            this.modules.tabManager.switchTab(tab);
+        } else {
+            this.modules.tabManager.switchTab('popular-stocks');
+        }
+    }
+
+    /**
+     * Update URL with current symbol and tab
+     * @param {string} symbol - Stock symbol (optional)
+     * @param {string} tab - Tab name (optional)
+     * @param {boolean} replace - Whether to replace history entry
+     */
+    updateURL(symbol = null, tab = null, replace = false) {
+        const url = new URL(window.location.href);
+        
+        if (symbol) {
+            url.searchParams.set('symbol', symbol);
+        } else {
+            url.searchParams.delete('symbol');
+        }
+        
+        const targetTab = tab || this.modules.tabManager.currentTab;
+        if (targetTab && targetTab !== 'popular-stocks') {
+            url.searchParams.set('tab', targetTab);
+        } else {
+            url.searchParams.delete('tab');
+        }
+        
+        // Clear hash since we're using query params
+        url.hash = '';
+        
+        if (replace) {
+            window.history.replaceState({}, '', url.toString());
+        } else {
+            window.history.pushState({}, '', url.toString());
+        }
+        
+        console.log('updateURL:', url.toString());
     }
 
     /**

@@ -562,7 +562,7 @@ class WatchlistManager {
                     </div>
                 </div>
                 <div class="watchlist-actions">
-                    <button class="btn-small" onclick="window.stockManager.selectStock('${symbolId}')">
+                    <button class="btn-small" onclick="window.stockManager.selectStock('${symbolId}', 'stock-analyser')">
                         <i class="fas fa-chart-line"></i> Analyze
                     </button>
                     <button class="btn-small btn-secondary" onclick="window.watchlistManager.editWatchlistItem('${symbolId}')">

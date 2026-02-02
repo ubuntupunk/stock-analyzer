@@ -15,8 +15,9 @@ class StockManager {
     /**
      * Search for and select a stock
      * @param {string} symbol - Stock symbol to search for
+     * @param {string} targetTab - Optional target tab to switch to (default: 'metrics')
      */
-    async searchStock(symbol) {
+    async searchStock(symbol, targetTab = 'metrics') {
         const validation = Validators.validateStockSymbol(symbol);
         if (!validation.isValid) {
             this.eventBus.emit('error', { message: validation.error, type: 'validation' });
@@ -24,21 +25,21 @@ class StockManager {
         }
 
         const cleanSymbol = validation.symbol;
-        console.log('Stock selected:', cleanSymbol);
+        console.log('Stock selected:', cleanSymbol, 'targetTab:', targetTab);
         
         this.currentSymbol = cleanSymbol;
         
         // Update stock symbol display
         this.updateStockSymbolDisplay();
         
-        // Emit stock selection event
-        this.eventBus.emit('stock:selected', { symbol: cleanSymbol });
+        // Emit stock selection event with target tab
+        this.eventBus.emit('stock:selected', { symbol: cleanSymbol, targetTab });
         
         // Preload data for all tabs
         await this.preloadStockData(cleanSymbol);
         
-        // Switch to metrics tab (default view)
-        this.eventBus.emit('tab:switch', { tabName: 'metrics' });
+        // Switch to target tab (default: metrics)
+        this.eventBus.emit('tab:switch', { tabName: targetTab });
         
         // Hide search results
         this.hideSearchResults();
@@ -47,9 +48,10 @@ class StockManager {
     /**
      * Select a stock (alias for searchStock)
      * @param {string} symbol - Stock symbol to select
+     * @param {string} targetTab - Optional target tab to switch to
      */
-    selectStock(symbol) {
-        return this.searchStock(symbol);
+    selectStock(symbol, targetTab = 'metrics') {
+        return this.searchStock(symbol, targetTab);
     }
 
     /**
