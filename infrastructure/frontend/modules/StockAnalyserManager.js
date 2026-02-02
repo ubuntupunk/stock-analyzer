@@ -107,8 +107,15 @@ class StockAnalyserManager {
 
         console.log('StockAnalyserManager: priceData:', priceData);
         console.log('StockAnalyserManager: metrics:', metrics);
-        const currentPrice = priceData?.currentPrice || priceData?.price || metrics?.price || 0;
+        const currentPrice = priceData?.currentPrice || priceData?.price || metrics?.current_price || metrics?.price || 0;
         const priceChange = priceData?.changePercent || priceData?.change || 0;
+
+        // Update header with company name
+        const analyserHeader = document.querySelector('#stock-analyser .analyser-header h2');
+        const companyName = metrics?.company_name || data?.symbol || this.currentSymbol;
+        if (analyserHeader) {
+            analyserHeader.textContent = `Stock Analyser - ${companyName}`;
+        }
 
         // Update current price display
         const priceDisplay = document.getElementById('currentPrice');
@@ -122,6 +129,15 @@ class StockAnalyserManager {
             priceChangeEl.textContent = `${prefix}${priceChange.toFixed(2)}%`;
             priceChangeEl.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
         }
+
+        // Extract market data from metrics (backend uses snake_case)
+        this.marketData = {
+            marketCap: metrics?.market_cap || 0,
+            revenue: metrics?.revenue || 0,
+            sharesOutstanding: metrics?.impliedSharesOutstanding || 0
+        };
+        
+        console.log('StockAnalyserManager: marketData:', this.marketData);
 
         // Historical metrics (1yr, 5yr, 10yr)
         // Yahoo Finance returns current values only, not historical
@@ -196,9 +212,17 @@ class StockAnalyserManager {
      * Update market info display with current market data
      */
     updateMarketInfoDisplay() {
+        const companyNameEl = document.getElementById('companyName');
         const marketCapEl = document.getElementById('marketCap');
         const sharesOutstandingEl = document.getElementById('sharesOutstanding');
         const baseRevenueEl = document.getElementById('baseRevenue');
+        
+        // Update company name in market data section
+        const metrics = this.currentData?.metrics || this.currentData || {};
+        const companyName = metrics?.company_name || this.currentSymbol;
+        if (companyNameEl) {
+            companyNameEl.textContent = companyName || 'Market Data';
+        }
         
         if (marketCapEl && this.marketData?.marketCap) {
             marketCapEl.textContent = this.formatLargeNumber(this.marketData.marketCap);

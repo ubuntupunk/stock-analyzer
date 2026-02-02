@@ -77,7 +77,7 @@
             <div class="input-section">
                 <h4>
                     My Assumptions
-                    <button class="btn-small btn-secondary" onclick="extrapolateFromHistorical()">Auto-fill from Historical</button>
+                    <button class="btn-sm btn-secondary" onclick="extrapolateFromHistorical()">Auto-fill from Historical</button>
                 </h4>
                 <table class="dcf-table">
                     <thead>
@@ -141,14 +141,14 @@
             </div>
             
             <div class="market-info">
-                <h4>Market Data</h4>
+                <h4><span id="companyName">Market Data</span></h4>
                 <p>Market Cap: <span id="marketCap">—</span></p>
                 <p>Shares Outstanding: <span id="sharesOutstanding">—</span></p>
                 <p>Annual Revenue: <span id="baseRevenue">—</span></p>
             </div>
         </div>
         
-        <button class="analyse-btn" id="analyseBtn" onclick="runDCFAnalysis()">Analyse</button>
+        <button class="analyse-btn btn-primary" id="analyseBtn" onclick="runDCFAnalysis()">Analyse</button>
     </div>
 
     <div class="analyser-section">
