@@ -2,6 +2,8 @@
 // Financials Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .financials {
   &-section {
     margin-bottom: var(--spacing-xl);
@@ -96,5 +98,79 @@
   
   &.active {
     display: block;
+  }
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .financials {
+    &-section {
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    &-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-sm);
+      
+      h3 {
+        font-size: var(--font-size-xl);
+      }
+    }
+  }
+  
+  .financials-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    
+    th, td {
+      padding: var(--spacing-sm);
+      font-size: var(--font-size-sm);
+      min-width: 100px;
+    }
+  }
+  
+  .financials-tabs {
+    margin-bottom: var(--spacing-lg);
+    
+    .tab-btn {
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-sm);
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .financials {
+    &-header {
+      h3 {
+        font-size: var(--font-size-lg);
+      }
+    }
+  }
+  
+  .financials-table {
+    th, td {
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: var(--font-size-xs);
+      min-width: 80px;
+    }
+  }
+  
+  .financials-tabs {
+    .tab-btn {
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: var(--font-size-xs);
+    }
   }
 }

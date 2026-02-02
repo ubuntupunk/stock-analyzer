@@ -2,6 +2,8 @@
 // Sidebar Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .sidebar {
   width: 240px;
   background-color: var(--bg-white);
@@ -96,15 +98,22 @@
     position: fixed;
     left: -240px;
     z-index: var(--z-fixed);
+    top: 60px; // Adjust for header height on mobile
+    height: calc(100vh - 60px);
     
     &.show {
       left: 0;
       width: 240px;
     }
-    
-    &-collapsed &-show {
-      left: 0;
-    }
+  }
+  
+  // Mobile: Main content should NOT have margin-left
+  .main-content {
+    margin-left: 0 !important;
+  }
+  
+  .sidebar-collapsed .main-content {
+    margin-left: 0 !important;
   }
 }
 
@@ -221,4 +230,163 @@
   text-align: center;
   color: rgba(255, 255, 255, 0.6);
   font-size: 0.9rem;
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .sidebar {
+    width: 60px;
+    
+    &-title {
+      display: none;
+    }
+    
+    &-item {
+      justify-content: center;
+      padding: var(--spacing-md);
+      
+      i {
+        margin-right: 0;
+      }
+      
+      .nav-text {
+        display: none;
+      }
+    }
+  }
+  
+  .sidebar-collapsed {
+    .sidebar {
+      width: 60px;
+    }
+  }
+  
+  .main-content {
+    margin-left: 60px;
+  }
+  
+  .tools-menu {
+    width: 320px;
+    right: -320px;
+    padding: 1.5rem;
+    
+    &.active {
+      right: 0;
+    }
+  }
+  
+  .tools-header {
+    margin-bottom: 1.5rem;
+    
+    h2 {
+      font-size: 1.25rem;
+    }
+  }
+  
+  .tool-item {
+    padding: 0.75rem;
+    
+    span {
+      font-size: 1rem;
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .sidebar {
+    width: 200px;
+    left: -200px;
+    
+    &.show {
+      left: 0;
+      width: 200px;
+    }
+    
+    &-title {
+      padding: var(--spacing-md);
+      font-size: var(--font-size-xs);
+    }
+    
+    &-item {
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-sm);
+      
+      i {
+        width: 16px;
+        font-size: var(--font-size-sm);
+      }
+    }
+  }
+  
+  .sidebar-collapsed {
+    .sidebar {
+      width: 50px;
+      
+      .sidebar-item {
+        padding: var(--spacing-sm);
+      }
+    }
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .tools-menu {
+    width: 280px;
+    right: -280px;
+    padding: 1rem;
+    
+    &.active {
+      right: 0;
+    }
+  }
+  
+  .tools-header {
+    margin-bottom: 1rem;
+    
+    h2 {
+      font-size: 1.1rem;
+    }
+  }
+  
+  .close-menu {
+    font-size: 1.25rem;
+    padding: 0.25rem;
+  }
+  
+  .tools-list {
+    gap: 0.75rem;
+  }
+  
+  .tool-item {
+    padding: 0.75rem;
+    
+    span {
+      font-size: var(--font-size-lg);
+      margin-bottom: 0;
+    }
+    
+    .tool-description {
+      font-size: var(--font-size-sm);
+      margin-top: var(--spacing-xs);
+    }
+  }
+  
+  .menu-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+  }
+  
+  .footer-btn {
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+  }
 }

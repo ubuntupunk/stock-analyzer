@@ -1,15 +1,29 @@
 <!-- Tab Navigation -->
 <div class="tabs-container">
-    <div class="tabs">
-        <button class="tab-btn active" data-tab="popular-stocks">POPULAR</button>
-        <button class="tab-btn" data-tab="metrics">METRICS</button>
-        <button class="tab-btn" data-tab="financials">FINANCIALS</button>
-        <button class="tab-btn" data-tab="factors">FACTORS</button>
-        <button class="tab-btn" data-tab="analyst-estimates">ANALYST ESTIMATES</button>
-        <button class="tab-btn" data-tab="news">NEWS</button>
-        <button class="tab-btn" data-tab="stock-analyser">STOCK ANALYSER</button>
-        <button class="tab-btn" data-tab="watchlist">WATCHLIST</button>
+    <!-- Mobile Carousel Left Arrow -->
+    <button class="tab-carousel-btn tab-carousel-prev hide-lg" aria-label="Previous tab">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    
+    <!-- Tabs Scroll Container -->
+    <div class="tabs-scroll-container">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="popular-stocks">POPULAR</button>
+            <button class="tab-btn" data-tab="metrics">METRICS</button>
+            <button class="tab-btn" data-tab="financials">FINANCIALS</button>
+            <button class="tab-btn" data-tab="factors">FACTORS</button>
+            <button class="tab-btn" data-tab="analyst-estimates">ANALYST ESTIMATES</button>
+            <button class="tab-btn" data-tab="news">NEWS</button>
+            <button class="tab-btn" data-tab="stock-analyser">STOCK ANALYSER</button>
+            <button class="tab-btn" data-tab="watchlist">WATCHLIST</button>
+        </div>
     </div>
+    
+    <!-- Mobile Carousel Right Arrow -->
+    <button class="tab-carousel-btn tab-carousel-next hide-lg" aria-label="Next tab">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    
     <div class="watchlist-indicator">
         <button id="watchlistToggle">
             <i class="far fa-star"></i> ON WATCHLIST

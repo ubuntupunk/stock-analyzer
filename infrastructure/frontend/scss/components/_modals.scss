@@ -2,6 +2,8 @@
 // Modals
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .modal {
   position: fixed;
   top: 0;
@@ -124,6 +126,129 @@
     .btn {
       width: 100%;
       margin-top: var(--spacing-md);
+    }
+  }
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .modal {
+    align-items: flex-end;
+    
+    &-dialog {
+      max-width: 100%;
+      width: 100%;
+      max-height: 85vh;
+      border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+    }
+    
+    &-header {
+      padding: var(--spacing-md);
+      
+      h3 {
+        font-size: var(--font-size-lg);
+      }
+    }
+    
+    &-close {
+      font-size: var(--font-size-xl);
+      padding: var(--spacing-xs);
+    }
+    
+    &-body {
+      padding: var(--spacing-md);
+    }
+    
+    &-footer {
+      padding: var(--spacing-md);
+      gap: var(--spacing-sm);
+      
+      .btn {
+        flex: 1;
+      }
+    }
+  }
+  
+  .auth-modal {
+    .modal-dialog {
+      width: 100%;
+      max-width: 100%;
+    }
+    
+    .auth-tabs {
+      margin-bottom: var(--spacing-md);
+      
+      .auth-tab {
+        padding: var(--spacing-sm);
+        font-size: var(--font-size-sm);
+      }
+    }
+    
+    .auth-form {
+      .form-group {
+        margin-bottom: var(--spacing-sm);
+      }
+      
+      .btn {
+        margin-top: var(--spacing-sm);
+      }
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .modal {
+    &-dialog {
+      max-height: 80vh;
+      border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+    }
+    
+    &-header {
+      padding: var(--spacing-sm);
+      
+      h3 {
+        font-size: var(--font-size-base);
+      }
+    }
+    
+    &-close {
+      font-size: var(--font-size-lg);
+    }
+    
+    &-body {
+      padding: var(--spacing-sm);
+    }
+    
+    &-footer {
+      padding: var(--spacing-sm);
+      flex-direction: column;
+      
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+  
+  .auth-modal {
+    .auth-tabs {
+      .auth-tab {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: var(--font-size-xs);
+      }
+    }
+    
+    .auth-form {
+      .btn {
+        padding: var(--spacing-sm);
+        font-size: var(--font-size-sm);
+      }
     }
   }
 }

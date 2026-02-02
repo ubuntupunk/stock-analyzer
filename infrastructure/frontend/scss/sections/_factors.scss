@@ -2,6 +2,8 @@
 // Factors Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .factor-header {
   text-align: center;
   padding: var(--spacing-xl);
@@ -147,4 +149,131 @@
   background-color: var(--bg-white);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-sm);
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .factor-header {
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    
+    h2 {
+      font-size: var(--font-size-2xl);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    p {
+      font-size: var(--font-size-sm);
+    }
+  }
+  
+  .add-factor-btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-lg);
+  }
+  
+  .factors-list {
+    padding: var(--spacing-md);
+  }
+  
+  .factor-row {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    
+    .factor-comparison {
+      grid-column: 1 / -1;
+      order: 3;
+    }
+    
+    .factor-controls {
+      justify-content: flex-start;
+    }
+  }
+  
+  .factor-value-input {
+    width: 60px;
+  }
+  
+  .factors-results {
+    padding: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .factor-header {
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    margin-bottom: var(--spacing-md);
+    
+    h2 {
+      font-size: var(--font-size-xl);
+    }
+  }
+  
+  .add-factor-btn {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-base);
+  }
+  
+  .factors-list {
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+  }
+  
+  .factor-row {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--spacing-sm);
+    
+    .factor-name {
+      font-size: var(--font-size-sm);
+    }
+    
+    .factor-value {
+      font-size: var(--font-size-base);
+    }
+    
+    .factor-comparison {
+      .comparison-value {
+        display: none;
+      }
+    }
+    
+    .factor-controls {
+      gap: var(--spacing-xs);
+    }
+  }
+  
+  .factor-operator {
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-xs);
+  }
+  
+  .factor-value-input {
+    width: 50px;
+    padding: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+  }
+  
+  .remove-factor-btn {
+    padding: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+  }
+  
+  .factors-results {
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+  }
 }

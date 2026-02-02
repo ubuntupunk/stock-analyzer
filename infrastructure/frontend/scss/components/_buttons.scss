@@ -2,6 +2,8 @@
 // Buttons
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -175,4 +177,85 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .btn {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    
+    &-lg {
+      padding: var(--spacing-sm) var(--spacing-lg);
+      font-size: var(--font-size-lg);
+    }
+  }
+  
+  .btn-auth {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-xs);
+    
+    i {
+      font-size: var(--font-size-xs);
+    }
+  }
+  
+  .btn-logout {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    
+    i {
+      font-size: var(--font-size-xs);
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    gap: var(--spacing-xs);
+    
+    &-lg {
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  .btn-auth {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    gap: var(--spacing-xs);
+    
+    span {
+      display: none;
+    }
+    
+    i {
+      margin: 0;
+    }
+  }
+  
+  .btn-logout {
+    padding: var(--spacing-xs);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+    
+    span {
+      display: none;
+    }
+    
+    i {
+      margin: 0;
+    }
+  }
 }

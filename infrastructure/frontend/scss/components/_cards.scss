@@ -2,6 +2,8 @@
 // Cards
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .card {
   background-color: var(--bg-white);
   border-radius: var(--border-radius-lg);
@@ -135,5 +137,141 @@
     display: flex;
     gap: var(--spacing-sm);
     align-items: center;
+  }
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .card {
+    &-header {
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    &-body {
+      padding: var(--spacing-md);
+    }
+    
+    &-footer {
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+  }
+  
+  .metric-card {
+    padding: var(--spacing-md);
+    
+    h3 {
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--spacing-sm);
+      padding-bottom: var(--spacing-xs);
+    }
+  }
+  
+  .stock-card {
+    padding: var(--spacing-md);
+    
+    .stock-symbol {
+      font-size: var(--font-size-lg);
+    }
+    
+    .stock-name {
+      font-size: var(--font-size-xs);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .stock-price {
+      font-size: var(--font-size-xl);
+    }
+    
+    .stock-change {
+      font-size: var(--font-size-sm);
+    }
+  }
+  
+  .factor-card {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    
+    .factor-name {
+      font-size: var(--font-size-base);
+    }
+    
+    .factor-description {
+      font-size: var(--font-size-xs);
+      margin-bottom: var(--spacing-sm);
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .card {
+    border-radius: var(--border-radius-md);
+    
+    &-header {
+      padding: var(--spacing-sm);
+      
+      h3, h4, h5 {
+        font-size: var(--font-size-base);
+      }
+    }
+    
+    &-body {
+      padding: var(--spacing-sm);
+    }
+    
+    &-footer {
+      padding: var(--spacing-sm);
+    }
+  }
+  
+  .metric-card {
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    
+    h3 {
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  .stock-card {
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    
+    .stock-symbol {
+      font-size: var(--font-size-base);
+    }
+    
+    .stock-name {
+      display: none;
+    }
+    
+    .stock-price {
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .stock-change {
+      font-size: var(--font-size-xs);
+    }
+  }
+  
+  .factor-card {
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    margin-bottom: var(--spacing-xs);
+    
+    .factor-name {
+      font-size: var(--font-size-sm);
+    }
+    
+    .factor-description {
+      display: none;
+    }
   }
 }

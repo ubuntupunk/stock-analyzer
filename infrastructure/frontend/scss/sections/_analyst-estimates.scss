@@ -78,3 +78,74 @@
     transition: width var(--transition-base);
   }
 }
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .analyst-estimates {
+    &-grid {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
+  }
+  
+  .estimate-card {
+    padding: var(--spacing-md);
+    
+    .estimate-label {
+      font-size: var(--font-size-xs);
+    }
+    
+    .estimate-value {
+      font-size: var(--font-size-2xl);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .estimate-detail {
+      font-size: var(--font-size-xs);
+    }
+  }
+  
+  .analyst-ratings {
+    .rating-row {
+      padding: var(--spacing-sm);
+      
+      .rating-firm {
+        font-size: var(--font-size-sm);
+      }
+      
+      .rating-action {
+        font-size: var(--font-size-sm);
+      }
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .estimate-card {
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    
+    .estimate-value {
+      font-size: var(--font-size-xl);
+    }
+  }
+  
+  .analyst-ratings {
+    .rating-row {
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      align-items: flex-start;
+      
+      .rating-action {
+        align-self: flex-end;
+      }
+    }
+  }
+}

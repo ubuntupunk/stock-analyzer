@@ -2,10 +2,24 @@
 // Popular Stocks Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .popular-stocks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--spacing-lg);
+
+  // Mobile: Use larger cards that span more width
+  @media (max-width: 767px) {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--spacing-md);
+  }
+
+  // Small phones: Full width cards
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr 1fr; // 2 cards per row
+    gap: var(--spacing-sm);
+  }
 }
 
 .popular-header {
@@ -109,6 +123,65 @@
   &.in-watchlist {
     border-color: var(--success-color);
     box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
+  }
+
+  // Mobile: Larger cards
+  @media (max-width: 767px) {
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    
+    .stock-symbol {
+      font-size: var(--font-size-lg);
+    }
+    
+    .stock-name {
+      font-size: var(--font-size-sm);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .stock-sector {
+      font-size: var(--font-size-xs);
+      padding: 0.15rem 0.5rem;
+    }
+    
+    .stock-price {
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .stock-change {
+      font-size: var(--font-size-sm);
+    }
+  }
+
+  // Small phones: Compact cards
+  @media (max-width: 480px) {
+    padding: var(--spacing-sm);
+    
+    .stock-symbol {
+      font-size: var(--font-size-base);
+    }
+    
+    .stock-name {
+      font-size: var(--font-size-xs);
+      -webkit-line-clamp: 1;
+    }
+    
+    .stock-sector {
+      display: none; // Hide sector on very small screens
+    }
+    
+    .stock-price {
+      font-size: var(--font-size-base);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .stock-change {
+      font-size: var(--font-size-xs);
+    }
   }
 }
 
@@ -220,6 +293,70 @@
       background: #27ae60;
       border-color: #27ae60;
       box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    }
+  }
+
+  // Mobile: Smaller watchlist button
+  @media (max-width: 767px) {
+    width: 28px;
+    height: 28px;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+
+// ============================================
+// Mobile Controls
+// ============================================
+
+.popular-controls {
+  display: flex;
+  gap: var(--spacing-lg);
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+
+  // Mobile: Stack controls
+  @media (max-width: 767px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+}
+
+.popular-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  
+  h2 {
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  p {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  // Mobile: Smaller header
+  @media (max-width: 767px) {
+    margin-bottom: var(--spacing-md);
+    
+    h2 {
+      font-size: var(--font-size-xl);
+    }
+    
+    p {
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--spacing-md);
     }
   }
 }

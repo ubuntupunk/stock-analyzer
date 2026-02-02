@@ -502,30 +502,202 @@ class TabManager {
      */
     setupTabHandlers() {
         console.log('TabManager: setupTabHandlers called');
-        // Wait a moment for DOM to be ready
-        setTimeout(() => {
+        
+        // Use a more robust polling approach for DOM readiness
+        const checkAndSetup = () => {
             const tabs = document.querySelectorAll('.tab-btn');
-            console.log('TabManager: Found', tabs.length, 'tab elements');
+            const scrollContainer = document.querySelector('.tabs-scroll-container');
             
-            if (tabs.length === 0) {
-                console.warn('TabManager: No tab elements found - DOM may not be ready yet');
+            if (tabs.length > 0) {
+                console.log('TabManager: Found', tabs.length, 'tab elements');
+                
+                tabs.forEach((tab, index) => {
+                    const tabName = tab.getAttribute('data-tab');
+                    console.log(`TabManager: Setting up handler for tab ${index}: ${tabName}`);
+                    
+                    tab.addEventListener('click', (e) => {
+                        console.log('TabManager: Tab clicked:', tabName);
+                        if (tabName) {
+                            this.switchTab(tabName);
+                        }
+                    });
+                });
+                
+                // Setup carousel navigation handlers
+                this.setupCarouselHandlers();
+            } else {
                 // Try again after a short delay
-                setTimeout(() => this.setupTabHandlers(), 100);
-                return;
+                setTimeout(checkAndSetup, 50);
+            }
+        };
+        
+        // Start checking
+        checkAndSetup();
+    }
+    
+    /**
+     * Setup carousel navigation buttons (mobile)
+     */
+    setupCarouselHandlers() {
+        const prevBtn = document.querySelector('.tab-carousel-prev');
+        const nextBtn = document.querySelector('.tab-carousel-next');
+        const scrollContainer = document.querySelector('.tabs-scroll-container');
+        const tabsContainer = document.querySelector('.tabs-container');
+        
+        if (!prevBtn || !nextBtn || !scrollContainer) {
+            console.log('TabManager: Carousel elements not found yet, retrying...');
+            setTimeout(() => this.setupCarouselHandlers(), 100);
+            return;
+        }
+        
+        // Left arrow - scroll left
+        prevBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.scrollTabsLeft();
+        });
+        
+        // Right arrow - scroll right
+        nextBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.scrollTabsRight();
+        });
+        
+        // Update button visibility based on scroll position
+        scrollContainer.addEventListener('scroll', () => {
+            this.updateCarouselButtons();
+        });
+        
+        // Update on window resize
+        window.addEventListener('resize', () => {
+            this.updateCarouselButtons();
+        });
+        
+        // Initial button state
+        this.updateCarouselButtons();
+        
+        // Add touch swipe support for mobile
+        this.setupTouchSwipe(scrollContainer);
+        
+        console.log('TabManager: Carousel handlers setup complete');
+    }
+    
+    /**
+     * Scroll tabs container left
+     */
+    scrollTabsLeft() {
+        const scrollContainer = document.querySelector('.tabs-scroll-container');
+        if (scrollContainer) {
+            const tabWidth = scrollContainer.querySelector('.tab-btn')?.offsetWidth || 100;
+            scrollContainer.scrollBy({
+                left: -tabWidth * 2,
+                behavior: 'smooth'
+            });
+        }
+    }
+    
+    /**
+     * Scroll tabs container right
+     */
+    scrollTabsRight() {
+        const scrollContainer = document.querySelector('.tabs-scroll-container');
+        if (scrollContainer) {
+            const tabWidth = scrollContainer.querySelector('.tab-btn')?.offsetWidth || 100;
+            scrollContainer.scrollBy({
+                left: tabWidth * 2,
+                behavior: 'smooth'
+            });
+        }
+    }
+    
+    /**
+     * Update carousel arrow button visibility based on scroll position
+     */
+    updateCarouselButtons() {
+        const scrollContainer = document.querySelector('.tabs-scroll-container');
+        const prevBtn = document.querySelector('.tab-carousel-prev');
+        const nextBtn = document.querySelector('.tab-carousel-next');
+        
+        if (scrollContainer && prevBtn && nextBtn) {
+            const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+            const currentScroll = scrollContainer.scrollLeft;
+            
+            // Show/hide prev button based on scroll position
+            if (currentScroll > 10) {
+                prevBtn.classList.remove('disabled');
+                prevBtn.style.opacity = '1';
+                prevBtn.style.pointerEvents = 'auto';
+            } else {
+                prevBtn.classList.add('disabled');
+                prevBtn.style.opacity = '0.3';
+                prevBtn.style.pointerEvents = 'none';
             }
             
-            tabs.forEach((tab, index) => {
-                const tabName = tab.getAttribute('data-tab');
-                console.log(`TabManager: Setting up handler for tab ${index}: ${tabName}`);
+            // Show/hide next button based on scroll position
+            if (currentScroll < maxScroll - 10) {
+                nextBtn.classList.remove('disabled');
+                nextBtn.style.opacity = '1';
+                nextBtn.style.pointerEvents = 'auto';
+            } else {
+                nextBtn.classList.add('disabled');
+                nextBtn.style.opacity = '0.3';
+                nextBtn.style.pointerEvents = 'none';
+            }
+        }
+    }
+    
+    /**
+     * Setup touch swipe support for carousel
+     * @param {HTMLElement} element - Scroll container element
+     */
+    setupTouchSwipe(element) {
+        if (!element) return;
+        
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        const minSwipeDistance = 30;
+        
+        // Get the container for bounds calculation
+        const container = element;
+        
+        const handleTouchStart = (e) => {
+            // Store both X and Y to distinguish horizontal from vertical swipes
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        };
+        
+        const handleTouchEnd = (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            this.handleSwipe();
+        };
+        
+        const handleSwipe = () => {
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            
+            // Only handle horizontal swipes (ignore vertical scrolling)
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                const swipeDistance = diffX;
                 
-                tab.addEventListener('click', (e) => {
-                    console.log('TabManager: Tab clicked:', tabName);
-                    if (tabName) {
-                        this.switchTab(tabName);
+                if (Math.abs(swipeDistance) > minSwipeDistance) {
+                    if (swipeDistance > 0) {
+                        // Swipe right - scroll left (show previous tabs)
+                        this.scrollTabsLeft();
+                    } else {
+                        // Swipe left - scroll right (show next tabs)
+                        this.scrollTabsRight();
                     }
-                });
-            });
-        }, 100);
+                }
+            }
+        };
+        
+        // Use passive: false to allow preventDefault() if needed
+        element.addEventListener('touchstart', handleTouchStart, { passive: true });
+        element.addEventListener('touchend', handleTouchEnd, { passive: true });
+        
+        console.log('TabManager: Touch swipe support enabled');
     }
 
     /**

@@ -2,6 +2,8 @@
 // Auth Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .auth-container {
   min-height: 100vh;
   display: flex;
@@ -311,5 +313,158 @@
 @media (max-width: 480px) {
   .auth-dropdown {
     right: -1rem;
+  }
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .auth-container {
+    padding: var(--spacing-md);
+  }
+  
+  .auth-card {
+    padding: var(--spacing-lg);
+    max-width: 400px;
+    
+    &-header {
+      margin-bottom: var(--spacing-lg);
+      
+      .logo {
+        margin-bottom: var(--spacing-sm);
+      }
+      
+      h2 {
+        font-size: var(--font-size-2xl);
+      }
+    }
+    
+    &-form {
+      .form-group {
+        margin-bottom: var(--spacing-md);
+      }
+      
+      .btn {
+        padding: var(--spacing-sm);
+        margin-top: var(--spacing-sm);
+      }
+    }
+    
+    &-footer {
+      margin-top: var(--spacing-lg);
+      padding-top: var(--spacing-md);
+    }
+  }
+  
+  .auth-divider {
+    margin: var(--spacing-lg) 0;
+  }
+  
+  .auth-social {
+    margin-bottom: var(--spacing-lg);
+    gap: var(--spacing-sm);
+    
+    .btn-social {
+      padding: var(--spacing-sm);
+      
+      img {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+  
+  .btn-auth {
+    padding: 6px 8px;
+    font-size: 0;
+    min-width: 32px;
+    height: 32px;
+    
+    span {
+      display: none;
+    }
+    
+    i {
+      font-size: 0.9rem;
+      margin: 0;
+    }
+  }
+  
+  .btn-logout {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    
+    span {
+      display: none;
+    }
+  }
+  
+  .auth-dropdown {
+    min-width: 200px;
+    
+    &-header {
+      padding: var(--spacing-sm);
+      
+      h3 {
+        font-size: var(--font-size-sm);
+      }
+    }
+    
+    &-body {
+      padding: var(--spacing-sm);
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .auth-container {
+    padding: var(--spacing-sm);
+    align-items: flex-end;
+  }
+  
+  .auth-card {
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+    max-height: 85vh;
+    overflow-y: auto;
+    
+    &-header {
+      margin-bottom: var(--spacing-md);
+      
+      .logo {
+        img {
+          max-height: 32px;
+        }
+      }
+      
+      h2 {
+        font-size: var(--font-size-xl);
+      }
+    }
+    
+    &-form {
+      .btn {
+        padding: var(--spacing-sm);
+      }
+    }
+  }
+  
+  .auth-divider {
+    margin: var(--spacing-md) 0;
+  }
+  
+  .auth-social {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    
+    .btn-social {
+      width: 100%;
+    }
   }
 }

@@ -425,3 +425,213 @@
     flex-shrink: 0;
   }
 }
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .watchlist {
+    &-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
+      padding-bottom: var(--spacing-sm);
+      
+      h2 {
+        font-size: var(--font-size-2xl);
+      }
+    }
+    
+    &-controls {
+      width: 100%;
+      justify-content: flex-start;
+    }
+    
+    &-grid {
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: var(--spacing-md);
+    }
+    
+    &-footer {
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-lg);
+    }
+    
+    &-item {
+      .watchlist-header {
+        padding: var(--spacing-sm);
+      }
+      
+      .watchlist-content {
+        padding: var(--spacing-sm);
+      }
+      
+      .watchlist-price {
+        font-size: var(--font-size-xl);
+      }
+      
+      .watchlist-actions {
+        padding: var(--spacing-sm);
+        
+        .btn-small {
+          padding: var(--spacing-xs) var(--spacing-sm);
+          font-size: var(--font-size-xs);
+        }
+      }
+    }
+  }
+  
+  .watchlist-table {
+    display: block;
+    overflow-x: auto;
+    
+    th, td {
+      padding: var(--spacing-sm);
+      font-size: var(--font-size-sm);
+    }
+  }
+  
+  .watchlist-modal {
+    max-width: 95%;
+    
+    &-header {
+      padding: var(--spacing-md);
+      
+      h3 {
+        font-size: var(--font-size-base);
+      }
+    }
+    
+    &-close {
+      font-size: var(--font-size-lg);
+    }
+    
+    &-body {
+      padding: var(--spacing-md);
+      
+      .form-group {
+        margin-bottom: var(--spacing-sm);
+      }
+    }
+    
+    &-footer {
+      padding: var(--spacing-md);
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .watchlist {
+    &-header {
+      h2 {
+        font-size: var(--font-size-xl);
+      }
+    }
+    
+    &-grid {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-sm);
+    }
+    
+    &-footer {
+      text-align: center;
+    }
+    
+    &-item {
+      border-radius: var(--border-radius-md);
+      
+      .watchlist-header {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+      }
+      
+      .watchlist-symbol {
+        .symbol {
+          font-size: var(--font-size-base);
+        }
+        
+        .name {
+          font-size: var(--font-size-xs);
+        }
+      }
+      
+      .watchlist-price {
+        font-size: var(--font-size-lg);
+      }
+      
+      .watchlist-alert,
+      .watchlist-notes {
+        display: none;
+      }
+      
+      .watchlist-actions {
+        flex-wrap: wrap;
+        
+        .btn-small {
+          flex: 1 1 45%;
+        }
+      }
+    }
+  }
+  
+  .empty-watchlist {
+    padding: var(--spacing-xl);
+    
+    i {
+      font-size: 48px;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    h3 {
+      font-size: var(--font-size-lg);
+    }
+  }
+  
+  .watchlist-table {
+    th, td {
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: var(--font-size-xs);
+    }
+  }
+  
+  .watchlist-modal {
+    width: 95%;
+    max-height: 80vh;
+    
+    &-overlay {
+      padding: var(--spacing-sm);
+    }
+    
+    &-header {
+      padding: var(--spacing-sm);
+      
+      h3 {
+        font-size: var(--font-size-sm);
+      }
+    }
+    
+    &-close {
+      font-size: var(--font-size-lg);
+    }
+    
+    &-body {
+      padding: var(--spacing-sm);
+    }
+    
+    &-footer {
+      padding: var(--spacing-sm);
+      flex-direction: column;
+      
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+}

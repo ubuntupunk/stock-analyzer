@@ -2,6 +2,8 @@
 // Footer Section
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .footer {
   background-color: var(--bg-white);
   border-top: 2px solid var(--border-color);
@@ -58,5 +60,50 @@
   
   .main-content {
     margin-left: 0;
+  }
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .footer {
+    padding: var(--spacing-lg);
+    font-size: var(--font-size-xs);
+    
+    &-links {
+      gap: var(--spacing-md);
+    }
+  }
+  
+  .app-container {
+    .main-content {
+      margin-left: 60px;
+      padding: var(--spacing-lg);
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .footer {
+    padding: var(--spacing-md);
+    
+    &-links {
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+  }
+  
+  .app-container {
+    .main-content {
+      margin-left: 0;
+      padding: var(--spacing-md);
+      min-height: calc(100vh - 80px);
+    }
   }
 }

@@ -116,23 +116,108 @@
 
 // Responsive adjustments for metrics view toggle
 @include sm {
-  .metrics-controls {
-    justify-content: center;
+  .metrics {
+    &-grid {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
+    
+    &-controls {
+      justify-content: center;
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    &-list {
+      gap: var(--spacing-md);
+      
+      .metric-card {
+        padding: var(--spacing-md);
+        
+        h3 {
+          font-size: var(--font-size-lg);
+          margin-bottom: var(--spacing-sm);
+          padding-bottom: var(--spacing-xs);
+        }
+      }
+      
+      .metric-item {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-xs);
+        
+        span:last-child {
+          min-width: auto;
+        }
+      }
+    }
+  }
+  
+  .metric-card {
+    padding: var(--spacing-md);
+    
+    h3 {
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--spacing-sm);
+      padding-bottom: var(--spacing-xs);
+    }
   }
 }
 
 @include xs {
-  .metrics-view-toggle {
-    .view-btn {
-      span {
-        display: none;
+  .metrics {
+    &-grid {
+      gap: var(--spacing-sm);
+    }
+    
+    &-controls {
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+    
+    &-list {
+      gap: var(--spacing-sm);
+      
+      .metric-card {
+        padding: var(--spacing-sm);
+        border-radius: var(--border-radius-md);
+        
+        h3 {
+          font-size: var(--font-size-base);
+        }
       }
       
-      padding: var(--spacing-sm);
-      
-      i {
-        font-size: var(--font-size-lg);
+      .metric-item {
+        padding: var(--spacing-xs) 0;
+        
+        span:first-child {
+          font-size: var(--font-size-xs);
+        }
+        
+        span:last-child {
+          font-size: var(--font-size-sm);
+        }
       }
+    }
+  }
+  
+  .metric-card {
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    
+    h3 {
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  .metric-item {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    
+    span:first-child {
+      font-size: var(--font-size-xs);
+    }
+    
+    span:last-child {
+      font-size: var(--font-size-xs);
     }
   }
 }

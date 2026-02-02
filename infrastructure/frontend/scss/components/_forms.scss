@@ -2,6 +2,8 @@
 // Forms
 // ============================================
 
+@use '../utils/mixins' as *;
+
 .form-group {
   margin-bottom: var(--spacing-md);
   
@@ -131,5 +133,93 @@ select.form-control {
   &:focus {
     outline: none;
     border-color: var(--primary-color);
+  }
+}
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .form-group {
+    margin-bottom: var(--spacing-sm);
+    
+    label {
+      font-size: var(--font-size-xs);
+    }
+  }
+  
+  .form-control {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    
+    &-lg {
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  textarea.form-control {
+    min-height: 80px;
+  }
+  
+  .input-group {
+    flex-direction: column;
+    
+    .form-control {
+      border-radius: var(--border-radius-md);
+      
+      &:not(:first-child) {
+        border-top-left-radius: var(--border-radius-md);
+        border-bottom-left-radius: var(--border-radius-md);
+      }
+      
+      &:not(:last-child) {
+        border-top-right-radius: var(--border-radius-md);
+        border-bottom-right-radius: var(--border-radius-md);
+      }
+    }
+  }
+  
+  .input-group-text {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+  }
+  
+  .invalid-feedback {
+    font-size: var(--font-size-xs);
+  }
+  
+  .sector-filter {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-xs);
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .form-group {
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .form-control {
+    padding: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    border-radius: var(--border-radius-sm);
+  }
+  
+  textarea.form-control {
+    min-height: 60px;
+  }
+  
+  .input-group-text {
+    display: none;
+  }
+  
+  .invalid-feedback {
+    font-size: var(--font-size-xs);
   }
 }

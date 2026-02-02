@@ -209,3 +209,164 @@
     }
   }
 }
+
+// ============================================
+// Mobile Responsiveness
+// ============================================
+
+// Note: Mixins are imported at the top of this file
+
+// Tablets and large phones (≤768px)
+@include sm {
+  .calculator {
+    &-card {
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+      
+      h3 {
+        font-size: var(--font-size-xl);
+        margin-bottom: var(--spacing-md);
+      }
+    }
+    
+    &-header {
+      margin-bottom: var(--spacing-lg);
+      
+      h2 {
+        font-size: var(--font-size-2xl);
+      }
+      
+      p {
+        font-size: var(--font-size-sm);
+      }
+    }
+    
+    &-content {
+      gap: var(--spacing-lg);
+    }
+    
+    &-form {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+      
+      .form-group {
+        input {
+          padding: var(--spacing-xs) var(--spacing-sm);
+          font-size: var(--font-size-sm);
+        }
+      }
+    }
+    
+    &-results {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+      
+      .result-card {
+        padding: var(--spacing-md);
+        
+        .result-value {
+          font-size: var(--font-size-xl);
+        }
+      }
+    }
+    
+    &-result {
+      padding: var(--spacing-lg);
+      
+      .result-value {
+        font-size: var(--font-size-3xl);
+      }
+      
+      .result-label {
+        font-size: var(--font-size-base);
+      }
+    }
+  }
+  
+  .sip-calculator {
+    .investment-period {
+      flex-wrap: wrap;
+      gap: var(--spacing-sm);
+      
+      .period-option {
+        flex: 1 1 45%;
+        padding: var(--spacing-sm);
+        
+        .period-value {
+          font-size: var(--font-size-lg);
+        }
+        
+        .period-label {
+          font-size: var(--font-size-xs);
+        }
+      }
+    }
+  }
+  
+  .cagr-calculator {
+    .result-comparison {
+      padding: var(--spacing-md);
+      
+      .comparison-item {
+        padding: var(--spacing-xs) 0;
+        
+        .label {
+          font-size: var(--font-size-sm);
+        }
+        
+        .value {
+          font-size: var(--font-size-sm);
+        }
+      }
+    }
+  }
+}
+
+// Small phones (≤480px)
+@include xs {
+  .calculator {
+    &-card {
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      
+      h3 {
+        font-size: var(--font-size-lg);
+        margin-bottom: var(--spacing-sm);
+      }
+    }
+    
+    &-header {
+      margin-bottom: var(--spacing-md);
+      
+      h2 {
+        font-size: var(--font-size-xl);
+      }
+    }
+    
+    &-form {
+      .btn-primary {
+        margin-top: var(--spacing-sm);
+      }
+    }
+    
+    &-result {
+      padding: var(--spacing-md);
+      
+      .result-value {
+        font-size: var(--font-size-2xl);
+      }
+    }
+  }
+  
+  .sip-calculator {
+    .investment-period {
+      flex-direction: column;
+      
+      .period-option {
+        flex: 1;
+      }
+    }
+  }
+}

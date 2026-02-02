@@ -11,16 +11,33 @@
   border-radius: 8px 8px 0 0;
   border: 2px solid var(--border-color);
   border-bottom: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.tabs-scroll-container {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; // Firefox
+  -ms-overflow-style: none; // IE/Edge
+  
+  &::-webkit-scrollbar {
+    display: none; // Chrome/Safari
+  }
 }
 
 .tabs {
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 100%;
 }
 
 .tab-btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1rem;
   background-color: transparent;
   border: 2px solid transparent;
   border-radius: 4px;
@@ -28,7 +45,9 @@
   font-weight: 500;
   transition: all 0.3s;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  flex-shrink: 0;
   
   &:hover {
     background-color: var(--bg-hover);
@@ -41,14 +60,56 @@
   }
 }
 
+// Mobile Carousel Navigation Buttons
+.tab-carousel-btn {
+  display: none; // Hidden on desktop
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-white);
+  color: var(--primary-color);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.3);
+  }
+  
+  &.tab-carousel-prev {
+    left: 0.5rem;
+  }
+  
+  &.tab-carousel-next {
+    right: 3.5rem; // Account for watchlist button
+  }
+}
+
 .watchlist-indicator {
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  
   button {
-    padding: 0.75rem 1.5rem;
+    padding: 0.75rem 1rem;
     background-color: var(--bg-light);
     border: 2px solid var(--border-color);
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.3s;
+    font-size: 0.8rem;
     
     &:hover {
       background-color: var(--secondary-color);
@@ -57,6 +118,91 @@
     
     &.active i {
       color: gold;
+    }
+  }
+}
+
+// Mobile Breakpoint (< 768px)
+@media (max-width: 767px) {
+  .tabs-container {
+    padding: 0.75rem 0.5rem;
+    padding-left: 3rem; // Space for carousel button
+    padding-right: 3rem; // Space for carousel button
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    
+    // Visual indicator that tabs are scrollable
+    background: linear-gradient(to right, var(--bg-white) 2rem, transparent 2rem),
+                linear-gradient(to left, var(--bg-white) 2rem, transparent 2rem),
+                var(--bg-white);
+    background-size: 2rem 100%;
+    background-repeat: no-repeat;
+    background-position: left, right, center;
+  }
+  
+  .tabs-scroll-container {
+    // Subtle shadow gradient to indicate scrollable
+    mask-image: linear-gradient(to right, transparent, black 0.5rem, black calc(100% - 0.5rem), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 0.5rem, black calc(100% - 0.5rem), transparent);
+  }
+  
+  .tabs {
+    gap: 0.25rem;
+  }
+  
+  .tab-btn {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  // Enhanced carousel buttons for mobile
+  .tab-carousel-btn {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--bg-white);
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+    
+    &:hover {
+      background-color: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+      transform: scale(1.1);
+    }
+    
+    &.tab-carousel-prev {
+      left: 0.25rem;
+    }
+    
+    &.tab-carousel-next {
+      right: 0.25rem;
+    }
+    
+    // Dimmed state when at scroll boundary
+    &.disabled {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+  }
+  
+  .watchlist-indicator {
+    display: none; // Hide on mobile to save space
+  }
+  
+  .watchlist-indicator button {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.75rem;
+    
+    i {
+      margin-right: 0.25rem;
+    }
+    
+    span {
+      display: none;
     }
   }
 }
@@ -76,4 +222,18 @@
   border-top: none;
   border-radius: 0 0 8px 8px;
   min-height: 600px;
+
+  // Mobile: Remove border-radius and reduce padding for better space usage
+  @media (max-width: 767px) {
+    padding: var(--spacing-md);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    min-height: auto;
+  }
+
+  // Small phones: Minimal padding
+  @media (max-width: 480px) {
+    padding: var(--spacing-sm);
+  }
 }
