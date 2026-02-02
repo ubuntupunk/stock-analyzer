@@ -4,6 +4,7 @@ Primary data source - Uses yfinance library (handles authentication internally)
 """
 
 import yfinance as yf
+import pandas as pd
 from typing import Dict, List, Optional
 
 
@@ -211,31 +212,128 @@ class YahooFinanceClient:
         return estimates
     
     def parse_financials(self, data: Dict) -> Dict:
-        """Parse Yahoo Finance financial statements"""
+        """Parse Yahoo Finance financial statements - legacy method using info dict"""
+        return self.parse_financials_full(data)
+
+    def parse_financials_full(self, data: Dict = None) -> Dict:
+        """
+        Parse Yahoo Finance financial statements with full historical data
+        
+        Args:
+            data: Optional ticker object from yfinance
+        """
         parsed = {}
         
         try:
-            # Basic financial data from info dict
-            parsed['income_statement'] = [{
-                'revenue': data.get('totalRevenue', 0),
-                'net_income': data.get('netIncomeToCommon', 0),
-                'ebitda': data.get('ebitda', 0)
-            }]
-            
-            parsed['balance_sheet'] = [{
-                'total_assets': data.get('totalAssets', 0),
-                'total_liabilities': data.get('totalLiabilities', 0),
-                'shareholders_equity': data.get('totalStockholderEquity', 0),
-                'cash': data.get('cash', 0)
-            }]
-            
-            parsed['cash_flow'] = [{
-                'operating_cashflow': data.get('operatingCashflow', 0),
-                'free_cash_flow': data.get('freeCashflow', 0),
-                'capex': data.get('capitalExpenditures', 0)
-            }]
+            # If data is a ticker object, use its financial statement methods
+            if data is not None:
+                ticker = data
+                
+                # Parse Income Statement
+                try:
+                    financials = ticker.financials
+                    if financials is not None and not financials.empty:
+                        income_statement = []
+                        for i, (date, row) in enumerate(financials.iterrows()):
+                            # Get up to 4 years of data
+                            if i < 4:
+                                income_statement.append({
+                                    'fiscal_date': date.strftime('%Y-%m') if hasattr(date, 'strftime') else str(date),
+                                    'revenue': float(row.get('Total Revenue', 0)) if not pd.isna(row.get('Total Revenue', 0)) else 0,
+                                    'net_income': float(row.get('Net Income', 0)) if not pd.isna(row.get('Net Income', 0)) else 0,
+                                    'ebitda': float(row.get('EBITDA', 0)) if not pd.isna(row.get('EBITDA', 0)) else 0
+                                })
+                        parsed['income_statement'] = income_statement
+                except Exception as e:
+                    print(f"Error parsing income statement: {str(e)}")
+                    parsed['income_statement'] = []
+
+                # Parse Balance Sheet
+                try:
+                    balance_sheet = ticker.balance_sheet
+                    if balance_sheet is not None and not balance_sheet.empty:
+                        balance_data = []
+                        for i, (date, row) in enumerate(balance_sheet.iterrows()):
+                            if i < 4:
+                                balance_data.append({
+                                    'fiscal_date': date.strftime('%Y-%m') if hasattr(date, 'strftime') else str(date),
+                                    'total_assets': float(row.get('Total Assets', 0)) if not pd.isna(row.get('Total Assets', 0)) else 0,
+                                    'total_liabilities': float(row.get('Total Liabilities', 0)) if not pd.isna(row.get('Total Liabilities', 0)) else 0,
+                                    'shareholders_equity': float(row.get('Total Stockholder Equity', 0)) if not pd.isna(row.get('Total Stockholder Equity', 0)) else 0,
+                                    'cash': float(row.get('Cash', 0)) if not pd.isna(row.get('Cash', 0)) else 0
+                                })
+                        parsed['balance_sheet'] = balance_data
+                except Exception as e:
+                    print(f"Error parsing balance sheet: {str(e)}")
+                    parsed['balance_sheet'] = []
+
+                # Parse Cash Flow
+                try:
+                    cashflow = ticker.cashflow
+                    if cashflow is not None and not cashflow.empty:
+                        cash_flow = []
+                        for i, (date, row) in enumerate(cashflow.iterrows()):
+                            if i < 4:
+                                cash_flow.append({
+                                    'fiscal_date': date.strftime('%Y-%m') if hasattr(date, 'strftime') else str(date),
+                                    'operating_cashflow': float(row.get('Operating Cash Flow', 0)) if not pd.isna(row.get('Operating Cash Flow', 0)) else 0,
+                                    'free_cash_flow': float(row.get('Free Cash Flow', 0)) if not pd.isna(row.get('Free Cash Flow', 0)) else 0,
+                                    'capex': float(row.get('Capital Expenditures', 0)) if not pd.isna(row.get('Capital Expenditures', 0)) else 0
+                                })
+                        parsed['cash_flow'] = cash_flow
+                except Exception as e:
+                    print(f"Error parsing cash flow: {str(e)}")
+                    parsed['cash_flow'] = []
+                    
+            # Fallback to info dict if no ticker object
+            if not parsed or (not parsed.get('income_statement') and data and isinstance(data, dict)):
+                parsed = {
+                    'income_statement': [{
+                        'revenue': data.get('totalRevenue', 0),
+                        'net_income': data.get('netIncomeToCommon', 0),
+                        'ebitda': data.get('ebitda', 0)
+                    }],
+                    'balance_sheet': [{
+                        'total_assets': data.get('totalAssets', 0),
+                        'total_liabilities': data.get('totalLiabilities', 0),
+                        'shareholders_equity': data.get('totalStockholderEquity', 0),
+                        'cash': data.get('cash', 0)
+                    }],
+                    'cash_flow': [{
+                        'operating_cashflow': data.get('operatingCashflow', 0),
+                        'free_cash_flow': data.get('freeCashflow', 0),
+                        'capex': data.get('capitalExpenditures', 0)
+                    }]
+                }
             
         except Exception as e:
             print(f"Error parsing Yahoo Finance financials: {str(e)}")
+            # Return empty arrays on error
+            parsed = {
+                'income_statement': [],
+                'balance_sheet': [],
+                'cash_flow': []
+            }
         
         return parsed
+
+    def fetch_financials(self, symbol: str) -> Dict:
+        """
+        Fetch full financial statements from Yahoo Finance
+        
+        Args:
+            symbol: Stock symbol (e.g., 'AAPL')
+            
+        Returns:
+            Dict with income_statement, balance_sheet, cash_flow arrays
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            return self.parse_financials_full(ticker)
+        except Exception as e:
+            print(f"YFinance fetch_financials error for {symbol}: {str(e)}")
+            return {
+                'income_statement': [],
+                'balance_sheet': [],
+                'cash_flow': []
+            }

@@ -262,7 +262,7 @@ class UIManager {
     /**
      * Update financials table
      * @param {string} tableId - Table ID
-     * @param {Array} data - Table data
+     * @param {Array} data - Table data (array of periods with values)
      */
     updateFinancialsTable(tableId, data) {
         const tbody = document.getElementById(tableId);
@@ -274,25 +274,71 @@ class UIManager {
         }
 
         let html = '';
-        data.slice(0, 5).forEach(statement => {
-            const fiscalDate = statement.fiscal_date || statement.fiscalDateEnding || 'N/A';
-            const revenue = Formatters.formatCurrency(statement.revenue || statement.totalRevenue || 0);
-            const netIncome = Formatters.formatCurrency(statement.net_income || statement.netIncome || 0);
-            const totalAssets = Formatters.formatCurrency(statement.total_assets || statement.totalAssets || 0);
-            const operatingCashflow = Formatters.formatCurrency(statement.operating_cashflow || statement.operatingCashflow || 0);
 
-            html += `
-                <tr>
-                    <td>${fiscalDate}</td>
-                    <td>${revenue}</td>
-                    <td>${netIncome}</td>
-                    <td>${totalAssets}</td>
-                    <td>${operatingCashflow}</td>
-                </tr>
-            `;
+        // Get years from data (e.g., ['2023', '2022', '2021', '2020'])
+        const years = data.slice(0, 4).map(d => {
+            const date = d.fiscal_date || d.fiscalDateEnding || '';
+            return date.substring(0, 4); // Extract year from YYYY-MM format
         });
 
-        tbody.innerHTML = html;
+        // Determine table structure based on tableId
+        if (tableId === 'incomeData') {
+            // Income Statement items
+            const items = [
+                { key: 'revenue', label: 'Total Revenue' },
+                { key: 'net_income', label: 'Net Income' },
+                { key: 'ebitda', label: 'EBITDA' },
+                { key: 'gross_profit', label: 'Gross Profit' },
+                { key: 'operating_income', label: 'Operating Income' }
+            ];
+
+            items.forEach(item => {
+                html += `<tr><td>${item.label}</td>`;
+                data.slice(0, 4).forEach(period => {
+                    const value = period[item.key] || 0;
+                    html += `<td>${value > 0 ? Formatters.formatCurrency(value) : '—'}</td>`;
+                });
+                html += '</tr>';
+            });
+        } else if (tableId === 'balanceData') {
+            // Balance Sheet items
+            const items = [
+                { key: 'total_assets', label: 'Total Assets' },
+                { key: 'total_liabilities', label: 'Total Liabilities' },
+                { key: 'shareholders_equity', label: "Shareholders' Equity" },
+                { key: 'cash', label: 'Cash' },
+                { key: 'long_term_debt', label: 'Long-Term Debt' }
+            ];
+
+            items.forEach(item => {
+                html += `<tr><td>${item.label}</td>`;
+                data.slice(0, 4).forEach(period => {
+                    const value = period[item.key] || 0;
+                    html += `<td>${value > 0 ? Formatters.formatCurrency(value) : '—'}</td>`;
+                });
+                html += '</tr>';
+            });
+        } else if (tableId === 'cashflowData') {
+            // Cash Flow items
+            const items = [
+                { key: 'operating_cashflow', label: 'Operating Cash Flow' },
+                { key: 'free_cash_flow', label: 'Free Cash Flow' },
+                { key: 'capex', label: 'Capital Expenditures' },
+                { key: 'dividends_paid', label: 'Dividends Paid' },
+                { key: 'stock_repurchased', label: 'Stock Repurchased' }
+            ];
+
+            items.forEach(item => {
+                html += `<tr><td>${item.label}</td>`;
+                data.slice(0, 4).forEach(period => {
+                    const value = period[item.key] || 0;
+                    html += `<td>${value !== 0 ? Formatters.formatCurrency(value) : '—'}</td>`;
+                });
+                html += '</tr>';
+            });
+        }
+
+        tbody.innerHTML = html || '<tr><td colspan="5" class="loading">No data available</td></tr>';
     }
 
     /**

@@ -238,14 +238,14 @@ class StockDataAPI:
             'source': 'unknown'
         }
         
-        # Try Yahoo Finance FIRST
-        yf_data = self.yahoo.fetch_data(symbol)
-        if yf_data:
-            financials.update(self.yahoo.parse_financials(yf_data))
+        # Try Yahoo Finance with full financial statements
+        yf_financials = self.yahoo.fetch_financials(symbol)
+        if yf_financials and (yf_financials.get('income_statement') or yf_financials.get('balance_sheet') or yf_financials.get('cash_flow')):
+            financials.update(yf_financials)
             financials['source'] = 'yahoo_finance'
         
-        # Fallback to Alpha Vantage (makes 3 API calls)
-        if financials['source'] == 'unknown':
+        # Fallback to Alpha Vantage (makes 3 API calls) if Yahoo Finance returned no data
+        if not financials['income_statement'] and not financials['balance_sheet'] and not financials['cash_flow']:
             av_income = self.alpha_vantage.fetch_income_statement(symbol)
             av_balance = self.alpha_vantage.fetch_balance_sheet(symbol)
             av_cashflow = self.alpha_vantage.fetch_cash_flow(symbol)
