@@ -102,18 +102,26 @@ class DataManager {
      * @returns {Promise} Combined stock analyser data
      */
     async loadStockAnalyserData(symbol) {
+        console.log('DataManager: loadStockAnalyserData called for:', symbol);
         try {
             const [priceData, metricsData] = await Promise.all([
                 this.loadWithRetry(() => api.getStockPrice(symbol)),
                 this.loadWithRetry(() => api.getStockMetrics(symbol))
             ]);
 
-            return {
+            console.log('DataManager: priceData:', priceData);
+            console.log('DataManager: metricsData:', metricsData);
+
+            const result = {
                 price: priceData,
                 metrics: metricsData,
                 combined: true
             };
+            
+            console.log('DataManager: Returning combined result:', result);
+            return result;
         } catch (error) {
+            console.error('DataManager: Failed to load stock analyser data:', error);
             throw new Error(`Failed to load stock analyser data: ${error.message}`);
         }
     }

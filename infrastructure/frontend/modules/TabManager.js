@@ -306,11 +306,15 @@ class TabManager {
      * Load stock analyser tab
      */
     async loadStockAnalyserTab() {
+        console.log('TabManager: loadStockAnalyserTab called');
         await componentLoader.loadSection('stock-analyser');
         
         const currentSymbol = window.stockManager?.getCurrentSymbol();
+        console.log('TabManager: currentSymbol for stock-analyser:', currentSymbol);
         if (currentSymbol) {
-            await this.dataManager.loadStockData(currentSymbol, 'stock-analyser');
+            console.log('TabManager: Loading stock analyser data for:', currentSymbol);
+            const data = await this.dataManager.loadStockData(currentSymbol, 'stock-analyser');
+            console.log('TabManager: Loaded stock analyser data:', data);
         }
     }
 

@@ -5,9 +5,10 @@
  */
 
 class StockAnalyserManager {
-    constructor(eventBus, api) {
+    constructor(eventBus, api, dataManager) {
         this.eventBus = eventBus;
         this.api = api;
+        this.dataManager = dataManager;
         this.currentSymbol = null;
         this.currentData = null;
         this.initialized = false;
@@ -20,6 +21,7 @@ class StockAnalyserManager {
         console.log('StockAnalyserManager: Initializing');
         this.setupEventListeners();
         this.initialized = true;
+        console.log('StockAnalyserManager: Initialized, currentSymbol:', this.currentSymbol);
     }
 
     /**
@@ -33,11 +35,36 @@ class StockAnalyserManager {
             await this.populateStockData(symbol);
         });
 
-        // Listen for stock data loaded
+        // Listen for stock data loaded - populate if we're on stock-analyser tab
         this.eventBus.on('data:loaded', async ({ symbol, type, data }) => {
-            if (type === 'stock-analyser' && symbol === this.currentSymbol) {
+            if (type === 'stock-analyser') {
+                console.log('StockAnalyserManager: data:loaded for stock-analyser:', symbol);
+                this.currentSymbol = symbol;
                 this.currentData = data;
                 await this.populateHistoricalData(data);
+            }
+        });
+
+        // Listen for tab switched to stock-analyser to load current stock data
+        this.eventBus.on('tab:switched', async ({ tabName }) => {
+            if (tabName === 'stock-analyser') {
+                console.log('StockAnalyserManager: Tab switched to stock-analyser');
+                // Get current symbol from stockManager
+                const currentSymbol = window.stockManager?.getCurrentSymbol();
+                console.log('StockAnalyserManager: Current symbol from stockManager:', currentSymbol);
+                if (currentSymbol) {
+                    this.currentSymbol = currentSymbol;
+                    await this.populateStockData(currentSymbol);
+                } else {
+                    console.log('StockAnalyserManager: No current symbol, checking if data already loaded...');
+                    // Data might already be loaded via dataManager.loadStockData
+                    // Check if we have cached data
+                    const cachedData = this.dataManager?.getCachedData?.(`${currentSymbol}:stock-analyser`);
+                    if (cachedData) {
+                        this.currentData = cachedData;
+                        await this.populateHistoricalData(cachedData);
+                    }
+                }
             }
         });
     }
@@ -64,11 +91,21 @@ class StockAnalyserManager {
     async populateHistoricalData(data) {
         console.log('StockAnalyserManager: Populating historical data');
 
+        // Check if section is loaded
+        const section = document.getElementById('stock-analyser');
+        if (!section) {
+            console.log('StockAnalyserManager: Section not yet loaded, will try again');
+            // Retry after a short delay
+            setTimeout(() => this.populateHistoricalData(data), 100);
+            return;
+        }
+
         // Extract metrics from data
         const metrics = data?.metrics || data || {};
         const priceData = data?.price || data || {};
 
-        // Current price
+        console.log('StockAnalyserManager: priceData:', priceData);
+        console.log('StockAnalyserManager: metrics:', metrics);
         const currentPrice = priceData?.currentPrice || priceData?.price || metrics?.price || 0;
         const priceChange = priceData?.changePercent || priceData?.change || 0;
 
