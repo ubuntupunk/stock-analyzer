@@ -62,12 +62,6 @@
                         <td id="pfcf-5y">—</td>
                         <td id="pfcf-10y">—</td>
                     </tr>
-                    <tr>
-                        <td>Desired Annual Return</td>
-                        <td id="desired-return-1y">—</td>
-                        <td id="desired-return-5y">—</td>
-                        <td id="desired-return-10y">—</td>
-                    </tr>
                 </tbody>
             </table>
         </div>
@@ -104,11 +98,21 @@
                     </tr>
                     <tr>
                         <td>Discount Rate %</td>
-                        <td colspan="3"><input type="number" id="assumption-discount-rate" value="10" step="0.1"></td>
+                        <td><input type="number" id="assumption-discount-rate-low" value="8" step="0.1"></td>
+                        <td><input type="number" id="assumption-discount-rate-mid" value="10" step="0.1"></td>
+                        <td><input type="number" id="assumption-discount-rate-high" value="12" step="0.1"></td>
                     </tr>
                     <tr>
                         <td>Terminal Growth %</td>
-                        <td colspan="3"><input type="number" id="assumption-terminal-growth" value="3" step="0.1"></td>
+                        <td><input type="number" id="assumption-terminal-growth-low" value="2" step="0.1"></td>
+                        <td><input type="number" id="assumption-terminal-growth-mid" value="3" step="0.1"></td>
+                        <td><input type="number" id="assumption-terminal-growth-high" value="4" step="0.1"></td>
+                    </tr>
+                    <tr>
+                        <td>Desired Annual Return %</td>
+                        <td><input type="number" id="assumption-desired-return-low" value="8" step="0.1"></td>
+                        <td><input type="number" id="assumption-desired-return-mid" value="10" step="0.1"></td>
+                        <td><input type="number" id="assumption-desired-return-high" value="12" step="0.1"></td>
                     </tr>
                 </tbody>
             </table>

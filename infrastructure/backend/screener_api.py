@@ -116,12 +116,12 @@ class DCFAnalyzer:
         params: {
             'currentPrice': float,
             'assumptions': {
-                'revenueGrowth': [list of annual growth rates],
-                'profitMargin': [list of annual profit margins],
-                'fcfMargin': [list of FCF margins],
-                'peRatio': [list of P/E ratios],
-                'discountRate': float,
-                'terminalGrowthRate': float
+                'revenueGrowth': {low, mid, high},
+                'profitMargin': {low, mid, high},
+                'fcfMargin': {low, mid, high},
+                'discountRate': {low, mid, high},
+                'terminalGrowthRate': {low, mid, high},
+                'desiredReturn': {low, mid, high}
             },
             'yearsToProject': int (5 or 10)
         }
@@ -134,8 +134,9 @@ class DCFAnalyzer:
         revenue_growth = assumptions.get('revenueGrowth', {})
         profit_margin = assumptions.get('profitMargin', {})
         fcf_margin = assumptions.get('fcfMargin', {})
-        discount_rate = assumptions.get('discountRate', 0.10)
-        terminal_growth = assumptions.get('terminalGrowthRate', 0.03)
+        discount_rate = assumptions.get('discountRate', {})
+        terminal_growth = assumptions.get('terminalGrowthRate', {})
+        desired_return = assumptions.get('desiredReturn', {})
         
         results = {}
         
@@ -143,6 +144,8 @@ class DCFAnalyzer:
             rev_growth_rate = revenue_growth.get(scenario, 0.05)
             pm = profit_margin.get(scenario, 0.10)
             fcf_m = fcf_margin.get(scenario, 0.08)
+            dr = discount_rate.get(scenario, 0.10)
+            tg = terminal_growth.get(scenario, 0.03)
             
             # Project cash flows
             projected_fcf = []
@@ -154,14 +157,14 @@ class DCFAnalyzer:
             
             # Calculate present value of projected FCF
             pv_fcf = sum([
-                fcf / ((1 + discount_rate) ** (i + 1))
+                fcf / ((1 + dr) ** (i + 1))
                 for i, fcf in enumerate(projected_fcf)
             ])
             
             # Calculate terminal value
-            terminal_fcf = projected_fcf[-1] * (1 + terminal_growth)
-            terminal_value = terminal_fcf / (discount_rate - terminal_growth)
-            pv_terminal = terminal_value / ((1 + discount_rate) ** years)
+            terminal_fcf = projected_fcf[-1] * (1 + tg)
+            terminal_value = terminal_fcf / (dr - tg)
+            pv_terminal = terminal_value / ((1 + dr) ** years)
             
             # Total enterprise value
             enterprise_value = pv_fcf + pv_terminal
@@ -170,7 +173,8 @@ class DCFAnalyzer:
             shares_outstanding = 1000  # Mock value
             intrinsic_value = enterprise_value / shares_outstanding
             
-            # Calculate return
+            # Calculate return based on desired return assumption
+            dr_value = desired_return.get(scenario, dr)
             expected_return = (intrinsic_value - current_price) / current_price
             
             results[scenario] = {

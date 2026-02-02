@@ -232,8 +232,21 @@ class StockAnalyserManager {
                 mid: getInputValue('assumption-fcf-margin-mid', 9) / 100,
                 high: getInputValue('assumption-fcf-margin-high', 12) / 100
             },
-            discountRate: getInputValue('assumption-discount-rate', 10) / 100,
-            terminalGrowthRate: getInputValue('assumption-terminal-growth', 3) / 100
+            discountRate: {
+                low: getInputValue('assumption-discount-rate-low', 8) / 100,
+                mid: getInputValue('assumption-discount-rate-mid', 10) / 100,
+                high: getInputValue('assumption-discount-rate-high', 12) / 100
+            },
+            terminalGrowthRate: {
+                low: getInputValue('assumption-terminal-growth-low', 2) / 100,
+                mid: getInputValue('assumption-terminal-growth-mid', 3) / 100,
+                high: getInputValue('assumption-terminal-growth-high', 4) / 100
+            },
+            desiredReturn: {
+                low: getInputValue('assumption-desired-return-low', 8) / 100,
+                mid: getInputValue('assumption-desired-return-mid', 10) / 100,
+                high: getInputValue('assumption-desired-return-high', 12) / 100
+            }
         };
     }
 
@@ -258,7 +271,8 @@ class StockAnalyserManager {
                 profitMargin: assumptions.profitMargin,
                 fcfMargin: assumptions.fcfMargin,
                 discountRate: assumptions.discountRate,
-                terminalGrowthRate: assumptions.terminalGrowthRate
+                terminalGrowthRate: assumptions.terminalGrowthRate,
+                desiredReturn: assumptions.desiredReturn
             },
             yearsToProject: yearsToProject
         };
