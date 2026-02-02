@@ -156,6 +156,8 @@ class YahooFinanceClient:
             metrics['company_name'] = data.get('shortName', data.get('longName', 'N/A'))
             metrics['current_price'] = data.get('currentPrice', data.get('regularMarketPrice', 0))
             metrics['market_cap'] = data.get('marketCap', 0)
+            metrics['shares_outstanding'] = data.get('sharesOutstanding', 0)
+            metrics['revenue'] = data.get('totalRevenue', 0)
             metrics['pe_ratio'] = data.get('trailingPE', 0)
             metrics['forward_pe'] = data.get('forwardPE', 0)
             metrics['peg_ratio'] = data.get('pegRatio', 0)

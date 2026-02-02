@@ -131,13 +131,23 @@ class StockAnalyserManager {
         }
 
         // Extract market data from metrics (backend uses snake_case)
+        // Note: Yahoo Finance returns market_cap, shares_outstanding, revenue
+        const marketCap = metrics?.market_cap || 0;
+        const sharesOutstanding = metrics?.shares_outstanding || 
+                                   metrics?.impliedSharesOutstanding ||
+                                   (currentPrice > 0 ? Math.round(marketCap / currentPrice) : 0);
+        const revenue = metrics?.revenue || metrics?.totalRevenue || 0;
+        
         this.marketData = {
-            marketCap: metrics?.market_cap || 0,
-            revenue: metrics?.revenue || 0,
-            sharesOutstanding: metrics?.impliedSharesOutstanding || 0
+            marketCap: marketCap,
+            revenue: revenue,
+            sharesOutstanding: sharesOutstanding
         };
         
         console.log('StockAnalyserManager: marketData:', this.marketData);
+        
+        // Update market data display
+        this.updateMarketInfoDisplay();
 
         // Historical metrics (1yr, 5yr, 10yr)
         // Yahoo Finance returns current values only, not historical
