@@ -192,8 +192,2011 @@ class StockAnalyserManager {
 
         // Store current price for analysis
         this.currentPrice = currentPrice;
+        
+        // Update market info display
+        this.updateMarketInfoDisplay();
 
         console.log('StockAnalyserManager: Historical data populated');
+    }
+
+    /**
+     * Update market info display with current market data
+     */
+    updateMarketInfoDisplay() {
+        const marketCapEl = document.getElementById('marketCap');
+        const sharesOutstandingEl = document.getElementById('sharesOutstanding');
+        const baseRevenueEl = document.getElementById('baseRevenue');
+        
+        if (marketCapEl && this.marketData?.marketCap) {
+            marketCapEl.textContent = this.formatLargeNumber(this.marketData.marketCap);
+        }
+        
+        if (sharesOutstandingEl && this.marketData?.sharesOutstanding) {
+            sharesOutstandingEl.textContent = this.formatLargeNumber(this.marketData.sharesOutstanding) + ' shares';
+        }
+        
+        if (baseRevenueEl && this.marketData?.revenue) {
+            baseRevenueEl.textContent = this.formatLargeNumber(this.marketData.revenue);
+        }
+    }
+
+    /**
+     * Format large numbers (market cap, shares, revenue)
+     * @param {number} value - Number to format
+     * @returns {string} Formatted string
+     */
+    formatLargeNumber(value) {
+        if (!value || isNaN(value)) return '—';
+        
+        if (value >= 1.0e+12) {
+            return '
+
+    /**
+     * Populate a table cell with value
+     * @param {string} id - Element ID
+     * @param {number|null} value - Value to display
+     * @param {boolean} isPercentage - Whether to format as percentage
+     */
+    populateTableCell(id, value, isPercentage) {
+        const cell = document.getElementById(id);
+        if (cell) {
+            // Check for null, undefined, or NaN (0 is a valid value)
+            if (value !== null && value !== undefined && !isNaN(value)) {
+                cell.textContent = isPercentage ? `${(value * 100).toFixed(0)}%` : value.toFixed(2);
+            } else {
+                cell.textContent = '—';
+            }
+        }
+    }
+
+    /**
+     * Get user assumptions from input fields
+     * @returns {Object} User assumptions
+     */
+    getUserAssumptions() {
+        const getInputValue = (id, defaultValue) => {
+            const el = document.getElementById(id);
+            return el ? parseFloat(el.value) || defaultValue : defaultValue;
+        };
+
+        return {
+            revenueGrowth: {
+                low: getInputValue('assumption-rev-growth-low', 3) / 100,
+                mid: getInputValue('assumption-rev-growth-mid', 6) / 100,
+                high: getInputValue('assumption-rev-growth-high', 9) / 100
+            },
+            profitMargin: {
+                low: getInputValue('assumption-profit-margin-low', 8) / 100,
+                mid: getInputValue('assumption-profit-margin-mid', 10) / 100,
+                high: getInputValue('assumption-profit-margin-high', 12) / 100
+            },
+            fcfMargin: {
+                low: getInputValue('assumption-fcf-margin-low', 6) / 100,
+                mid: getInputValue('assumption-fcf-margin-mid', 9) / 100,
+                high: getInputValue('assumption-fcf-margin-high', 12) / 100
+            },
+            discountRate: {
+                low: getInputValue('assumption-discount-rate-low', 8) / 100,
+                mid: getInputValue('assumption-discount-rate-mid', 10) / 100,
+                high: getInputValue('assumption-discount-rate-high', 12) / 100
+            },
+            terminalGrowthRate: {
+                low: getInputValue('assumption-terminal-growth-low', 2) / 100,
+                mid: getInputValue('assumption-terminal-growth-mid', 3) / 100,
+                high: getInputValue('assumption-terminal-growth-high', 4) / 100
+            },
+            desiredReturn: {
+                low: getInputValue('assumption-desired-return-low', 8) / 100,
+                mid: getInputValue('assumption-desired-return-mid', 10) / 100,
+                high: getInputValue('assumption-desired-return-high', 12) / 100
+            }
+        };
+    }
+
+    /**
+     * Run DCF analysis
+     */
+    async runAnalysis() {
+        console.log('StockAnalyserManager: runAnalysis called', { 
+            currentSymbol: this.currentSymbol, 
+            currentPrice: this.currentPrice,
+            marketData: this.marketData
+        });
+        
+        if (!this.currentSymbol || !this.currentPrice) {
+            console.error('StockAnalyserManager: No stock selected or price available');
+            // Try to get price from display
+            const priceDisplay = document.getElementById('currentPrice');
+            if (priceDisplay && priceDisplay.textContent && priceDisplay.textContent !== '$0.00') {
+                console.log('StockAnalyserManager: Found price in display, retrying...');
+                // Price might be displayed but not stored, refresh data
+                if (this.currentSymbol) {
+                    await this.populateStockData(this.currentSymbol);
+                }
+            }
+            return;
+        }
+
+        const yearsSelect = document.getElementById('yearsSelect');
+        const yearsToProject = yearsSelect ? parseInt(yearsSelect.value) : 10;
+
+        const assumptions = this.getUserAssumptions();
+        console.log('StockAnalyserManager: User assumptions:', assumptions);
+
+        // Include market data for accurate DCF calculation
+        assumptions._marketCap = this.marketData?.marketCap || (this.currentPrice * 10000000000);
+        assumptions._baseRevenue = this.marketData?.revenue || 500000000000;
+
+        const requestData = {
+            currentPrice: this.currentPrice,
+            assumptions: {
+                revenueGrowth: assumptions.revenueGrowth,
+                profitMargin: assumptions.profitMargin,
+                fcfMargin: assumptions.fcfMargin,
+                discountRate: assumptions.discountRate,
+                terminalGrowthRate: assumptions.terminalGrowthRate,
+                desiredReturn: assumptions.desiredReturn,
+                _marketCap: assumptions._marketCap,
+                _baseRevenue: assumptions._baseRevenue
+            },
+            yearsToProject: yearsToProject
+        };
+
+        console.log('StockAnalyserManager: Running DCF analysis', requestData);
+
+        try {
+            this.eventBus.emit('dcf:calculating');
+
+            const results = await this.api.calculateDCF(requestData);
+
+            console.log('StockAnalyserManager: DCF results:', results);
+            this.displayResults(results);
+
+            this.eventBus.emit('dcf:calculated', { results });
+        } catch (error) {
+            console.error('StockAnalyserManager: DCF calculation failed:', error);
+            this.eventBus.emit('dcf:error', { error: error.message });
+            
+            // Fallback to local calculation
+            console.log('StockAnalyserManager: Falling back to local calculation');
+            const localResults = this.calculateDCFLocal(requestData);
+            this.displayResults(localResults);
+        }
+    }
+
+    /**
+     * Local DCF calculation fallback
+     * @param {Object} params - DCF parameters
+     * @returns {Object} DCF results
+     */
+    calculateDCFLocal(params) {
+        const { currentPrice, assumptions, yearsToProject } = params;
+        
+        console.log('StockAnalyserManager: calculateDCFLocal params:', {
+            currentPrice,
+            yearsToProject,
+            marketCap: assumptions._marketCap,
+            baseRevenue: assumptions._baseRevenue
+        });
+        
+        // Calculate shares outstanding from market cap
+        // market_cap is in dollars, shares = market_cap / price
+        const marketCap = assumptions._marketCap || (currentPrice * 10000000000);
+        const sharesOutstanding = marketCap / currentPrice;
+        
+        console.log('StockAnalyserManager: Market cap:', marketCap, 'Shares outstanding:', sharesOutstanding);
+
+        // Get base revenue from assumptions (already in dollars)
+        const baseRevenue = assumptions._baseRevenue || 500000000000;
+        console.log('StockAnalyserManager: Base revenue:', baseRevenue);
+
+        const results = {};
+
+        for (const scenario of ['low', 'mid', 'high']) {
+            const revGrowthRate = assumptions.revenueGrowth[scenario];
+            const profitMargin = assumptions.profitMargin[scenario];
+            const fcfMargin = assumptions.fcfMargin[scenario];
+            const discountRate = assumptions.discountRate[scenario];
+            const terminalGrowth = assumptions.terminalGrowthRate[scenario];
+
+            console.log(`StockAnalyserManager: ${scenario} scenario:`, {
+                revGrowthRate,
+                profitMargin,
+                fcfMargin,
+                discountRate,
+                terminalGrowth
+            });
+
+            // Project cash flows
+            const projectedFCF = [];
+            
+            for (let year = 1; year <= yearsToProject; year++) {
+                const revenue = baseRevenue * Math.pow(1 + revGrowthRate, year);
+                const netIncome = revenue * profitMargin;
+                const fcf = revenue * fcfMargin;
+                projectedFCF.push(fcf);
+            }
+
+            console.log(`StockAnalyserManager: ${scenario} projectedFCF first 3:`, projectedFCF.slice(0, 3));
+
+            // Calculate present value of projected FCF
+            let pvFCF = 0;
+            for (let i = 0; i < projectedFCF.length; i++) {
+                pvFCF += projectedFCF[i] / Math.pow(1 + discountRate, i + 1);
+            }
+
+            // Calculate terminal value
+            const terminalFCF = projectedFCF[projectedFCF.length - 1] * (1 + terminalGrowth);
+            const terminalValue = terminalFCF / (discountRate - terminalGrowth);
+            const pvTerminal = terminalValue / Math.pow(1 + discountRate, yearsToProject);
+
+            // Total enterprise value
+            const enterpriseValue = pvFCF + pvTerminal;
+
+            // Intrinsic value per share
+            const intrinsicValue = enterpriseValue / sharesOutstanding;
+
+            console.log(`StockAnalyserManager: ${scenario} results:`, {
+                pvFCF: round(pvFCF, 0),
+                terminalValue: round(terminalValue, 0),
+                enterpriseValue: round(enterpriseValue, 0),
+                sharesOutstanding: round(sharesOutstanding, 0),
+                intrinsicValue: round(intrinsicValue, 2),
+                currentPrice
+            });
+
+            // Expected return
+            const expectedReturn = (intrinsicValue - currentPrice) / currentPrice;
+
+            results[scenario] = {
+                intrinsicValue: round(intrinsicValue, 2),
+                expectedReturn: round(expectedReturn * 100, 2),
+                discountedCashFlowValue: round(pvFCF, 2),
+                terminalValue: round(pvTerminal, 2)
+            };
+        }
+
+        results.currentPrice = currentPrice;
+        return results;
+    }
+
+    /**
+     * Display DCF analysis results
+     * @param {Object} results - DCF results
+     */
+    displayResults(results) {
+        console.log('StockAnalyserManager: displayResults called with:', results);
+
+        if (!results) {
+            console.error('StockAnalyserManager: No results to display');
+            return;
+        }
+
+        // Multiple of Earnings Value (simplified - uses intrinsic value)
+        const moeLow = document.getElementById('moeValueLow');
+        const moeMid = document.getElementById('moeValueMid');
+        const moeHigh = document.getElementById('moeValueHigh');
+
+        console.log('StockAnalyserManager: moeLow element:', moeLow, 'results.low:', results.low);
+        
+        if (moeLow) moeLow.textContent = this.formatCurrency(results.low?.intrinsicValue || 0);
+        if (moeMid) moeMid.textContent = this.formatCurrency(results.mid?.intrinsicValue || 0);
+        if (moeHigh) moeHigh.textContent = this.formatCurrency(results.high?.intrinsicValue || 0);
+
+        // Discounted Cash Flow Value
+        const dcfLow = document.getElementById('dcfValueLow');
+        const dcfMid = document.getElementById('dcfValueMid');
+        const dcfHigh = document.getElementById('dcfValueHigh');
+
+        if (dcfLow) dcfLow.textContent = this.formatCurrency(results.low?.discountedCashFlowValue || 0);
+        if (dcfMid) dcfMid.textContent = this.formatCurrency(results.mid?.discountedCashFlowValue || 0);
+        if (dcfHigh) dcfHigh.textContent = this.formatCurrency(results.high?.discountedCashFlowValue || 0);
+
+        // Current Price Return
+        const returnLow = document.getElementById('returnLow');
+        const returnMid = document.getElementById('returnMid');
+        const returnHigh = document.getElementById('returnHigh');
+
+        const formatReturn = (value) => {
+            const prefix = value >= 0 ? '+' : '';
+            return `${prefix}${value.toFixed(1)}%`;
+        };
+
+        if (returnLow) {
+            returnLow.textContent = formatReturn(results.low?.expectedReturn || 0);
+            returnLow.className = (results.low?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+        if (returnMid) {
+            returnMid.textContent = formatReturn(results.mid?.expectedReturn || 0);
+            returnMid.className = (results.mid?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+        if (returnHigh) {
+            returnHigh.textContent = formatReturn(results.high?.expectedReturn || 0);
+            returnHigh.className = (results.high?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+    }
+
+    /**
+     * Format number as currency
+     * @param {number} value - Number to format
+     * @returns {string} Formatted currency string
+     */
+    formatCurrency(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    }
+
+    /**
+     * Reset analysis results
+     */
+    resetResults() {
+        const resultCells = [
+            'moeValueLow', 'moeValueMid', 'moeValueHigh',
+            'dcfValueLow', 'dcfValueMid', 'dcfValueHigh',
+            'returnLow', 'returnMid', 'returnHigh'
+        ];
+
+        resultCells.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = '—';
+                el.className = '';
+            }
+        });
+    }
+}
+
+// Helper function for rounding
+function round(value, decimals) {
+    return Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}
+
+// Global instance
+window.stockAnalyserManager = null;
+
+/**
+ * Run DCF analysis (called from Analyze button)
+ */
+window.runDCFAnalysis = function() {
+    if (window.stockAnalyserManager) {
+        window.stockAnalyserManager.runAnalysis();
+    } else {
+        console.error('StockAnalyserManager: Not initialized');
+    }
+};
+
+/**
+ * Load stock by symbol input (called from symbol input in stock-analyser tab)
+ */
+window.loadAnalyserSymbol = function() {
+    const input = document.getElementById('analyserSymbolInput');
+    if (!input) {
+        console.error('StockAnalyserManager: analyserSymbolInput not found');
+        return;
+    }
+    
+    const symbol = input.value.trim().toUpperCase();
+    if (!symbol) {
+        // Show error notification
+        if (window.app && window.app.showNotification) {
+            window.app.showNotification('Please enter a stock symbol', 'error');
+        } else {
+            alert('Please enter a stock symbol');
+        }
+        return;
+    }
+    
+    console.log('StockAnalyserManager: Loading symbol from input:', symbol);
+    
+    // Use stockManager to select the stock and switch to stock-analyser tab
+    if (window.stockManager) {
+        window.stockManager.selectStock(symbol, 'stock-analyser');
+    } else {
+        console.error('StockAnalyserManager: stockManager not available');
+    }
+};
+
+/**
+ * Handle Enter key in symbol input
+ */
+window.handleAnalyserSymbolKeydown = function(event) {
+    if (event.key === 'Enter') {
+        window.loadAnalyserSymbol();
+    }
+};
+
+/**
+ * Extrapolate assumptions from historical data
+ * Reads historical values and auto-fills Low/Mid/High assumptions
+ */
+window.extrapolateFromHistorical = function() {
+    console.log('StockAnalyserManager: Extrapolating from historical data');
+    
+    // Helper to get cell value
+    const getCellValue = (id) => {
+        const cell = document.getElementById(id);
+        if (!cell) return null;
+        let text = cell.textContent.trim();
+        if (text === '—' || text === '') return null;
+        // Remove % sign and parse
+        text = text.replace('%', '');
+        const val = parseFloat(text);
+        return isNaN(val) ? null : val / 100; // Convert percentage to decimal
+    };
+    
+    // Helper to set input value
+    const setInputValue = (id, value) => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = (value * 100).toFixed(1);
+        }
+    };
+    
+    // Get historical values (use 1y as base)
+    const histRevGrowth = getCellValue('rev-growth-1y');
+    const histProfitMargin = getCellValue('profit-margin-1y');
+    const histFCFMargin = getCellValue('fcf-margin-1y');
+    const histROIC = getCellValue('roic-1y');
+    const histPE = getCellValue('pe-1y');
+    const histPFCF = getCellValue('pfcf-1y');
+    
+    console.log('StockAnalyserManager: Historical values:', {
+        revGrowth: histRevGrowth,
+        profitMargin: histProfitMargin,
+        fcfMargin: histFCFMargin,
+        roic: histROIC,
+        pe: histPE,
+        pfcf: histPFCF
+    });
+    
+    // Helper to calculate low/mid/high from a base value
+    const calcRange = (base, type) => {
+        if (base === null) {
+            // Return defaults if no historical data
+            if (type === 'growth') return { low: 0.03, mid: 0.06, high: 0.09 };
+            if (type === 'margin') return { low: 0.08, mid: 0.10, high: 0.12 };
+            return { low: 0.08, mid: 0.10, high: 0.12 };
+        }
+        
+        if (type === 'growth') {
+            // For growth rates: low = 70%, mid = 100%, high = 130% of historical
+            return {
+                low: Math.max(0, base * 0.70),
+                mid: base,
+                high: base * 1.30
+            };
+        } else {
+            // For margins: low = 80%, mid = 100%, high = 120% of historical
+            return {
+                low: Math.max(0, base * 0.80),
+                mid: base,
+                high: Math.min(1, base * 1.20)
+            };
+        }
+    };
+    
+    // Set Revenue Growth assumptions
+    const revGrowthRange = calcRange(histRevGrowth, 'growth');
+    setInputValue('assumption-rev-growth-low', revGrowthRange.low);
+    setInputValue('assumption-rev-growth-mid', revGrowthRange.mid);
+    setInputValue('assumption-rev-growth-high', revGrowthRange.high);
+    
+    // Set Profit Margin assumptions
+    const profitMarginRange = calcRange(histProfitMargin, 'margin');
+    setInputValue('assumption-profit-margin-low', profitMarginRange.low);
+    setInputValue('assumption-profit-margin-mid', profitMarginRange.mid);
+    setInputValue('assumption-profit-margin-high', profitMarginRange.high);
+    
+    // Set FCF Margin assumptions
+    const fcfMarginRange = calcRange(histFCFMargin, 'margin');
+    setInputValue('assumption-fcf-margin-low', fcfMarginRange.low);
+    setInputValue('assumption-fcf-margin-mid', fcfMarginRange.mid);
+    setInputValue('assumption-fcf-margin-high', fcfMarginRange.high);
+    
+    // Set Discount Rate (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-discount-rate-low', 0.08);
+    setInputValue('assumption-discount-rate-mid', 0.10);
+    setInputValue('assumption-discount-rate-high', 0.12);
+    
+    // Set Terminal Growth (default: low=2%, mid=3%, high=4%)
+    setInputValue('assumption-terminal-growth-low', 0.02);
+    setInputValue('assumption-terminal-growth-mid', 0.03);
+    setInputValue('assumption-terminal-growth-high', 0.04);
+    
+    // Set Desired Return (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-desired-return-low', 0.08);
+    setInputValue('assumption-desired-return-mid', 0.10);
+    setInputValue('assumption-desired-return-high', 0.12);
+    
+    // Show notification
+    if (window.app && window.app.showNotification) {
+        window.app.showNotification('Assumptions auto-filled from historical data', 'success');
+    }
+    
+    console.log('StockAnalyserManager: Extrapolation complete');
+};
+ + (value / 1.0e+12).toFixed(2) + 'T';
+        } else if (value >= 1.0e+9) {
+            return '
+
+    /**
+     * Populate a table cell with value
+     * @param {string} id - Element ID
+     * @param {number|null} value - Value to display
+     * @param {boolean} isPercentage - Whether to format as percentage
+     */
+    populateTableCell(id, value, isPercentage) {
+        const cell = document.getElementById(id);
+        if (cell) {
+            // Check for null, undefined, or NaN (0 is a valid value)
+            if (value !== null && value !== undefined && !isNaN(value)) {
+                cell.textContent = isPercentage ? `${(value * 100).toFixed(0)}%` : value.toFixed(2);
+            } else {
+                cell.textContent = '—';
+            }
+        }
+    }
+
+    /**
+     * Get user assumptions from input fields
+     * @returns {Object} User assumptions
+     */
+    getUserAssumptions() {
+        const getInputValue = (id, defaultValue) => {
+            const el = document.getElementById(id);
+            return el ? parseFloat(el.value) || defaultValue : defaultValue;
+        };
+
+        return {
+            revenueGrowth: {
+                low: getInputValue('assumption-rev-growth-low', 3) / 100,
+                mid: getInputValue('assumption-rev-growth-mid', 6) / 100,
+                high: getInputValue('assumption-rev-growth-high', 9) / 100
+            },
+            profitMargin: {
+                low: getInputValue('assumption-profit-margin-low', 8) / 100,
+                mid: getInputValue('assumption-profit-margin-mid', 10) / 100,
+                high: getInputValue('assumption-profit-margin-high', 12) / 100
+            },
+            fcfMargin: {
+                low: getInputValue('assumption-fcf-margin-low', 6) / 100,
+                mid: getInputValue('assumption-fcf-margin-mid', 9) / 100,
+                high: getInputValue('assumption-fcf-margin-high', 12) / 100
+            },
+            discountRate: {
+                low: getInputValue('assumption-discount-rate-low', 8) / 100,
+                mid: getInputValue('assumption-discount-rate-mid', 10) / 100,
+                high: getInputValue('assumption-discount-rate-high', 12) / 100
+            },
+            terminalGrowthRate: {
+                low: getInputValue('assumption-terminal-growth-low', 2) / 100,
+                mid: getInputValue('assumption-terminal-growth-mid', 3) / 100,
+                high: getInputValue('assumption-terminal-growth-high', 4) / 100
+            },
+            desiredReturn: {
+                low: getInputValue('assumption-desired-return-low', 8) / 100,
+                mid: getInputValue('assumption-desired-return-mid', 10) / 100,
+                high: getInputValue('assumption-desired-return-high', 12) / 100
+            }
+        };
+    }
+
+    /**
+     * Run DCF analysis
+     */
+    async runAnalysis() {
+        console.log('StockAnalyserManager: runAnalysis called', { 
+            currentSymbol: this.currentSymbol, 
+            currentPrice: this.currentPrice,
+            marketData: this.marketData
+        });
+        
+        if (!this.currentSymbol || !this.currentPrice) {
+            console.error('StockAnalyserManager: No stock selected or price available');
+            // Try to get price from display
+            const priceDisplay = document.getElementById('currentPrice');
+            if (priceDisplay && priceDisplay.textContent && priceDisplay.textContent !== '$0.00') {
+                console.log('StockAnalyserManager: Found price in display, retrying...');
+                // Price might be displayed but not stored, refresh data
+                if (this.currentSymbol) {
+                    await this.populateStockData(this.currentSymbol);
+                }
+            }
+            return;
+        }
+
+        const yearsSelect = document.getElementById('yearsSelect');
+        const yearsToProject = yearsSelect ? parseInt(yearsSelect.value) : 10;
+
+        const assumptions = this.getUserAssumptions();
+        console.log('StockAnalyserManager: User assumptions:', assumptions);
+
+        // Include market data for accurate DCF calculation
+        assumptions._marketCap = this.marketData?.marketCap || (this.currentPrice * 10000000000);
+        assumptions._baseRevenue = this.marketData?.revenue || 500000000000;
+
+        const requestData = {
+            currentPrice: this.currentPrice,
+            assumptions: {
+                revenueGrowth: assumptions.revenueGrowth,
+                profitMargin: assumptions.profitMargin,
+                fcfMargin: assumptions.fcfMargin,
+                discountRate: assumptions.discountRate,
+                terminalGrowthRate: assumptions.terminalGrowthRate,
+                desiredReturn: assumptions.desiredReturn,
+                _marketCap: assumptions._marketCap,
+                _baseRevenue: assumptions._baseRevenue
+            },
+            yearsToProject: yearsToProject
+        };
+
+        console.log('StockAnalyserManager: Running DCF analysis', requestData);
+
+        try {
+            this.eventBus.emit('dcf:calculating');
+
+            const results = await this.api.calculateDCF(requestData);
+
+            console.log('StockAnalyserManager: DCF results:', results);
+            this.displayResults(results);
+
+            this.eventBus.emit('dcf:calculated', { results });
+        } catch (error) {
+            console.error('StockAnalyserManager: DCF calculation failed:', error);
+            this.eventBus.emit('dcf:error', { error: error.message });
+            
+            // Fallback to local calculation
+            console.log('StockAnalyserManager: Falling back to local calculation');
+            const localResults = this.calculateDCFLocal(requestData);
+            this.displayResults(localResults);
+        }
+    }
+
+    /**
+     * Local DCF calculation fallback
+     * @param {Object} params - DCF parameters
+     * @returns {Object} DCF results
+     */
+    calculateDCFLocal(params) {
+        const { currentPrice, assumptions, yearsToProject } = params;
+        
+        console.log('StockAnalyserManager: calculateDCFLocal params:', {
+            currentPrice,
+            yearsToProject,
+            marketCap: assumptions._marketCap,
+            baseRevenue: assumptions._baseRevenue
+        });
+        
+        // Calculate shares outstanding from market cap
+        // market_cap is in dollars, shares = market_cap / price
+        const marketCap = assumptions._marketCap || (currentPrice * 10000000000);
+        const sharesOutstanding = marketCap / currentPrice;
+        
+        console.log('StockAnalyserManager: Market cap:', marketCap, 'Shares outstanding:', sharesOutstanding);
+
+        // Get base revenue from assumptions (already in dollars)
+        const baseRevenue = assumptions._baseRevenue || 500000000000;
+        console.log('StockAnalyserManager: Base revenue:', baseRevenue);
+
+        const results = {};
+
+        for (const scenario of ['low', 'mid', 'high']) {
+            const revGrowthRate = assumptions.revenueGrowth[scenario];
+            const profitMargin = assumptions.profitMargin[scenario];
+            const fcfMargin = assumptions.fcfMargin[scenario];
+            const discountRate = assumptions.discountRate[scenario];
+            const terminalGrowth = assumptions.terminalGrowthRate[scenario];
+
+            console.log(`StockAnalyserManager: ${scenario} scenario:`, {
+                revGrowthRate,
+                profitMargin,
+                fcfMargin,
+                discountRate,
+                terminalGrowth
+            });
+
+            // Project cash flows
+            const projectedFCF = [];
+            
+            for (let year = 1; year <= yearsToProject; year++) {
+                const revenue = baseRevenue * Math.pow(1 + revGrowthRate, year);
+                const netIncome = revenue * profitMargin;
+                const fcf = revenue * fcfMargin;
+                projectedFCF.push(fcf);
+            }
+
+            console.log(`StockAnalyserManager: ${scenario} projectedFCF first 3:`, projectedFCF.slice(0, 3));
+
+            // Calculate present value of projected FCF
+            let pvFCF = 0;
+            for (let i = 0; i < projectedFCF.length; i++) {
+                pvFCF += projectedFCF[i] / Math.pow(1 + discountRate, i + 1);
+            }
+
+            // Calculate terminal value
+            const terminalFCF = projectedFCF[projectedFCF.length - 1] * (1 + terminalGrowth);
+            const terminalValue = terminalFCF / (discountRate - terminalGrowth);
+            const pvTerminal = terminalValue / Math.pow(1 + discountRate, yearsToProject);
+
+            // Total enterprise value
+            const enterpriseValue = pvFCF + pvTerminal;
+
+            // Intrinsic value per share
+            const intrinsicValue = enterpriseValue / sharesOutstanding;
+
+            console.log(`StockAnalyserManager: ${scenario} results:`, {
+                pvFCF: round(pvFCF, 0),
+                terminalValue: round(terminalValue, 0),
+                enterpriseValue: round(enterpriseValue, 0),
+                sharesOutstanding: round(sharesOutstanding, 0),
+                intrinsicValue: round(intrinsicValue, 2),
+                currentPrice
+            });
+
+            // Expected return
+            const expectedReturn = (intrinsicValue - currentPrice) / currentPrice;
+
+            results[scenario] = {
+                intrinsicValue: round(intrinsicValue, 2),
+                expectedReturn: round(expectedReturn * 100, 2),
+                discountedCashFlowValue: round(pvFCF, 2),
+                terminalValue: round(pvTerminal, 2)
+            };
+        }
+
+        results.currentPrice = currentPrice;
+        return results;
+    }
+
+    /**
+     * Display DCF analysis results
+     * @param {Object} results - DCF results
+     */
+    displayResults(results) {
+        console.log('StockAnalyserManager: displayResults called with:', results);
+
+        if (!results) {
+            console.error('StockAnalyserManager: No results to display');
+            return;
+        }
+
+        // Multiple of Earnings Value (simplified - uses intrinsic value)
+        const moeLow = document.getElementById('moeValueLow');
+        const moeMid = document.getElementById('moeValueMid');
+        const moeHigh = document.getElementById('moeValueHigh');
+
+        console.log('StockAnalyserManager: moeLow element:', moeLow, 'results.low:', results.low);
+        
+        if (moeLow) moeLow.textContent = this.formatCurrency(results.low?.intrinsicValue || 0);
+        if (moeMid) moeMid.textContent = this.formatCurrency(results.mid?.intrinsicValue || 0);
+        if (moeHigh) moeHigh.textContent = this.formatCurrency(results.high?.intrinsicValue || 0);
+
+        // Discounted Cash Flow Value
+        const dcfLow = document.getElementById('dcfValueLow');
+        const dcfMid = document.getElementById('dcfValueMid');
+        const dcfHigh = document.getElementById('dcfValueHigh');
+
+        if (dcfLow) dcfLow.textContent = this.formatCurrency(results.low?.discountedCashFlowValue || 0);
+        if (dcfMid) dcfMid.textContent = this.formatCurrency(results.mid?.discountedCashFlowValue || 0);
+        if (dcfHigh) dcfHigh.textContent = this.formatCurrency(results.high?.discountedCashFlowValue || 0);
+
+        // Current Price Return
+        const returnLow = document.getElementById('returnLow');
+        const returnMid = document.getElementById('returnMid');
+        const returnHigh = document.getElementById('returnHigh');
+
+        const formatReturn = (value) => {
+            const prefix = value >= 0 ? '+' : '';
+            return `${prefix}${value.toFixed(1)}%`;
+        };
+
+        if (returnLow) {
+            returnLow.textContent = formatReturn(results.low?.expectedReturn || 0);
+            returnLow.className = (results.low?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+        if (returnMid) {
+            returnMid.textContent = formatReturn(results.mid?.expectedReturn || 0);
+            returnMid.className = (results.mid?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+        if (returnHigh) {
+            returnHigh.textContent = formatReturn(results.high?.expectedReturn || 0);
+            returnHigh.className = (results.high?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+    }
+
+    /**
+     * Format number as currency
+     * @param {number} value - Number to format
+     * @returns {string} Formatted currency string
+     */
+    formatCurrency(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    }
+
+    /**
+     * Reset analysis results
+     */
+    resetResults() {
+        const resultCells = [
+            'moeValueLow', 'moeValueMid', 'moeValueHigh',
+            'dcfValueLow', 'dcfValueMid', 'dcfValueHigh',
+            'returnLow', 'returnMid', 'returnHigh'
+        ];
+
+        resultCells.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = '—';
+                el.className = '';
+            }
+        });
+    }
+}
+
+// Helper function for rounding
+function round(value, decimals) {
+    return Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}
+
+// Global instance
+window.stockAnalyserManager = null;
+
+/**
+ * Run DCF analysis (called from Analyze button)
+ */
+window.runDCFAnalysis = function() {
+    if (window.stockAnalyserManager) {
+        window.stockAnalyserManager.runAnalysis();
+    } else {
+        console.error('StockAnalyserManager: Not initialized');
+    }
+};
+
+/**
+ * Load stock by symbol input (called from symbol input in stock-analyser tab)
+ */
+window.loadAnalyserSymbol = function() {
+    const input = document.getElementById('analyserSymbolInput');
+    if (!input) {
+        console.error('StockAnalyserManager: analyserSymbolInput not found');
+        return;
+    }
+    
+    const symbol = input.value.trim().toUpperCase();
+    if (!symbol) {
+        // Show error notification
+        if (window.app && window.app.showNotification) {
+            window.app.showNotification('Please enter a stock symbol', 'error');
+        } else {
+            alert('Please enter a stock symbol');
+        }
+        return;
+    }
+    
+    console.log('StockAnalyserManager: Loading symbol from input:', symbol);
+    
+    // Use stockManager to select the stock and switch to stock-analyser tab
+    if (window.stockManager) {
+        window.stockManager.selectStock(symbol, 'stock-analyser');
+    } else {
+        console.error('StockAnalyserManager: stockManager not available');
+    }
+};
+
+/**
+ * Handle Enter key in symbol input
+ */
+window.handleAnalyserSymbolKeydown = function(event) {
+    if (event.key === 'Enter') {
+        window.loadAnalyserSymbol();
+    }
+};
+
+/**
+ * Extrapolate assumptions from historical data
+ * Reads historical values and auto-fills Low/Mid/High assumptions
+ */
+window.extrapolateFromHistorical = function() {
+    console.log('StockAnalyserManager: Extrapolating from historical data');
+    
+    // Helper to get cell value
+    const getCellValue = (id) => {
+        const cell = document.getElementById(id);
+        if (!cell) return null;
+        let text = cell.textContent.trim();
+        if (text === '—' || text === '') return null;
+        // Remove % sign and parse
+        text = text.replace('%', '');
+        const val = parseFloat(text);
+        return isNaN(val) ? null : val / 100; // Convert percentage to decimal
+    };
+    
+    // Helper to set input value
+    const setInputValue = (id, value) => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = (value * 100).toFixed(1);
+        }
+    };
+    
+    // Get historical values (use 1y as base)
+    const histRevGrowth = getCellValue('rev-growth-1y');
+    const histProfitMargin = getCellValue('profit-margin-1y');
+    const histFCFMargin = getCellValue('fcf-margin-1y');
+    const histROIC = getCellValue('roic-1y');
+    const histPE = getCellValue('pe-1y');
+    const histPFCF = getCellValue('pfcf-1y');
+    
+    console.log('StockAnalyserManager: Historical values:', {
+        revGrowth: histRevGrowth,
+        profitMargin: histProfitMargin,
+        fcfMargin: histFCFMargin,
+        roic: histROIC,
+        pe: histPE,
+        pfcf: histPFCF
+    });
+    
+    // Helper to calculate low/mid/high from a base value
+    const calcRange = (base, type) => {
+        if (base === null) {
+            // Return defaults if no historical data
+            if (type === 'growth') return { low: 0.03, mid: 0.06, high: 0.09 };
+            if (type === 'margin') return { low: 0.08, mid: 0.10, high: 0.12 };
+            return { low: 0.08, mid: 0.10, high: 0.12 };
+        }
+        
+        if (type === 'growth') {
+            // For growth rates: low = 70%, mid = 100%, high = 130% of historical
+            return {
+                low: Math.max(0, base * 0.70),
+                mid: base,
+                high: base * 1.30
+            };
+        } else {
+            // For margins: low = 80%, mid = 100%, high = 120% of historical
+            return {
+                low: Math.max(0, base * 0.80),
+                mid: base,
+                high: Math.min(1, base * 1.20)
+            };
+        }
+    };
+    
+    // Set Revenue Growth assumptions
+    const revGrowthRange = calcRange(histRevGrowth, 'growth');
+    setInputValue('assumption-rev-growth-low', revGrowthRange.low);
+    setInputValue('assumption-rev-growth-mid', revGrowthRange.mid);
+    setInputValue('assumption-rev-growth-high', revGrowthRange.high);
+    
+    // Set Profit Margin assumptions
+    const profitMarginRange = calcRange(histProfitMargin, 'margin');
+    setInputValue('assumption-profit-margin-low', profitMarginRange.low);
+    setInputValue('assumption-profit-margin-mid', profitMarginRange.mid);
+    setInputValue('assumption-profit-margin-high', profitMarginRange.high);
+    
+    // Set FCF Margin assumptions
+    const fcfMarginRange = calcRange(histFCFMargin, 'margin');
+    setInputValue('assumption-fcf-margin-low', fcfMarginRange.low);
+    setInputValue('assumption-fcf-margin-mid', fcfMarginRange.mid);
+    setInputValue('assumption-fcf-margin-high', fcfMarginRange.high);
+    
+    // Set Discount Rate (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-discount-rate-low', 0.08);
+    setInputValue('assumption-discount-rate-mid', 0.10);
+    setInputValue('assumption-discount-rate-high', 0.12);
+    
+    // Set Terminal Growth (default: low=2%, mid=3%, high=4%)
+    setInputValue('assumption-terminal-growth-low', 0.02);
+    setInputValue('assumption-terminal-growth-mid', 0.03);
+    setInputValue('assumption-terminal-growth-high', 0.04);
+    
+    // Set Desired Return (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-desired-return-low', 0.08);
+    setInputValue('assumption-desired-return-mid', 0.10);
+    setInputValue('assumption-desired-return-high', 0.12);
+    
+    // Show notification
+    if (window.app && window.app.showNotification) {
+        window.app.showNotification('Assumptions auto-filled from historical data', 'success');
+    }
+    
+    console.log('StockAnalyserManager: Extrapolation complete');
+};
+ + (value / 1.0e+9).toFixed(2) + 'B';
+        } else if (value >= 1.0e+6) {
+            return '
+
+    /**
+     * Populate a table cell with value
+     * @param {string} id - Element ID
+     * @param {number|null} value - Value to display
+     * @param {boolean} isPercentage - Whether to format as percentage
+     */
+    populateTableCell(id, value, isPercentage) {
+        const cell = document.getElementById(id);
+        if (cell) {
+            // Check for null, undefined, or NaN (0 is a valid value)
+            if (value !== null && value !== undefined && !isNaN(value)) {
+                cell.textContent = isPercentage ? `${(value * 100).toFixed(0)}%` : value.toFixed(2);
+            } else {
+                cell.textContent = '—';
+            }
+        }
+    }
+
+    /**
+     * Get user assumptions from input fields
+     * @returns {Object} User assumptions
+     */
+    getUserAssumptions() {
+        const getInputValue = (id, defaultValue) => {
+            const el = document.getElementById(id);
+            return el ? parseFloat(el.value) || defaultValue : defaultValue;
+        };
+
+        return {
+            revenueGrowth: {
+                low: getInputValue('assumption-rev-growth-low', 3) / 100,
+                mid: getInputValue('assumption-rev-growth-mid', 6) / 100,
+                high: getInputValue('assumption-rev-growth-high', 9) / 100
+            },
+            profitMargin: {
+                low: getInputValue('assumption-profit-margin-low', 8) / 100,
+                mid: getInputValue('assumption-profit-margin-mid', 10) / 100,
+                high: getInputValue('assumption-profit-margin-high', 12) / 100
+            },
+            fcfMargin: {
+                low: getInputValue('assumption-fcf-margin-low', 6) / 100,
+                mid: getInputValue('assumption-fcf-margin-mid', 9) / 100,
+                high: getInputValue('assumption-fcf-margin-high', 12) / 100
+            },
+            discountRate: {
+                low: getInputValue('assumption-discount-rate-low', 8) / 100,
+                mid: getInputValue('assumption-discount-rate-mid', 10) / 100,
+                high: getInputValue('assumption-discount-rate-high', 12) / 100
+            },
+            terminalGrowthRate: {
+                low: getInputValue('assumption-terminal-growth-low', 2) / 100,
+                mid: getInputValue('assumption-terminal-growth-mid', 3) / 100,
+                high: getInputValue('assumption-terminal-growth-high', 4) / 100
+            },
+            desiredReturn: {
+                low: getInputValue('assumption-desired-return-low', 8) / 100,
+                mid: getInputValue('assumption-desired-return-mid', 10) / 100,
+                high: getInputValue('assumption-desired-return-high', 12) / 100
+            }
+        };
+    }
+
+    /**
+     * Run DCF analysis
+     */
+    async runAnalysis() {
+        console.log('StockAnalyserManager: runAnalysis called', { 
+            currentSymbol: this.currentSymbol, 
+            currentPrice: this.currentPrice,
+            marketData: this.marketData
+        });
+        
+        if (!this.currentSymbol || !this.currentPrice) {
+            console.error('StockAnalyserManager: No stock selected or price available');
+            // Try to get price from display
+            const priceDisplay = document.getElementById('currentPrice');
+            if (priceDisplay && priceDisplay.textContent && priceDisplay.textContent !== '$0.00') {
+                console.log('StockAnalyserManager: Found price in display, retrying...');
+                // Price might be displayed but not stored, refresh data
+                if (this.currentSymbol) {
+                    await this.populateStockData(this.currentSymbol);
+                }
+            }
+            return;
+        }
+
+        const yearsSelect = document.getElementById('yearsSelect');
+        const yearsToProject = yearsSelect ? parseInt(yearsSelect.value) : 10;
+
+        const assumptions = this.getUserAssumptions();
+        console.log('StockAnalyserManager: User assumptions:', assumptions);
+
+        // Include market data for accurate DCF calculation
+        assumptions._marketCap = this.marketData?.marketCap || (this.currentPrice * 10000000000);
+        assumptions._baseRevenue = this.marketData?.revenue || 500000000000;
+
+        const requestData = {
+            currentPrice: this.currentPrice,
+            assumptions: {
+                revenueGrowth: assumptions.revenueGrowth,
+                profitMargin: assumptions.profitMargin,
+                fcfMargin: assumptions.fcfMargin,
+                discountRate: assumptions.discountRate,
+                terminalGrowthRate: assumptions.terminalGrowthRate,
+                desiredReturn: assumptions.desiredReturn,
+                _marketCap: assumptions._marketCap,
+                _baseRevenue: assumptions._baseRevenue
+            },
+            yearsToProject: yearsToProject
+        };
+
+        console.log('StockAnalyserManager: Running DCF analysis', requestData);
+
+        try {
+            this.eventBus.emit('dcf:calculating');
+
+            const results = await this.api.calculateDCF(requestData);
+
+            console.log('StockAnalyserManager: DCF results:', results);
+            this.displayResults(results);
+
+            this.eventBus.emit('dcf:calculated', { results });
+        } catch (error) {
+            console.error('StockAnalyserManager: DCF calculation failed:', error);
+            this.eventBus.emit('dcf:error', { error: error.message });
+            
+            // Fallback to local calculation
+            console.log('StockAnalyserManager: Falling back to local calculation');
+            const localResults = this.calculateDCFLocal(requestData);
+            this.displayResults(localResults);
+        }
+    }
+
+    /**
+     * Local DCF calculation fallback
+     * @param {Object} params - DCF parameters
+     * @returns {Object} DCF results
+     */
+    calculateDCFLocal(params) {
+        const { currentPrice, assumptions, yearsToProject } = params;
+        
+        console.log('StockAnalyserManager: calculateDCFLocal params:', {
+            currentPrice,
+            yearsToProject,
+            marketCap: assumptions._marketCap,
+            baseRevenue: assumptions._baseRevenue
+        });
+        
+        // Calculate shares outstanding from market cap
+        // market_cap is in dollars, shares = market_cap / price
+        const marketCap = assumptions._marketCap || (currentPrice * 10000000000);
+        const sharesOutstanding = marketCap / currentPrice;
+        
+        console.log('StockAnalyserManager: Market cap:', marketCap, 'Shares outstanding:', sharesOutstanding);
+
+        // Get base revenue from assumptions (already in dollars)
+        const baseRevenue = assumptions._baseRevenue || 500000000000;
+        console.log('StockAnalyserManager: Base revenue:', baseRevenue);
+
+        const results = {};
+
+        for (const scenario of ['low', 'mid', 'high']) {
+            const revGrowthRate = assumptions.revenueGrowth[scenario];
+            const profitMargin = assumptions.profitMargin[scenario];
+            const fcfMargin = assumptions.fcfMargin[scenario];
+            const discountRate = assumptions.discountRate[scenario];
+            const terminalGrowth = assumptions.terminalGrowthRate[scenario];
+
+            console.log(`StockAnalyserManager: ${scenario} scenario:`, {
+                revGrowthRate,
+                profitMargin,
+                fcfMargin,
+                discountRate,
+                terminalGrowth
+            });
+
+            // Project cash flows
+            const projectedFCF = [];
+            
+            for (let year = 1; year <= yearsToProject; year++) {
+                const revenue = baseRevenue * Math.pow(1 + revGrowthRate, year);
+                const netIncome = revenue * profitMargin;
+                const fcf = revenue * fcfMargin;
+                projectedFCF.push(fcf);
+            }
+
+            console.log(`StockAnalyserManager: ${scenario} projectedFCF first 3:`, projectedFCF.slice(0, 3));
+
+            // Calculate present value of projected FCF
+            let pvFCF = 0;
+            for (let i = 0; i < projectedFCF.length; i++) {
+                pvFCF += projectedFCF[i] / Math.pow(1 + discountRate, i + 1);
+            }
+
+            // Calculate terminal value
+            const terminalFCF = projectedFCF[projectedFCF.length - 1] * (1 + terminalGrowth);
+            const terminalValue = terminalFCF / (discountRate - terminalGrowth);
+            const pvTerminal = terminalValue / Math.pow(1 + discountRate, yearsToProject);
+
+            // Total enterprise value
+            const enterpriseValue = pvFCF + pvTerminal;
+
+            // Intrinsic value per share
+            const intrinsicValue = enterpriseValue / sharesOutstanding;
+
+            console.log(`StockAnalyserManager: ${scenario} results:`, {
+                pvFCF: round(pvFCF, 0),
+                terminalValue: round(terminalValue, 0),
+                enterpriseValue: round(enterpriseValue, 0),
+                sharesOutstanding: round(sharesOutstanding, 0),
+                intrinsicValue: round(intrinsicValue, 2),
+                currentPrice
+            });
+
+            // Expected return
+            const expectedReturn = (intrinsicValue - currentPrice) / currentPrice;
+
+            results[scenario] = {
+                intrinsicValue: round(intrinsicValue, 2),
+                expectedReturn: round(expectedReturn * 100, 2),
+                discountedCashFlowValue: round(pvFCF, 2),
+                terminalValue: round(pvTerminal, 2)
+            };
+        }
+
+        results.currentPrice = currentPrice;
+        return results;
+    }
+
+    /**
+     * Display DCF analysis results
+     * @param {Object} results - DCF results
+     */
+    displayResults(results) {
+        console.log('StockAnalyserManager: displayResults called with:', results);
+
+        if (!results) {
+            console.error('StockAnalyserManager: No results to display');
+            return;
+        }
+
+        // Multiple of Earnings Value (simplified - uses intrinsic value)
+        const moeLow = document.getElementById('moeValueLow');
+        const moeMid = document.getElementById('moeValueMid');
+        const moeHigh = document.getElementById('moeValueHigh');
+
+        console.log('StockAnalyserManager: moeLow element:', moeLow, 'results.low:', results.low);
+        
+        if (moeLow) moeLow.textContent = this.formatCurrency(results.low?.intrinsicValue || 0);
+        if (moeMid) moeMid.textContent = this.formatCurrency(results.mid?.intrinsicValue || 0);
+        if (moeHigh) moeHigh.textContent = this.formatCurrency(results.high?.intrinsicValue || 0);
+
+        // Discounted Cash Flow Value
+        const dcfLow = document.getElementById('dcfValueLow');
+        const dcfMid = document.getElementById('dcfValueMid');
+        const dcfHigh = document.getElementById('dcfValueHigh');
+
+        if (dcfLow) dcfLow.textContent = this.formatCurrency(results.low?.discountedCashFlowValue || 0);
+        if (dcfMid) dcfMid.textContent = this.formatCurrency(results.mid?.discountedCashFlowValue || 0);
+        if (dcfHigh) dcfHigh.textContent = this.formatCurrency(results.high?.discountedCashFlowValue || 0);
+
+        // Current Price Return
+        const returnLow = document.getElementById('returnLow');
+        const returnMid = document.getElementById('returnMid');
+        const returnHigh = document.getElementById('returnHigh');
+
+        const formatReturn = (value) => {
+            const prefix = value >= 0 ? '+' : '';
+            return `${prefix}${value.toFixed(1)}%`;
+        };
+
+        if (returnLow) {
+            returnLow.textContent = formatReturn(results.low?.expectedReturn || 0);
+            returnLow.className = (results.low?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+        if (returnMid) {
+            returnMid.textContent = formatReturn(results.mid?.expectedReturn || 0);
+            returnMid.className = (results.mid?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+        if (returnHigh) {
+            returnHigh.textContent = formatReturn(results.high?.expectedReturn || 0);
+            returnHigh.className = (results.high?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+    }
+
+    /**
+     * Format number as currency
+     * @param {number} value - Number to format
+     * @returns {string} Formatted currency string
+     */
+    formatCurrency(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    }
+
+    /**
+     * Reset analysis results
+     */
+    resetResults() {
+        const resultCells = [
+            'moeValueLow', 'moeValueMid', 'moeValueHigh',
+            'dcfValueLow', 'dcfValueMid', 'dcfValueHigh',
+            'returnLow', 'returnMid', 'returnHigh'
+        ];
+
+        resultCells.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = '—';
+                el.className = '';
+            }
+        });
+    }
+}
+
+// Helper function for rounding
+function round(value, decimals) {
+    return Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}
+
+// Global instance
+window.stockAnalyserManager = null;
+
+/**
+ * Run DCF analysis (called from Analyze button)
+ */
+window.runDCFAnalysis = function() {
+    if (window.stockAnalyserManager) {
+        window.stockAnalyserManager.runAnalysis();
+    } else {
+        console.error('StockAnalyserManager: Not initialized');
+    }
+};
+
+/**
+ * Load stock by symbol input (called from symbol input in stock-analyser tab)
+ */
+window.loadAnalyserSymbol = function() {
+    const input = document.getElementById('analyserSymbolInput');
+    if (!input) {
+        console.error('StockAnalyserManager: analyserSymbolInput not found');
+        return;
+    }
+    
+    const symbol = input.value.trim().toUpperCase();
+    if (!symbol) {
+        // Show error notification
+        if (window.app && window.app.showNotification) {
+            window.app.showNotification('Please enter a stock symbol', 'error');
+        } else {
+            alert('Please enter a stock symbol');
+        }
+        return;
+    }
+    
+    console.log('StockAnalyserManager: Loading symbol from input:', symbol);
+    
+    // Use stockManager to select the stock and switch to stock-analyser tab
+    if (window.stockManager) {
+        window.stockManager.selectStock(symbol, 'stock-analyser');
+    } else {
+        console.error('StockAnalyserManager: stockManager not available');
+    }
+};
+
+/**
+ * Handle Enter key in symbol input
+ */
+window.handleAnalyserSymbolKeydown = function(event) {
+    if (event.key === 'Enter') {
+        window.loadAnalyserSymbol();
+    }
+};
+
+/**
+ * Extrapolate assumptions from historical data
+ * Reads historical values and auto-fills Low/Mid/High assumptions
+ */
+window.extrapolateFromHistorical = function() {
+    console.log('StockAnalyserManager: Extrapolating from historical data');
+    
+    // Helper to get cell value
+    const getCellValue = (id) => {
+        const cell = document.getElementById(id);
+        if (!cell) return null;
+        let text = cell.textContent.trim();
+        if (text === '—' || text === '') return null;
+        // Remove % sign and parse
+        text = text.replace('%', '');
+        const val = parseFloat(text);
+        return isNaN(val) ? null : val / 100; // Convert percentage to decimal
+    };
+    
+    // Helper to set input value
+    const setInputValue = (id, value) => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = (value * 100).toFixed(1);
+        }
+    };
+    
+    // Get historical values (use 1y as base)
+    const histRevGrowth = getCellValue('rev-growth-1y');
+    const histProfitMargin = getCellValue('profit-margin-1y');
+    const histFCFMargin = getCellValue('fcf-margin-1y');
+    const histROIC = getCellValue('roic-1y');
+    const histPE = getCellValue('pe-1y');
+    const histPFCF = getCellValue('pfcf-1y');
+    
+    console.log('StockAnalyserManager: Historical values:', {
+        revGrowth: histRevGrowth,
+        profitMargin: histProfitMargin,
+        fcfMargin: histFCFMargin,
+        roic: histROIC,
+        pe: histPE,
+        pfcf: histPFCF
+    });
+    
+    // Helper to calculate low/mid/high from a base value
+    const calcRange = (base, type) => {
+        if (base === null) {
+            // Return defaults if no historical data
+            if (type === 'growth') return { low: 0.03, mid: 0.06, high: 0.09 };
+            if (type === 'margin') return { low: 0.08, mid: 0.10, high: 0.12 };
+            return { low: 0.08, mid: 0.10, high: 0.12 };
+        }
+        
+        if (type === 'growth') {
+            // For growth rates: low = 70%, mid = 100%, high = 130% of historical
+            return {
+                low: Math.max(0, base * 0.70),
+                mid: base,
+                high: base * 1.30
+            };
+        } else {
+            // For margins: low = 80%, mid = 100%, high = 120% of historical
+            return {
+                low: Math.max(0, base * 0.80),
+                mid: base,
+                high: Math.min(1, base * 1.20)
+            };
+        }
+    };
+    
+    // Set Revenue Growth assumptions
+    const revGrowthRange = calcRange(histRevGrowth, 'growth');
+    setInputValue('assumption-rev-growth-low', revGrowthRange.low);
+    setInputValue('assumption-rev-growth-mid', revGrowthRange.mid);
+    setInputValue('assumption-rev-growth-high', revGrowthRange.high);
+    
+    // Set Profit Margin assumptions
+    const profitMarginRange = calcRange(histProfitMargin, 'margin');
+    setInputValue('assumption-profit-margin-low', profitMarginRange.low);
+    setInputValue('assumption-profit-margin-mid', profitMarginRange.mid);
+    setInputValue('assumption-profit-margin-high', profitMarginRange.high);
+    
+    // Set FCF Margin assumptions
+    const fcfMarginRange = calcRange(histFCFMargin, 'margin');
+    setInputValue('assumption-fcf-margin-low', fcfMarginRange.low);
+    setInputValue('assumption-fcf-margin-mid', fcfMarginRange.mid);
+    setInputValue('assumption-fcf-margin-high', fcfMarginRange.high);
+    
+    // Set Discount Rate (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-discount-rate-low', 0.08);
+    setInputValue('assumption-discount-rate-mid', 0.10);
+    setInputValue('assumption-discount-rate-high', 0.12);
+    
+    // Set Terminal Growth (default: low=2%, mid=3%, high=4%)
+    setInputValue('assumption-terminal-growth-low', 0.02);
+    setInputValue('assumption-terminal-growth-mid', 0.03);
+    setInputValue('assumption-terminal-growth-high', 0.04);
+    
+    // Set Desired Return (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-desired-return-low', 0.08);
+    setInputValue('assumption-desired-return-mid', 0.10);
+    setInputValue('assumption-desired-return-high', 0.12);
+    
+    // Show notification
+    if (window.app && window.app.showNotification) {
+        window.app.showNotification('Assumptions auto-filled from historical data', 'success');
+    }
+    
+    console.log('StockAnalyserManager: Extrapolation complete');
+};
+ + (value / 1.0e+6).toFixed(2) + 'M';
+        } else {
+            return '
+
+    /**
+     * Populate a table cell with value
+     * @param {string} id - Element ID
+     * @param {number|null} value - Value to display
+     * @param {boolean} isPercentage - Whether to format as percentage
+     */
+    populateTableCell(id, value, isPercentage) {
+        const cell = document.getElementById(id);
+        if (cell) {
+            // Check for null, undefined, or NaN (0 is a valid value)
+            if (value !== null && value !== undefined && !isNaN(value)) {
+                cell.textContent = isPercentage ? `${(value * 100).toFixed(0)}%` : value.toFixed(2);
+            } else {
+                cell.textContent = '—';
+            }
+        }
+    }
+
+    /**
+     * Get user assumptions from input fields
+     * @returns {Object} User assumptions
+     */
+    getUserAssumptions() {
+        const getInputValue = (id, defaultValue) => {
+            const el = document.getElementById(id);
+            return el ? parseFloat(el.value) || defaultValue : defaultValue;
+        };
+
+        return {
+            revenueGrowth: {
+                low: getInputValue('assumption-rev-growth-low', 3) / 100,
+                mid: getInputValue('assumption-rev-growth-mid', 6) / 100,
+                high: getInputValue('assumption-rev-growth-high', 9) / 100
+            },
+            profitMargin: {
+                low: getInputValue('assumption-profit-margin-low', 8) / 100,
+                mid: getInputValue('assumption-profit-margin-mid', 10) / 100,
+                high: getInputValue('assumption-profit-margin-high', 12) / 100
+            },
+            fcfMargin: {
+                low: getInputValue('assumption-fcf-margin-low', 6) / 100,
+                mid: getInputValue('assumption-fcf-margin-mid', 9) / 100,
+                high: getInputValue('assumption-fcf-margin-high', 12) / 100
+            },
+            discountRate: {
+                low: getInputValue('assumption-discount-rate-low', 8) / 100,
+                mid: getInputValue('assumption-discount-rate-mid', 10) / 100,
+                high: getInputValue('assumption-discount-rate-high', 12) / 100
+            },
+            terminalGrowthRate: {
+                low: getInputValue('assumption-terminal-growth-low', 2) / 100,
+                mid: getInputValue('assumption-terminal-growth-mid', 3) / 100,
+                high: getInputValue('assumption-terminal-growth-high', 4) / 100
+            },
+            desiredReturn: {
+                low: getInputValue('assumption-desired-return-low', 8) / 100,
+                mid: getInputValue('assumption-desired-return-mid', 10) / 100,
+                high: getInputValue('assumption-desired-return-high', 12) / 100
+            }
+        };
+    }
+
+    /**
+     * Run DCF analysis
+     */
+    async runAnalysis() {
+        console.log('StockAnalyserManager: runAnalysis called', { 
+            currentSymbol: this.currentSymbol, 
+            currentPrice: this.currentPrice,
+            marketData: this.marketData
+        });
+        
+        if (!this.currentSymbol || !this.currentPrice) {
+            console.error('StockAnalyserManager: No stock selected or price available');
+            // Try to get price from display
+            const priceDisplay = document.getElementById('currentPrice');
+            if (priceDisplay && priceDisplay.textContent && priceDisplay.textContent !== '$0.00') {
+                console.log('StockAnalyserManager: Found price in display, retrying...');
+                // Price might be displayed but not stored, refresh data
+                if (this.currentSymbol) {
+                    await this.populateStockData(this.currentSymbol);
+                }
+            }
+            return;
+        }
+
+        const yearsSelect = document.getElementById('yearsSelect');
+        const yearsToProject = yearsSelect ? parseInt(yearsSelect.value) : 10;
+
+        const assumptions = this.getUserAssumptions();
+        console.log('StockAnalyserManager: User assumptions:', assumptions);
+
+        // Include market data for accurate DCF calculation
+        assumptions._marketCap = this.marketData?.marketCap || (this.currentPrice * 10000000000);
+        assumptions._baseRevenue = this.marketData?.revenue || 500000000000;
+
+        const requestData = {
+            currentPrice: this.currentPrice,
+            assumptions: {
+                revenueGrowth: assumptions.revenueGrowth,
+                profitMargin: assumptions.profitMargin,
+                fcfMargin: assumptions.fcfMargin,
+                discountRate: assumptions.discountRate,
+                terminalGrowthRate: assumptions.terminalGrowthRate,
+                desiredReturn: assumptions.desiredReturn,
+                _marketCap: assumptions._marketCap,
+                _baseRevenue: assumptions._baseRevenue
+            },
+            yearsToProject: yearsToProject
+        };
+
+        console.log('StockAnalyserManager: Running DCF analysis', requestData);
+
+        try {
+            this.eventBus.emit('dcf:calculating');
+
+            const results = await this.api.calculateDCF(requestData);
+
+            console.log('StockAnalyserManager: DCF results:', results);
+            this.displayResults(results);
+
+            this.eventBus.emit('dcf:calculated', { results });
+        } catch (error) {
+            console.error('StockAnalyserManager: DCF calculation failed:', error);
+            this.eventBus.emit('dcf:error', { error: error.message });
+            
+            // Fallback to local calculation
+            console.log('StockAnalyserManager: Falling back to local calculation');
+            const localResults = this.calculateDCFLocal(requestData);
+            this.displayResults(localResults);
+        }
+    }
+
+    /**
+     * Local DCF calculation fallback
+     * @param {Object} params - DCF parameters
+     * @returns {Object} DCF results
+     */
+    calculateDCFLocal(params) {
+        const { currentPrice, assumptions, yearsToProject } = params;
+        
+        console.log('StockAnalyserManager: calculateDCFLocal params:', {
+            currentPrice,
+            yearsToProject,
+            marketCap: assumptions._marketCap,
+            baseRevenue: assumptions._baseRevenue
+        });
+        
+        // Calculate shares outstanding from market cap
+        // market_cap is in dollars, shares = market_cap / price
+        const marketCap = assumptions._marketCap || (currentPrice * 10000000000);
+        const sharesOutstanding = marketCap / currentPrice;
+        
+        console.log('StockAnalyserManager: Market cap:', marketCap, 'Shares outstanding:', sharesOutstanding);
+
+        // Get base revenue from assumptions (already in dollars)
+        const baseRevenue = assumptions._baseRevenue || 500000000000;
+        console.log('StockAnalyserManager: Base revenue:', baseRevenue);
+
+        const results = {};
+
+        for (const scenario of ['low', 'mid', 'high']) {
+            const revGrowthRate = assumptions.revenueGrowth[scenario];
+            const profitMargin = assumptions.profitMargin[scenario];
+            const fcfMargin = assumptions.fcfMargin[scenario];
+            const discountRate = assumptions.discountRate[scenario];
+            const terminalGrowth = assumptions.terminalGrowthRate[scenario];
+
+            console.log(`StockAnalyserManager: ${scenario} scenario:`, {
+                revGrowthRate,
+                profitMargin,
+                fcfMargin,
+                discountRate,
+                terminalGrowth
+            });
+
+            // Project cash flows
+            const projectedFCF = [];
+            
+            for (let year = 1; year <= yearsToProject; year++) {
+                const revenue = baseRevenue * Math.pow(1 + revGrowthRate, year);
+                const netIncome = revenue * profitMargin;
+                const fcf = revenue * fcfMargin;
+                projectedFCF.push(fcf);
+            }
+
+            console.log(`StockAnalyserManager: ${scenario} projectedFCF first 3:`, projectedFCF.slice(0, 3));
+
+            // Calculate present value of projected FCF
+            let pvFCF = 0;
+            for (let i = 0; i < projectedFCF.length; i++) {
+                pvFCF += projectedFCF[i] / Math.pow(1 + discountRate, i + 1);
+            }
+
+            // Calculate terminal value
+            const terminalFCF = projectedFCF[projectedFCF.length - 1] * (1 + terminalGrowth);
+            const terminalValue = terminalFCF / (discountRate - terminalGrowth);
+            const pvTerminal = terminalValue / Math.pow(1 + discountRate, yearsToProject);
+
+            // Total enterprise value
+            const enterpriseValue = pvFCF + pvTerminal;
+
+            // Intrinsic value per share
+            const intrinsicValue = enterpriseValue / sharesOutstanding;
+
+            console.log(`StockAnalyserManager: ${scenario} results:`, {
+                pvFCF: round(pvFCF, 0),
+                terminalValue: round(terminalValue, 0),
+                enterpriseValue: round(enterpriseValue, 0),
+                sharesOutstanding: round(sharesOutstanding, 0),
+                intrinsicValue: round(intrinsicValue, 2),
+                currentPrice
+            });
+
+            // Expected return
+            const expectedReturn = (intrinsicValue - currentPrice) / currentPrice;
+
+            results[scenario] = {
+                intrinsicValue: round(intrinsicValue, 2),
+                expectedReturn: round(expectedReturn * 100, 2),
+                discountedCashFlowValue: round(pvFCF, 2),
+                terminalValue: round(pvTerminal, 2)
+            };
+        }
+
+        results.currentPrice = currentPrice;
+        return results;
+    }
+
+    /**
+     * Display DCF analysis results
+     * @param {Object} results - DCF results
+     */
+    displayResults(results) {
+        console.log('StockAnalyserManager: displayResults called with:', results);
+
+        if (!results) {
+            console.error('StockAnalyserManager: No results to display');
+            return;
+        }
+
+        // Multiple of Earnings Value (simplified - uses intrinsic value)
+        const moeLow = document.getElementById('moeValueLow');
+        const moeMid = document.getElementById('moeValueMid');
+        const moeHigh = document.getElementById('moeValueHigh');
+
+        console.log('StockAnalyserManager: moeLow element:', moeLow, 'results.low:', results.low);
+        
+        if (moeLow) moeLow.textContent = this.formatCurrency(results.low?.intrinsicValue || 0);
+        if (moeMid) moeMid.textContent = this.formatCurrency(results.mid?.intrinsicValue || 0);
+        if (moeHigh) moeHigh.textContent = this.formatCurrency(results.high?.intrinsicValue || 0);
+
+        // Discounted Cash Flow Value
+        const dcfLow = document.getElementById('dcfValueLow');
+        const dcfMid = document.getElementById('dcfValueMid');
+        const dcfHigh = document.getElementById('dcfValueHigh');
+
+        if (dcfLow) dcfLow.textContent = this.formatCurrency(results.low?.discountedCashFlowValue || 0);
+        if (dcfMid) dcfMid.textContent = this.formatCurrency(results.mid?.discountedCashFlowValue || 0);
+        if (dcfHigh) dcfHigh.textContent = this.formatCurrency(results.high?.discountedCashFlowValue || 0);
+
+        // Current Price Return
+        const returnLow = document.getElementById('returnLow');
+        const returnMid = document.getElementById('returnMid');
+        const returnHigh = document.getElementById('returnHigh');
+
+        const formatReturn = (value) => {
+            const prefix = value >= 0 ? '+' : '';
+            return `${prefix}${value.toFixed(1)}%`;
+        };
+
+        if (returnLow) {
+            returnLow.textContent = formatReturn(results.low?.expectedReturn || 0);
+            returnLow.className = (results.low?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+        if (returnMid) {
+            returnMid.textContent = formatReturn(results.mid?.expectedReturn || 0);
+            returnMid.className = (results.mid?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+        if (returnHigh) {
+            returnHigh.textContent = formatReturn(results.high?.expectedReturn || 0);
+            returnHigh.className = (results.high?.expectedReturn || 0) >= 0 ? 'positive' : 'negative';
+        }
+    }
+
+    /**
+     * Format number as currency
+     * @param {number} value - Number to format
+     * @returns {string} Formatted currency string
+     */
+    formatCurrency(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    }
+
+    /**
+     * Reset analysis results
+     */
+    resetResults() {
+        const resultCells = [
+            'moeValueLow', 'moeValueMid', 'moeValueHigh',
+            'dcfValueLow', 'dcfValueMid', 'dcfValueHigh',
+            'returnLow', 'returnMid', 'returnHigh'
+        ];
+
+        resultCells.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = '—';
+                el.className = '';
+            }
+        });
+    }
+}
+
+// Helper function for rounding
+function round(value, decimals) {
+    return Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}
+
+// Global instance
+window.stockAnalyserManager = null;
+
+/**
+ * Run DCF analysis (called from Analyze button)
+ */
+window.runDCFAnalysis = function() {
+    if (window.stockAnalyserManager) {
+        window.stockAnalyserManager.runAnalysis();
+    } else {
+        console.error('StockAnalyserManager: Not initialized');
+    }
+};
+
+/**
+ * Load stock by symbol input (called from symbol input in stock-analyser tab)
+ */
+window.loadAnalyserSymbol = function() {
+    const input = document.getElementById('analyserSymbolInput');
+    if (!input) {
+        console.error('StockAnalyserManager: analyserSymbolInput not found');
+        return;
+    }
+    
+    const symbol = input.value.trim().toUpperCase();
+    if (!symbol) {
+        // Show error notification
+        if (window.app && window.app.showNotification) {
+            window.app.showNotification('Please enter a stock symbol', 'error');
+        } else {
+            alert('Please enter a stock symbol');
+        }
+        return;
+    }
+    
+    console.log('StockAnalyserManager: Loading symbol from input:', symbol);
+    
+    // Use stockManager to select the stock and switch to stock-analyser tab
+    if (window.stockManager) {
+        window.stockManager.selectStock(symbol, 'stock-analyser');
+    } else {
+        console.error('StockAnalyserManager: stockManager not available');
+    }
+};
+
+/**
+ * Handle Enter key in symbol input
+ */
+window.handleAnalyserSymbolKeydown = function(event) {
+    if (event.key === 'Enter') {
+        window.loadAnalyserSymbol();
+    }
+};
+
+/**
+ * Extrapolate assumptions from historical data
+ * Reads historical values and auto-fills Low/Mid/High assumptions
+ */
+window.extrapolateFromHistorical = function() {
+    console.log('StockAnalyserManager: Extrapolating from historical data');
+    
+    // Helper to get cell value
+    const getCellValue = (id) => {
+        const cell = document.getElementById(id);
+        if (!cell) return null;
+        let text = cell.textContent.trim();
+        if (text === '—' || text === '') return null;
+        // Remove % sign and parse
+        text = text.replace('%', '');
+        const val = parseFloat(text);
+        return isNaN(val) ? null : val / 100; // Convert percentage to decimal
+    };
+    
+    // Helper to set input value
+    const setInputValue = (id, value) => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = (value * 100).toFixed(1);
+        }
+    };
+    
+    // Get historical values (use 1y as base)
+    const histRevGrowth = getCellValue('rev-growth-1y');
+    const histProfitMargin = getCellValue('profit-margin-1y');
+    const histFCFMargin = getCellValue('fcf-margin-1y');
+    const histROIC = getCellValue('roic-1y');
+    const histPE = getCellValue('pe-1y');
+    const histPFCF = getCellValue('pfcf-1y');
+    
+    console.log('StockAnalyserManager: Historical values:', {
+        revGrowth: histRevGrowth,
+        profitMargin: histProfitMargin,
+        fcfMargin: histFCFMargin,
+        roic: histROIC,
+        pe: histPE,
+        pfcf: histPFCF
+    });
+    
+    // Helper to calculate low/mid/high from a base value
+    const calcRange = (base, type) => {
+        if (base === null) {
+            // Return defaults if no historical data
+            if (type === 'growth') return { low: 0.03, mid: 0.06, high: 0.09 };
+            if (type === 'margin') return { low: 0.08, mid: 0.10, high: 0.12 };
+            return { low: 0.08, mid: 0.10, high: 0.12 };
+        }
+        
+        if (type === 'growth') {
+            // For growth rates: low = 70%, mid = 100%, high = 130% of historical
+            return {
+                low: Math.max(0, base * 0.70),
+                mid: base,
+                high: base * 1.30
+            };
+        } else {
+            // For margins: low = 80%, mid = 100%, high = 120% of historical
+            return {
+                low: Math.max(0, base * 0.80),
+                mid: base,
+                high: Math.min(1, base * 1.20)
+            };
+        }
+    };
+    
+    // Set Revenue Growth assumptions
+    const revGrowthRange = calcRange(histRevGrowth, 'growth');
+    setInputValue('assumption-rev-growth-low', revGrowthRange.low);
+    setInputValue('assumption-rev-growth-mid', revGrowthRange.mid);
+    setInputValue('assumption-rev-growth-high', revGrowthRange.high);
+    
+    // Set Profit Margin assumptions
+    const profitMarginRange = calcRange(histProfitMargin, 'margin');
+    setInputValue('assumption-profit-margin-low', profitMarginRange.low);
+    setInputValue('assumption-profit-margin-mid', profitMarginRange.mid);
+    setInputValue('assumption-profit-margin-high', profitMarginRange.high);
+    
+    // Set FCF Margin assumptions
+    const fcfMarginRange = calcRange(histFCFMargin, 'margin');
+    setInputValue('assumption-fcf-margin-low', fcfMarginRange.low);
+    setInputValue('assumption-fcf-margin-mid', fcfMarginRange.mid);
+    setInputValue('assumption-fcf-margin-high', fcfMarginRange.high);
+    
+    // Set Discount Rate (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-discount-rate-low', 0.08);
+    setInputValue('assumption-discount-rate-mid', 0.10);
+    setInputValue('assumption-discount-rate-high', 0.12);
+    
+    // Set Terminal Growth (default: low=2%, mid=3%, high=4%)
+    setInputValue('assumption-terminal-growth-low', 0.02);
+    setInputValue('assumption-terminal-growth-mid', 0.03);
+    setInputValue('assumption-terminal-growth-high', 0.04);
+    
+    // Set Desired Return (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-desired-return-low', 0.08);
+    setInputValue('assumption-desired-return-mid', 0.10);
+    setInputValue('assumption-desired-return-high', 0.12);
+    
+    // Show notification
+    if (window.app && window.app.showNotification) {
+        window.app.showNotification('Assumptions auto-filled from historical data', 'success');
+    }
+    
+    console.log('StockAnalyserManager: Extrapolation complete');
+};
+ + value.toFixed(2);
+        }
     }
 
     /**

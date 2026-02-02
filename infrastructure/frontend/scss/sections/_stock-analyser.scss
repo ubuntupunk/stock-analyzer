@@ -125,6 +125,78 @@
   margin-bottom: var(--spacing-xl);
 }
 
+.dcf-output {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xl);
+  align-items: flex-start;
+  
+  .current-price {
+    flex: 0 0 150px;
+    
+    h3 {
+      color: var(--primary-color);
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .price-display {
+      font-size: var(--font-size-4xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--text-primary);
+      margin: 0;
+    }
+    
+    .price-change {
+      font-size: var(--font-size-base);
+      margin: var(--spacing-xs) 0 0;
+      
+      &.positive {
+        color: var(--success-color);
+      }
+      
+      &.negative {
+        color: var(--danger-color);
+      }
+    }
+  }
+  
+  .market-info {
+    flex: 1;
+    min-width: 200px;
+    background-color: var(--bg-light);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    
+    h3 {
+      color: var(--primary-color);
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--spacing-sm);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: var(--spacing-xs);
+    }
+    
+    p {
+      margin: var(--spacing-xs) 0;
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      
+      span {
+        font-weight: var(--font-weight-medium);
+        color: var(--text-primary);
+      }
+    }
+  }
+  
+  .analyse-btn {
+    flex: 0 0 auto;
+    align-self: center;
+    padding: var(--spacing-md) var(--spacing-2xl);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+}
+
 .dcf-result {
   text-align: center;
   padding: var(--spacing-2xl);
