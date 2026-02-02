@@ -56,7 +56,7 @@ class WatchlistManager {
      * Setup watchlist UI handlers
      */
     setupWatchlistHandlers() {
-        // Watchlist toggle button
+        // Watchlist toggle button (exists in tabs, so safe to attach here)
         const watchlistToggle = document.getElementById('watchlistToggle');
         if (watchlistToggle) {
             watchlistToggle.addEventListener('click', () => {
@@ -67,12 +67,27 @@ class WatchlistManager {
             });
         }
 
-        // Add to watchlist button
+        // Note: Add to watchlist button handler is set up in setupAddStockButtonHandler()
+        // which is called after the watchlist section is loaded in DOM
+    }
+
+    /**
+     * Setup the Add Stock button handler after section is loaded
+     * This is called from renderWatchlist() after the section exists
+     */
+    setupAddStockButtonHandler() {
         const addToWatchlistBtn = document.getElementById('addToWatchlistBtn');
         if (addToWatchlistBtn) {
-            addToWatchlistBtn.addEventListener('click', () => {
+            // Remove any existing listeners to avoid duplicates
+            const newBtn = addToWatchlistBtn.cloneNode(true);
+            addToWatchlistBtn.parentNode.replaceChild(newBtn, addToWatchlistBtn);
+
+            newBtn.addEventListener('click', () => {
                 this.showAddToWatchlistDialog();
             });
+            console.log('WatchlistManager: Add Stock button handler attached');
+        } else {
+            console.warn('WatchlistManager: addToWatchlistBtn not found');
         }
     }
 
@@ -137,10 +152,14 @@ class WatchlistManager {
                 // Already has content - just update buttons and reload prices
                 console.log('>>> _doLoadWatchlist: Already rendered, updating buttons and reloading prices');
                 this.updateAllWatchlistButtons();
+                // Ensure Add Stock button handler is set up
+                this.setupAddStockButtonHandler();
                 await this.loadWatchlistPrices();
             } else {
                 // Section not loaded yet (shouldn't happen after waitForWatchlistSection)
                 console.log('>>> _doLoadWatchlist: Section not loaded after wait, rendering anyway');
+                // Ensure Add Stock button handler is set up
+                this.setupAddStockButtonHandler();
                 await this.renderWatchlist();
             }
 
@@ -493,6 +512,8 @@ class WatchlistManager {
             if (empty) empty.style.display = 'block';
             if (grid) grid.style.display = 'none';
             this.updateWatchlistCount(0);
+            // Still setup the Add Stock button handler even when empty
+            this.setupAddStockButtonHandler();
             return;
         }
 
@@ -558,6 +579,9 @@ class WatchlistManager {
 
         // Update timestamp
         this.updateWatchlistTimestamp();
+
+        // Setup Add Stock button handler after section is rendered
+        this.setupAddStockButtonHandler();
 
         // Load prices for all watchlist items
         console.log('>>> renderWatchlist: Calling loadWatchlistPrices()');
