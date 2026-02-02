@@ -8,7 +8,13 @@ class WatchlistManager {
         this.watchlist = [];
         this.priceUpdateInterval = null;
         this.priceUpdateFrequency = 60000; // 1 minute
-        
+        this._pricesLoading = false; // Guard against duplicate price loading
+        this._pricesLoadingPromise = null; // Promise for in-progress price load
+        this._watchlistLoading = false; // Guard against concurrent loadWatchlist calls
+        this._watchlistRendered = false; // Track if watchlist has been rendered with prices
+        this._watchlistLoadPromise = null; // Promise for in-progress watchlist load
+        this._renderCount = 0; // Track number of renders
+
         // Subscribe to watchlist events
         this.setupEventListeners();
     }
@@ -74,31 +80,94 @@ class WatchlistManager {
      * Load watchlist from API
      */
     async loadWatchlist() {
+        console.log('>>> loadWatchlist()');
+
+        // If already loading, wait for it
+        if (this._watchlistLoading && this._watchlistLoadPromise) {
+            console.log('>>> loadWatchlist: Waiting for in-progress load');
+            return this._watchlistLoadPromise;
+        }
+
+        this._watchlistLoading = true;
+        const loadPromise = this._doLoadWatchlist();
+        this._watchlistLoadPromise = loadPromise;
+
+        try {
+            await loadPromise;
+        } finally {
+            this._watchlistLoading = false;
+            this._watchlistLoadPromise = null;
+        }
+    }
+
+    /**
+     * Internal load watchlist implementation
+     */
+    async _doLoadWatchlist() {
         try {
             this.eventBus.emit('watchlist:loading');
-            
-            console.log('WatchlistManager: Loading watchlist...');
-            
+
+            console.log('>>> _doLoadWatchlist: Loading from dataManager');
+
             const watchlistData = await this.dataManager.loadWatchlist();
             this.watchlist = watchlistData || [];
-            
-            console.log('WatchlistManager: Loaded watchlist:', this.watchlist.length, 'items');
-            console.log('WatchlistManager: Watchlist contents:', this.watchlist.map(i => `${i.symbol} - ${i.name || 'no name'}`).join(', '));
-            
+
+            console.log('>>> _doLoadWatchlist: Loaded', this.watchlist.length, 'items');
+
             // Ensure all items have proper names
             this.watchlist = this.watchlist.map(item => ({
                 ...item,
                 name: item.name || this.getStockName(item.symbol)
             }));
-            
-            this.renderWatchlist();
-            this.updateAllWatchlistButtons();
-            
+
+            // Wait for watchlist section to be loaded in DOM if not present yet
+            await this.waitForWatchlistSection();
+
+            // Check if watchlist section is in DOM
+            const container = document.getElementById('watchlistGrid');
+            const hasContent = container && container.children.length > 0;
+
+            console.log('>>> _doLoadWatchlist: container=' + !!container + ', hasContent=' + hasContent);
+
+            if (container && !hasContent) {
+                // Section exists but empty - render for first time
+                console.log('>>> _doLoadWatchlist: Rendering watchlist');
+                await this.renderWatchlist();
+            } else if (hasContent) {
+                // Already has content - just update buttons and reload prices
+                console.log('>>> _doLoadWatchlist: Already rendered, updating buttons and reloading prices');
+                this.updateAllWatchlistButtons();
+                await this.loadWatchlistPrices();
+            } else {
+                // Section not loaded yet (shouldn't happen after waitForWatchlistSection)
+                console.log('>>> _doLoadWatchlist: Section not loaded after wait, rendering anyway');
+                await this.renderWatchlist();
+            }
+
             this.eventBus.emit('watchlist:loaded', { watchlist: this.watchlist });
         } catch (error) {
-            console.error('WatchlistManager: Failed to load watchlist:', error);
+            console.error('>>> _doLoadWatchlist: Failed:', error);
             this.eventBus.emit('watchlist:error', { error: error.message });
         }
+    }
+
+    /**
+     * Wait for watchlist section to be loaded in DOM
+     */
+    async waitForWatchlistSection() {
+        console.log('>>> waitForWatchlistSection: Checking if section exists');
+        const maxAttempts = 50; // 2.5 seconds max
+        let attempts = 0;
+        
+        while (!document.getElementById('watchlistContainer') && attempts < maxAttempts) {
+            console.log('>>> waitForWatchlistSection: Waiting... attempt', attempts + 1);
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+        }
+        
+        const exists = !!document.getElementById('watchlistContainer');
+        console.log('>>> waitForWatchlistSection: Section exists:', exists, 'after', attempts * 50, 'ms');
+        return exists;
     }
 
     /**
@@ -408,11 +477,17 @@ class WatchlistManager {
      * Render watchlist in the UI
      */
     async renderWatchlist() {
+        this._renderCount++;
+        console.log(`>>> renderWatchlist: Call #${this._renderCount}`);
+
         const container = document.getElementById('watchlistContainer');
         const grid = document.getElementById('watchlistGrid');
         const empty = document.getElementById('watchlistEmpty');
-        
-        if (!container) return;
+
+        if (!container) {
+            console.log('>>> renderWatchlist: No container, skipping');
+            return;
+        }
 
         if (this.watchlist.length === 0) {
             if (empty) empty.style.display = 'block';
@@ -428,23 +503,25 @@ class WatchlistManager {
         const watchlistHtml = this.watchlist.map(item => {
             // Ensure name is set
             const displayName = item.name || this.getStockName(item.symbol);
-            
+            // Normalize symbol to lowercase for consistent element IDs
+            const symbolId = item.symbol.toUpperCase();
+
             return `
-            <div class="watchlist-item" data-symbol="${item.symbol}">
+            <div class="watchlist-item" data-symbol="${symbolId}" data-context="watchlist">
                 <div class="watchlist-header">
                     <div class="watchlist-symbol">
-                        <span class="symbol">${item.symbol}</span>
+                        <span class="symbol">${symbolId}</span>
                         <span class="name">${displayName}</span>
                     </div>
-                    <button class="watchlist-remove" onclick="window.watchlistManager.removeFromWatchlist('${item.symbol}')" title="Remove from watchlist">
+                    <button class="watchlist-remove" onclick="window.watchlistManager.removeFromWatchlist('${symbolId}')" title="Remove from watchlist">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="watchlist-content">
-                    <div class="watchlist-price" id="price-${item.symbol}">
+                    <div class="watchlist-price" id="watchlist-price-${symbolId}">
                         <span class="price-loading">Loading...</span>
                     </div>
-                    <div class="watchlist-change" id="change-${item.symbol}">
+                    <div class="watchlist-change" id="watchlist-change-${symbolId}">
                         <span class="change-loading">--</span>
                     </div>
                     ${item.alertPrice ? `
@@ -464,10 +541,10 @@ class WatchlistManager {
                     </div>
                 </div>
                 <div class="watchlist-actions">
-                    <button class="btn-small" onclick="window.stockManager.selectStock('${item.symbol}')">
+                    <button class="btn-small" onclick="window.stockManager.selectStock('${symbolId}')">
                         <i class="fas fa-chart-line"></i> Analyze
                     </button>
-                    <button class="btn-small btn-secondary" onclick="window.watchlistManager.editWatchlistItem('${item.symbol}')">
+                    <button class="btn-small btn-secondary" onclick="window.watchlistManager.editWatchlistItem('${symbolId}')">
                         <i class="fas fa-edit"></i> Edit
                     </button>
                 </div>
@@ -478,13 +555,15 @@ class WatchlistManager {
 
         // Update count
         this.updateWatchlistCount(this.watchlist.length);
-        
+
         // Update timestamp
         this.updateWatchlistTimestamp();
 
         // Load prices for all watchlist items
+        console.log('>>> renderWatchlist: Calling loadWatchlistPrices()');
         this.loadWatchlistPrices();
     }
+
 
     /**
      * Update all watchlist buttons on the page
@@ -559,38 +638,67 @@ class WatchlistManager {
 
     /**
      * Load prices for all watchlist items using BATCH API
+     * Uses promise-based guard to handle concurrent calls consistently
      */
     async loadWatchlistPrices() {
+        console.log('>>> loadWatchlistPrices() CALLED, _pricesLoading=' + this._pricesLoading);
+
+        // If prices are already loading, wait for that to complete
+        if (this._pricesLoading && this._pricesLoadingPromise) {
+            console.log('>>> loadWatchlistPrices: WAIT - Prices already loading');
+            return this._pricesLoadingPromise;
+        }
+
         if (this.watchlist.length === 0) {
-            console.log('WatchlistManager: No items to load prices for');
+            console.log('>>> loadWatchlistPrices: No items to load prices for');
             return;
         }
-        
-        const symbols = this.watchlist.map(item => item.symbol);
-        console.log('WatchlistManager: Loading batch prices for watchlist:', symbols);
-        
+
+        this._pricesLoading = true;
+
+        // Create promise that others can await
+        const loadPromise = this._doLoadWatchlistPrices();
+        this._pricesLoadingPromise = loadPromise;
+
+        try {
+            await loadPromise;
+        } finally {
+            this._pricesLoading = false;
+            this._pricesLoadingPromise = null;
+            console.log('>>> loadWatchlistPrices: COMPLETE');
+        }
+    }
+
+    /**
+     * Internal implementation of loading watchlist prices
+     */
+    async _doLoadWatchlistPrices() {
+        const symbols = this.watchlist.map(item => item.symbol.toUpperCase());
+        console.log('>>> _doLoadWatchlistPrices: Loading batch prices for:', symbols);
+
         try {
             const batchPrices = await api.getBatchStockPrices(symbols);
-            console.log('WatchlistManager: Batch prices received:', batchPrices);
-            
+            console.log('>>> _doLoadWatchlistPrices: Batch prices received:', Object.keys(batchPrices));
+
             // Update each watchlist item with price data
             let updated = 0;
-            Object.entries(batchPrices).forEach(([symbol, priceData]) => {
+            for (const symbol of symbols) {
+                const priceData = batchPrices[symbol] || batchPrices[symbol.toUpperCase()];
                 if (priceData && !priceData.error) {
                     this.updateWatchlistPriceDisplay(symbol, priceData);
                     this.checkPriceAlert(symbol, priceData);
                     updated++;
                 }
-            });
-            console.log(`WatchlistManager: Updated ${updated} prices`);
-            
-            // If no prices were updated, show mock data for demo
+            }
+            console.log(`>>> _doLoadWatchlistPrices: Updated ${updated} prices`);
+
+            // If no prices were updated, try showing demo data or retry
             if (updated === 0) {
-                console.log('WatchlistManager: No prices loaded, showing demo prices');
+                console.log('>>> _doLoadWatchlistPrices: No prices loaded from API, showing demo');
                 this.showDemoPrices();
             }
         } catch (error) {
-            console.error('WatchlistManager: Failed to load batch prices:', error);
+            console.error('>>> _doLoadWatchlistPrices: Failed:', error);
             // Show demo prices on error
             this.showDemoPrices();
         }
@@ -667,22 +775,51 @@ class WatchlistManager {
      * @param {object} priceData - Price data
      */
     updateWatchlistPriceDisplay(symbol, priceData) {
-        const priceElement = document.getElementById(`price-${symbol}`);
-        const changeElement = document.getElementById(`change-${symbol}`);
-        
-        // Handle both API response formats
-        const price = priceData.price || priceData.currentPrice;
-        const change = priceData.change;
-        const changePercent = priceData.change_percent;
-        
-        if (priceElement && price) {
-            priceElement.innerHTML = Formatters.formatStockPrice(price);
-        }
-        
-        if (changeElement && change !== undefined && changePercent !== undefined) {
+        try {
+            const priceContainer = document.getElementById(`watchlist-price-${symbol}`);
+            const changeElement = document.getElementById(`watchlist-change-${symbol}`);
+
+            // Handle both API response formats
+            const price = priceData.price || priceData.currentPrice;
+            const change = priceData.change;
+            const changePercent = priceData.change_percent;
             const changeClass = change >= 0 ? 'positive' : 'negative';
-            const changeSymbol = change >= 0 ? '+' : '';
-            changeElement.innerHTML = `<span class="${changeClass}">${changeSymbol}${Formatters.formatStockPrice(change)} (${changeSymbol}${changePercent.toFixed(2)}%)</span>`;
+
+            if (!priceContainer || !price) {
+                console.log(`>>> updateWatchlistPriceDisplay: No container or price for ${symbol}`);
+                return;
+            }
+
+            const formattedPrice = Formatters.formatStockPrice(price);
+
+            // Check if there's a span with price-loading class or any span
+            let priceSpan = priceContainer.querySelector('.price-loading') || priceContainer.querySelector('span');
+
+            if (priceSpan) {
+                // Update the existing span
+                priceSpan.textContent = formattedPrice;
+                priceSpan.classList.remove('price-loading', 'change-loading');
+                priceSpan.classList.add('loaded', changeClass);
+            } else {
+                // Span doesn't exist, create a new one with proper styling
+                priceContainer.innerHTML = `<span class="loaded ${changeClass}">${formattedPrice}</span>`;
+            }
+
+            if (changeElement && change !== undefined && changePercent !== undefined) {
+                const changeSymbol = change >= 0 ? '+' : '';
+                const changeSpan = changeElement.querySelector('span');
+                const changeHtml = `<span class="${changeClass}">${changeSymbol}${Formatters.formatStockPrice(change)} (${changeSymbol}${changePercent.toFixed(2)}%)</span>`;
+                
+                if (changeSpan) {
+                    changeSpan.className = changeClass;
+                    changeSpan.textContent = `${changeSymbol}${Formatters.formatStockPrice(change)} (${changeSymbol}${changePercent.toFixed(2)}%)`;
+                } else {
+                    changeElement.innerHTML = changeHtml;
+                }
+                changeElement.classList.add('loaded');
+            }
+        } catch (error) {
+            console.error(`>>> updateWatchlistPriceDisplay: ERROR for ${symbol}:`, error);
         }
     }
 
@@ -727,47 +864,430 @@ class WatchlistManager {
     }
 
     /**
-     * Show add to watchlist dialog
+     * Show add to watchlist dialog - now opens stock picker
      */
     showAddToWatchlistDialog() {
-        const currentSymbol = window.stockManager?.getCurrentSymbol();
-        if (!currentSymbol) {
-            this.showNotification('Please select a stock first', 'warning');
-            return;
-        }
+        this.showStockPicker();
+    }
 
-        // Create modal dialog
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Add to Watchlist</h3>
-                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+    /**
+     * Show stock picker modal for searching and adding stocks
+     */
+    async showStockPicker() {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'stock-picker-overlay';
+        overlay.innerHTML = `
+            <div class="stock-picker-modal">
+                <div class="stock-picker-header">
+                    <h3>Add Stock to Watchlist</h3>
+                    <button class="stock-picker-close" onclick="this.closest('.stock-picker-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Stock Symbol</label>
-                        <input type="text" id="watchlistSymbol" value="${currentSymbol}" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Notes (optional)</label>
-                        <textarea id="watchlistNotes" placeholder="Add notes about this stock..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Price Alert (optional)</label>
-                        <input type="number" id="watchlistAlertPrice" placeholder="Alert when price reaches this level" step="0.01">
+                <div class="stock-picker-search">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="stockPickerSearch" placeholder="Search stocks by symbol or name..." autocomplete="off">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
-                    <button class="btn-primary" onclick="window.watchlistManager.handleAddToWatchlist()">Add to Watchlist</button>
+                <div class="stock-picker-results" id="stockPickerResults">
+                    <div class="stock-picker-empty">
+                        <i class="fas fa-search"></i>
+                        <p>Search for stocks to add to your watchlist</p>
+                    </div>
+                </div>
+                <div class="stock-picker-popular">
+                    <h4>Popular Stocks</h4>
+                    <div class="popular-tags" id="popularStockTags">
+                        <!-- Popular stock tags will be loaded here -->
+                    </div>
                 </div>
             </div>
         `;
 
-        document.body.appendChild(modal);
-        modal.style.display = 'block';
+        document.body.appendChild(overlay);
+
+        // Add styles if not already present
+        this.addStockPickerStyles();
+
+        // Setup search functionality
+        const searchInput = document.getElementById('stockPickerSearch');
+        const resultsContainer = document.getElementById('stockPickerResults');
+        let searchTimeout;
+
+        // Load popular stocks for quick add
+        this.loadPopularStockTags();
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim().toUpperCase();
+            
+            if (query.length < 1) {
+                resultsContainer.innerHTML = `
+                    <div class="stock-picker-empty">
+                        <i class="fas fa-search"></i>
+                        <p>Search for stocks to add to your watchlist</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Debounce search
+            searchTimeout = setTimeout(async () => {
+                await this.searchAndDisplayStocks(query, resultsContainer);
+            }, 300);
+        });
+
+        // Focus search input
+        setTimeout(() => searchInput.focus(), 100);
+
+        // Close on overlay click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        });
+    }
+
+    /**
+     * Load popular stock tags for quick add
+     */
+    async loadPopularStockTags() {
+        const container = document.getElementById('popularStockTags');
+        if (!container) return;
+
+        try {
+            const popularStocks = await api.getPopularStocks(20);
+            
+            container.innerHTML = popularStocks.slice(0, 12).map(stock => `
+                <button class="stock-tag" data-symbol="${stock.symbol}" data-name="${stock.name}">
+                    ${stock.symbol}
+                </button>
+            `).join('');
+
+            // Add click handlers
+            container.querySelectorAll('.stock-tag').forEach(tag => {
+                tag.addEventListener('click', () => {
+                    const symbol = tag.dataset.symbol;
+                    const name = tag.dataset.name;
+                    this.addStockFromPicker(symbol, name);
+                });
+            });
+        } catch (error) {
+            console.error('Failed to load popular stocks:', error);
+        }
+    }
+
+    /**
+     * Search and display stocks in picker
+     */
+    async searchAndDisplayStocks(query, resultsContainer) {
+        resultsContainer.innerHTML = `
+            <div class="stock-picker-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Searching...</p>
+            </div>
+        `;
+
+        try {
+            // First search the API
+            const searchResults = await api.searchStocks(query, 10);
+            
+            // If no results, search stock universe directly
+            let stocks = searchResults;
+            if (!stocks || stocks.length === 0) {
+                stocks = await this.searchStockUniverse(query);
+            }
+
+            if (stocks && stocks.length > 0) {
+                resultsContainer.innerHTML = stocks.map(stock => `
+                    <div class="stock-picker-item" data-symbol="${stock.symbol}" data-name="${stock.name || stock.company_name || stock.symbol}">
+                        <div class="stock-info">
+                            <span class="stock-symbol">${stock.symbol}</span>
+                            <span class="stock-name">${stock.name || stock.company_name || stock.symbol}</span>
+                        </div>
+                        <button class="btn-add-stock" onclick="window.watchlistManager.addStockFromPicker('${stock.symbol}', '${stock.name || stock.company_name || stock.symbol}')">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                resultsContainer.innerHTML = `
+                    <div class="stock-picker-empty">
+                        <i class="fas fa-search"></i>
+                        <p>No stocks found for "${query}"</p>
+                        <span class="hint">Try searching with a different term</span>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Search failed:', error);
+            resultsContainer.innerHTML = `
+                <div class="stock-picker-empty">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>Search failed. Please try again.</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Search stock universe directly
+     */
+    async searchStockUniverse(query) {
+        try {
+            // Try to get stocks by sector or filter
+            const stocks = await api.filterStocks({});
+            if (stocks && stocks.length > 0) {
+                // Filter locally by query
+                return stocks.filter(stock => 
+                    stock.symbol.toUpperCase().includes(query) ||
+                    (stock.name && stock.name.toUpperCase().includes(query))
+                ).slice(0, 10);
+            }
+            return [];
+        } catch (error) {
+            console.error('Failed to search stock universe:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add stock from picker to watchlist
+     */
+    async addStockFromPicker(symbol, name) {
+        // Check if already on watchlist
+        if (this.isOnWatchlist(symbol)) {
+            this.showNotification(`${symbol} is already in your watchlist`, 'warning');
+            return;
+        }
+
+        const stockData = {
+            symbol: symbol.toUpperCase(),
+            name: name || symbol,
+            notes: '',
+            alertPrice: null,
+            tags: []
+        };
+
+        await this.addToWatchlist(stockData);
+        
+        // Close picker
+        const overlay = document.querySelector('.stock-picker-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    }
+
+    /**
+     * Add styles for stock picker
+     */
+    addStockPickerStyles() {
+        if (document.getElementById('stock-picker-styles')) return;
+
+        const styles = document.createElement('style');
+        styles.id = 'stock-picker-styles';
+        styles.textContent = `
+            .stock-picker-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0,0,0,0.6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn .2s ease-out;
+            }
+            .stock-picker-modal {
+                background-color: var(--bg-white);
+                border-radius: var(--border-radius-lg);
+                box-shadow: var(--shadow-lg);
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                display: flex;
+                flex-direction: column;
+                animation: slideUp .3s ease-out;
+            }
+            .stock-picker-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: var(--spacing-lg);
+                border-bottom: 1px solid var(--border-color);
+            }
+            .stock-picker-header h3 {
+                margin: 0;
+                color: var(--primary-color);
+            }
+            .stock-picker-close {
+                background: none;
+                border: none;
+                color: var(--text-muted);
+                font-size: var(--font-size-xl);
+                cursor: pointer;
+                padding: var(--spacing-xs);
+                border-radius: var(--border-radius-sm);
+                transition: all var(--transition-fast);
+            }
+            .stock-picker-close:hover {
+                color: var(--danger-color);
+                background-color: rgba(231,76,60,.1);
+            }
+            .stock-picker-search {
+                padding: var(--spacing-md) var(--spacing-lg);
+                border-bottom: 1px solid var(--border-color);
+            }
+            .search-input-wrapper {
+                position: relative;
+            }
+            .search-input-wrapper i {
+                position: absolute;
+                left: var(--spacing-md);
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--text-muted);
+            }
+            .stock-picker-search input {
+                width: 100%;
+                padding: var(--spacing-md) var(--spacing-lg) var(--spacing-md) 40px;
+                border: 2px solid var(--border-color);
+                border-radius: var(--border-radius-md);
+                font-size: var(--font-size-base);
+                transition: border-color var(--transition-fast);
+            }
+            .stock-picker-search input:focus {
+                outline: none;
+                border-color: var(--primary-color);
+            }
+            .stock-picker-results {
+                flex: 1;
+                overflow-y: auto;
+                max-height: 300px;
+            }
+            .stock-picker-empty {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: var(--spacing-2xl);
+                text-align: center;
+                color: var(--text-secondary);
+            }
+            .stock-picker-empty i {
+                font-size: 48px;
+                color: var(--text-muted);
+                margin-bottom: var(--spacing-md);
+            }
+            .stock-picker-empty .hint {
+                font-size: var(--font-size-sm);
+                color: var(--text-muted);
+                margin-top: var(--spacing-sm);
+            }
+            .stock-picker-loading {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: var(--spacing-2xl);
+            }
+            .stock-picker-loading i {
+                font-size: 32px;
+                color: var(--primary-color);
+                margin-bottom: var(--spacing-md);
+            }
+            .stock-picker-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: var(--spacing-md) var(--spacing-lg);
+                border-bottom: 1px solid var(--border-color);
+                cursor: pointer;
+                transition: background-color var(--transition-fast);
+            }
+            .stock-picker-item:hover {
+                background-color: var(--bg-hover);
+            }
+            .stock-picker-item:last-child {
+                border-bottom: none;
+            }
+            .stock-info {
+                display: flex;
+                flex-direction: column;
+            }
+            .stock-info .stock-symbol {
+                font-weight: var(--font-weight-bold);
+                color: var(--primary-color);
+            }
+            .stock-info .stock-name {
+                font-size: var(--font-size-sm);
+                color: var(--text-secondary);
+            }
+            .btn-add-stock {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-xs);
+                padding: var(--spacing-xs) var(--spacing-md);
+                background-color: var(--primary-color);
+                color: #fff;
+                border: none;
+                border-radius: var(--border-radius-md);
+                font-size: var(--font-size-sm);
+                font-weight: var(--font-weight-medium);
+                cursor: pointer;
+                transition: all var(--transition-fast);
+            }
+            .btn-add-stock:hover {
+                background-color: color-mix(in srgb, var(--primary-color), black 10%);
+                transform: translateY(-1px);
+            }
+            .stock-picker-popular {
+                padding: var(--spacing-md) var(--spacing-lg);
+                border-top: 1px solid var(--border-color);
+                background-color: var(--bg-light);
+            }
+            .stock-picker-popular h4 {
+                font-size: var(--font-size-sm);
+                color: var(--text-secondary);
+                margin: 0 0 var(--spacing-sm) 0;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .popular-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--spacing-sm);
+            }
+            .stock-tag {
+                padding: var(--spacing-xs) var(--spacing-md);
+                background-color: var(--bg-white);
+                border: 1px solid var(--border-color);
+                border-radius: 20px;
+                font-size: var(--font-size-sm);
+                font-weight: var(--font-weight-medium);
+                color: var(--text-primary);
+                cursor: pointer;
+                transition: all var(--transition-fast);
+            }
+            .stock-tag:hover {
+                border-color: var(--primary-color);
+                color: var(--primary-color);
+                background-color: rgba(91,163,208,.1);
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes slideUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(styles);
     }
 
     /**

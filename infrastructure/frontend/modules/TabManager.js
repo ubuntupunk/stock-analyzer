@@ -31,6 +31,23 @@ class TabManager {
             // Auto-switch to metrics tab when stock is selected
             this.switchTab('metrics');
         });
+
+        // Subscribe to watchlist loaded event to trigger rendering if section exists
+        this.eventBus.on('watchlist:loaded', ({ watchlist }) => {
+            console.log('TabManager: Watchlist loaded event received, count:', watchlist?.length);
+            // If we're on the watchlist tab and section is loaded, ensure rendering
+            if (this.currentTab === 'watchlist' && document.getElementById('watchlistContainer')) {
+                console.log('TabManager: On watchlist tab, triggering render if needed');
+                // The WatchlistManager should have already rendered, but this is a safety net
+                if (window.watchlistManager && watchlist?.length > 0) {
+                    const grid = document.getElementById('watchlistGrid');
+                    if (grid && grid.children.length === 0) {
+                        console.log('TabManager: Grid is empty, triggering render');
+                        window.watchlistManager.renderWatchlist();
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -87,31 +104,48 @@ class TabManager {
      */
     async loadSection(sectionName) {
         try {
-            console.log('TabManager: Loading section:', sectionName);
-            
+            console.log('TabManager: loadSection called for:', sectionName);
+
             // Check if already loaded in DOM
             const existingSection = document.getElementById(sectionName);
             if (existingSection) {
                 console.log('TabManager: Section already in DOM:', sectionName);
                 return;
             }
-            
+
+            console.log('TabManager: Fetching sections/' + sectionName + '.html');
             const response = await fetch(`sections/${sectionName}.html`);
+            console.log('TabManager: Fetch response status:', response.status);
+
+            if (!response.ok) {
+                console.error('TabManager: Failed to fetch section, status:', response.status);
+                return;
+            }
+
             const html = await response.text();
-            
+            console.log('TabManager: Fetched HTML length:', html.length);
+
             // Create a temporary div to parse the HTML
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
-            
+
             // Get the section element
             const section = tempDiv.firstElementChild;
+            console.log('TabManager: Parsed section element:', section?.id, section?.tagName);
+
             if (section) {
                 // Append to container without clearing
                 const dynamicContainer = document.getElementById('dynamic-content-container');
+                console.log('TabManager: dynamic-content-container found:', !!dynamicContainer);
+
                 if (dynamicContainer) {
                     dynamicContainer.appendChild(section);
                     this.sectionsLoaded.add(sectionName);
-                    console.log('TabManager: Section loaded:', sectionName);
+                    console.log('TabManager: Section loaded successfully:', sectionName);
+
+                    // Verify it's in the DOM
+                    const verifySection = document.getElementById(sectionName);
+                    console.log('TabManager: Verification - section in DOM:', !!verifySection);
                 }
             }
         } catch (error) {
@@ -673,23 +707,58 @@ class TabManager {
      */
     async loadWatchlistData() {
         console.log('TabManager: loadWatchlistData called');
-        
-        // Prevent duplicate loading
+
+        // Prevent duplicate loading - check if recently loaded
+        const now = Date.now();
+        if (this._lastWatchlistLoad && (now - this._lastWatchlistLoad < 500)) {
+            console.log('TabManager: Watchlist recently loaded, skipping duplicate call');
+            return;
+        }
+        this._lastWatchlistLoad = now;
+
+        // Prevent duplicate loading - check if already loading
         if (this._watchlistLoading) {
             console.log('TabManager: Watchlist already loading, skipping');
             return;
         }
-        
+
         this._watchlistLoading = true;
-        
+
         try {
+            // Ensure section is loaded first
+            console.log('TabManager: Ensuring watchlist section is loaded');
+            const sectionExists = document.getElementById('watchlistContainer');
+            if (!sectionExists) {
+                console.log('TabManager: Watchlist section not in DOM, waiting for it');
+                await this.waitForSection('watchlistContainer', 2500);
+            }
+
             // Call watchlistManager.loadWatchlist() which properly renders the UI
+            console.log('TabManager: Calling watchlistManager.loadWatchlist()');
             await window.watchlistManager?.loadWatchlist();
+            console.log('TabManager: watchlistManager.loadWatchlist() completed');
         } catch (error) {
             console.error('TabManager: Failed to load watchlist data:', error);
         } finally {
             this._watchlistLoading = false;
         }
+    }
+
+    /**
+     * Wait for a specific section to appear in DOM
+     */
+    async waitForSection(sectionId, maxWaitMs = 2500) {
+        const maxAttempts = maxWaitMs / 50;
+        let attempts = 0;
+        
+        while (!document.getElementById(sectionId) && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+        }
+        
+        const exists = !!document.getElementById(sectionId);
+        console.log(`TabManager: waitForSection(${sectionId}): exists=${exists} after ${attempts * 50}ms`);
+        return exists;
     }
 
     /**
