@@ -100,6 +100,7 @@ class StockAnalyzer {
         this.modules.searchManager.initialize();
         this.modules.stockAnalyserManager = new StockAnalyserManager(eventBus, api, this.modules.dataManager);
         this.modules.stockAnalyserManager.init();
+        window.stockAnalyserManager = this.modules.stockAnalyserManager; // Also expose globally for onclick handlers
         this.modules.watchlistManager.initialize();
         this.modules.metricsManager.initialize();
         this.modules.tabManager.setupTabHandlers();

@@ -455,15 +455,6 @@ function round(value, decimals) {
 window.stockAnalyserManager = null;
 
 /**
- * Initialize global Stock Analyser manager
- */
-window.initStockAnalyserManager = function(eventBus, api) {
-    window.stockAnalyserManager = new StockAnalyserManager(eventBus, api);
-    window.stockAnalyserManager.init();
-    return window.stockAnalyserManager;
-};
-
-/**
  * Run DCF analysis (called from Analyze button)
  */
 window.runDCFAnalysis = function() {
