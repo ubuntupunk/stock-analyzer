@@ -123,34 +123,35 @@ class StockAnalyserManager {
         }
 
         // Historical metrics (1yr, 5yr, 10yr)
+        // Yahoo Finance returns current values only, not historical
         const historicalData = {
             roic: {
-                '1y': metrics?.roic_1y || metrics?.roic || null,
-                '5y': metrics?.roic_5y || null,
-                '10y': metrics?.roic_10y || null
+                '1y': metrics?.roic || metrics?.roe || null,  // Use ROE as proxy for ROIC
+                '5y': null,
+                '10y': null
             },
             revenueGrowth: {
-                '1y': metrics?.revenue_growth_1y || metrics?.revenueGrowth || null,
-                '5y': metrics?.revenue_growth_5y || null,
-                '10y': metrics?.revenue_growth_10y || null
+                '1y': metrics?.revenue_growth || null,
+                '5y': null,
+                '10y': null
             },
             profitMargin: {
-                '1y': metrics?.profit_margin_1y || metrics?.profitMargin || null,
-                '5y': metrics?.profit_margin_5y || null,
-                '10y': metrics?.profit_margin_10y || null
+                '1y': metrics?.profit_margin || null,
+                '5y': null,
+                '10y': null
             },
             fcfMargin: {
-                '1y': metrics?.fcf_margin_1y || metrics?.fcfMargin || null,
-                '5y': metrics?.fcf_margin_5y || null,
-                '10y': metrics?.fcf_margin_10y || null
+                '1y': metrics?.fcf_margin || null,
+                '5y': null,
+                '10y': null
             },
             peRatio: {
-                '1y': metrics?.pe_ratio || metrics?.pe || null,
+                '1y': metrics?.pe_ratio || null,
                 '5y': null,
                 '10y': null
             },
             pfcfRatio: {
-                '1y': metrics?.pfcf_ratio || metrics?.pfcf || null,
+                '1y': metrics?.pfcf_ratio || null,
                 '5y': null,
                 '10y': null
             }
@@ -196,7 +197,8 @@ class StockAnalyserManager {
     populateTableCell(id, value, isPercentage) {
         const cell = document.getElementById(id);
         if (cell) {
-            if (value !== null && value !== undefined) {
+            // Check for null, undefined, or NaN (0 is a valid value)
+            if (value !== null && value !== undefined && !isNaN(value)) {
                 cell.textContent = isPercentage ? `${(value * 100).toFixed(0)}%` : value.toFixed(2);
             } else {
                 cell.textContent = '—';
