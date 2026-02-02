@@ -2783,7 +2783,7 @@ select.form-control {
   transition: background-color var(--transition-fast);
 }
 .analyser-header .analyser-controls .symbol-input-group button:hover {
-  background-color: rgb(67.7601895735, 149.9630331754, 201.3398104265);
+  background-color: #4a8ab8;
 }
 .analyser-header .analyser-controls select {
   padding: var(--spacing-sm);

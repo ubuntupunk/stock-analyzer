@@ -1,7 +1,6 @@
 // ============================================
 // Stock Analyzer Section (DCF)
 // ============================================
-@use "sass:color";
 
 .analyser-header {
   display: flex;
@@ -52,7 +51,7 @@
         transition: background-color var(--transition-fast);
         
         &:hover {
-          background-color: color.scale(#5ba3d0, $lightness: -10%);
+          background-color: #4a8ab8;
         }
       }
     }
