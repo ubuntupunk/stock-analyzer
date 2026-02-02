@@ -19,135 +19,140 @@
         </div>
     </div>
 
-    <div class="dcf-inputs">
-        <div class="input-section">
-            <h3>Historical Data</h3>
-            <table class="dcf-table">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>1 Year</th>
-                        <th>5 Year</th>
-                        <th>10 Year</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Rev. Growth %</td>
-                        <td id="rev-growth-1y">—</td>
-                        <td id="rev-growth-5y">—</td>
-                        <td id="rev-growth-10y">—</td>
-                    </tr>
-                    <tr>
-                        <td>Profit Margin</td>
-                        <td id="profit-margin-1y">—</td>
-                        <td id="profit-margin-5y">—</td>
-                        <td id="profit-margin-10y">—</td>
-                    </tr>
-                    <tr>
-                        <td>Free Cash Flow Margin</td>
-                        <td id="fcf-margin-1y">—</td>
-                        <td id="fcf-margin-5y">—</td>
-                        <td id="fcf-margin-10y">—</td>
-                    </tr>
-                    <tr>
-                        <td>ROIC</td>
-                        <td id="roic-1y">—</td>
-                        <td id="roic-5y">—</td>
-                        <td id="roic-10y">—</td>
-                    </tr>
-                    <tr>
-                        <td>P/E</td>
-                        <td id="pe-1y">—</td>
-                        <td id="pe-5y">—</td>
-                        <td id="pe-10y">—</td>
-                    </tr>
-                    <tr>
-                        <td>P/FCF</td>
-                        <td id="pfcf-1y">—</td>
-                        <td id="pfcf-5y">—</td>
-                        <td id="pfcf-10y">—</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="analyser-section">
+        <h3>Historical Data & Assumptions</h3>
+        <div class="dcf-inputs">
+            <div class="input-section">
+                <h4>Historical Data</h4>
+                <table class="dcf-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>1 Year</th>
+                            <th>5 Year</th>
+                            <th>10 Year</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Rev. Growth %</td>
+                            <td id="rev-growth-1y">—</td>
+                            <td id="rev-growth-5y">—</td>
+                            <td id="rev-growth-10y">—</td>
+                        </tr>
+                        <tr>
+                            <td>Profit Margin</td>
+                            <td id="profit-margin-1y">—</td>
+                            <td id="profit-margin-5y">—</td>
+                            <td id="profit-margin-10y">—</td>
+                        </tr>
+                        <tr>
+                            <td>Free Cash Flow Margin</td>
+                            <td id="fcf-margin-1y">—</td>
+                            <td id="fcf-margin-5y">—</td>
+                            <td id="fcf-margin-10y">—</td>
+                        </tr>
+                        <tr>
+                            <td>ROIC</td>
+                            <td id="roic-1y">—</td>
+                            <td id="roic-5y">—</td>
+                            <td id="roic-10y">—</td>
+                        </tr>
+                        <tr>
+                            <td>P/E</td>
+                            <td id="pe-1y">—</td>
+                            <td id="pe-5y">—</td>
+                            <td id="pe-10y">—</td>
+                        </tr>
+                        <tr>
+                            <td>P/FCF</td>
+                            <td id="pfcf-1y">—</td>
+                            <td id="pfcf-5y">—</td>
+                            <td id="pfcf-10y">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-        <div class="input-section">
-            <h3>
-                My Assumptions
-                <button class="btn-small btn-secondary" onclick="extrapolateFromHistorical()">Auto-fill from Historical</button>
-            </h3>
-            <table class="dcf-table">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>Low</th>
-                        <th>Mid</th>
-                        <th>High</th>
-                    </tr>
-                </thead>
-                <tbody id="assumptionsTable">
-                    <tr>
-                        <td>Rev. Growth %</td>
-                        <td><input type="number" id="assumption-rev-growth-low" value="3" step="0.1"></td>
-                        <td><input type="number" id="assumption-rev-growth-mid" value="6" step="0.1"></td>
-                        <td><input type="number" id="assumption-rev-growth-high" value="9" step="0.1"></td>
-                    </tr>
-                    <tr>
-                        <td>Profit Margin %</td>
-                        <td><input type="number" id="assumption-profit-margin-low" value="8" step="0.1"></td>
-                        <td><input type="number" id="assumption-profit-margin-mid" value="10" step="0.1"></td>
-                        <td><input type="number" id="assumption-profit-margin-high" value="12" step="0.1"></td>
-                    </tr>
-                    <tr>
-                        <td>FCF Margin %</td>
-                        <td><input type="number" id="assumption-fcf-margin-low" value="6" step="0.1"></td>
-                        <td><input type="number" id="assumption-fcf-margin-mid" value="9" step="0.1"></td>
-                        <td><input type="number" id="assumption-fcf-margin-high" value="12" step="0.1"></td>
-                    </tr>
-                    <tr>
-                        <td>Discount Rate %</td>
-                        <td><input type="number" id="assumption-discount-rate-low" value="8" step="0.1"></td>
-                        <td><input type="number" id="assumption-discount-rate-mid" value="10" step="0.1"></td>
-                        <td><input type="number" id="assumption-discount-rate-high" value="12" step="0.1"></td>
-                    </tr>
-                    <tr>
-                        <td>Terminal Growth %</td>
-                        <td><input type="number" id="assumption-terminal-growth-low" value="2" step="0.1"></td>
-                        <td><input type="number" id="assumption-terminal-growth-mid" value="3" step="0.1"></td>
-                        <td><input type="number" id="assumption-terminal-growth-high" value="4" step="0.1"></td>
-                    </tr>
-                    <tr>
-                        <td>Desired Annual Return %</td>
-                        <td><input type="number" id="assumption-desired-return-low" value="8" step="0.1"></td>
-                        <td><input type="number" id="assumption-desired-return-mid" value="10" step="0.1"></td>
-                        <td><input type="number" id="assumption-desired-return-high" value="12" step="0.1"></td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="input-section">
+                <h4>
+                    My Assumptions
+                    <button class="btn-small btn-secondary" onclick="extrapolateFromHistorical()">Auto-fill from Historical</button>
+                </h4>
+                <table class="dcf-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Low</th>
+                            <th>Mid</th>
+                            <th>High</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assumptionsTable">
+                        <tr>
+                            <td>Rev. Growth %</td>
+                            <td><input type="number" id="assumption-rev-growth-low" value="3" step="0.1"></td>
+                            <td><input type="number" id="assumption-rev-growth-mid" value="6" step="0.1"></td>
+                            <td><input type="number" id="assumption-rev-growth-high" value="9" step="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>Profit Margin %</td>
+                            <td><input type="number" id="assumption-profit-margin-low" value="8" step="0.1"></td>
+                            <td><input type="number" id="assumption-profit-margin-mid" value="10" step="0.1"></td>
+                            <td><input type="number" id="assumption-profit-margin-high" value="12" step="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>FCF Margin %</td>
+                            <td><input type="number" id="assumption-fcf-margin-low" value="6" step="0.1"></td>
+                            <td><input type="number" id="assumption-fcf-margin-mid" value="9" step="0.1"></td>
+                            <td><input type="number" id="assumption-fcf-margin-high" value="12" step="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>Discount Rate %</td>
+                            <td><input type="number" id="assumption-discount-rate-low" value="8" step="0.1"></td>
+                            <td><input type="number" id="assumption-discount-rate-mid" value="10" step="0.1"></td>
+                            <td><input type="number" id="assumption-discount-rate-high" value="12" step="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>Terminal Growth %</td>
+                            <td><input type="number" id="assumption-terminal-growth-low" value="2" step="0.1"></td>
+                            <td><input type="number" id="assumption-terminal-growth-mid" value="3" step="0.1"></td>
+                            <td><input type="number" id="assumption-terminal-growth-high" value="4" step="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>Desired Annual Return %</td>
+                            <td><input type="number" id="assumption-desired-return-low" value="8" step="0.1"></td>
+                            <td><input type="number" id="assumption-desired-return-mid" value="10" step="0.1"></td>
+                            <td><input type="number" id="assumption-desired-return-high" value="12" step="0.1"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <div class="market-data-section">
-        <div class="current-price">
-            <h3>Current Price</h3>
-            <p class="price-display" id="currentPrice">$0.00</p>
-            <p class="price-change" id="priceChange">—</p>
+    <div class="analyser-section">
+        <h3>Current Price & Market Data</h3>
+        <div class="market-data-section">
+            <div class="current-price">
+                <h4>Current Price</h4>
+                <p class="price-display" id="currentPrice">$0.00</p>
+                <p class="price-change" id="priceChange">—</p>
+            </div>
+            
+            <div class="market-info">
+                <h4>Market Data</h4>
+                <p>Market Cap: <span id="marketCap">—</span></p>
+                <p>Shares Outstanding: <span id="sharesOutstanding">—</span></p>
+                <p>Annual Revenue: <span id="baseRevenue">—</span></p>
+            </div>
         </div>
         
-        <div class="market-info">
-            <h3>Market Data</h3>
-            <p>Market Cap: <span id="marketCap">—</span></p>
-            <p>Shares Outstanding: <span id="sharesOutstanding">—</span></p>
-            <p>Annual Revenue: <span id="baseRevenue">—</span></p>
-        </div>
+        <button class="analyse-btn" id="analyseBtn" onclick="runDCFAnalysis()">Analyse</button>
     </div>
-    
-    <button class="analyse-btn" id="analyseBtn" onclick="runDCFAnalysis()">Analyse</button>
 
-    <div class="output-results">
+    <div class="analyser-section">
         <h3>Output from Analysis</h3>
-        <h4>My Assumptions</h4>
         <table class="results-table">
             <thead>
                 <tr>
@@ -180,8 +185,8 @@
         </table>
     </div>
 
-    <div class="video-tutorial">
-        <h4>Learn How to Use</h4>
+    <div class="analyser-section">
+        <h3>Learn How to Use</h3>
         <div class="video-placeholder">
             <p>Video Tutorial</p>
         </div>
