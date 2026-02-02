@@ -473,3 +473,43 @@ window.runDCFAnalysis = function() {
         console.error('StockAnalyserManager: Not initialized');
     }
 };
+
+/**
+ * Load stock by symbol input (called from symbol input in stock-analyser tab)
+ */
+window.loadAnalyserSymbol = function() {
+    const input = document.getElementById('analyserSymbolInput');
+    if (!input) {
+        console.error('StockAnalyserManager: analyserSymbolInput not found');
+        return;
+    }
+    
+    const symbol = input.value.trim().toUpperCase();
+    if (!symbol) {
+        // Show error notification
+        if (window.app && window.app.showNotification) {
+            window.app.showNotification('Please enter a stock symbol', 'error');
+        } else {
+            alert('Please enter a stock symbol');
+        }
+        return;
+    }
+    
+    console.log('StockAnalyserManager: Loading symbol from input:', symbol);
+    
+    // Use stockManager to select the stock and switch to stock-analyser tab
+    if (window.stockManager) {
+        window.stockManager.selectStock(symbol, 'stock-analyser');
+    } else {
+        console.error('StockAnalyserManager: stockManager not available');
+    }
+};
+
+/**
+ * Handle Enter key in symbol input
+ */
+window.handleAnalyserSymbolKeydown = function(event) {
+    if (event.key === 'Enter') {
+        window.loadAnalyserSymbol();
+    }
+};

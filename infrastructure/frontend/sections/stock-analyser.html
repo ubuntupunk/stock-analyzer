@@ -2,15 +2,21 @@
 <section id="stock-analyser" class="content-section">
     <div class="analyser-header">
         <h2>Stock Analyser</h2>
-        <p>Years of Analysis: <select id="yearsSelect">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-        </select></p>
-        <p>Number of Assumption Entries: <select id="assumptionsSelect">
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high" selected>High</option>
-        </select></p>
+        <div class="analyser-controls">
+            <div class="symbol-input-group">
+                <input type="text" id="analyserSymbolInput" placeholder="Enter symbol (e.g., AAPL)" maxlength="10" onkeydown="handleAnalyserSymbolKeydown(event)">
+                <button class="btn-small" onclick="loadAnalyserSymbol()">Load</button>
+            </div>
+            <p>Years of Analysis: <select id="yearsSelect">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+            </select></p>
+            <p>Number of Assumption Entries: <select id="assumptionsSelect">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high" selected>High</option>
+            </select></p>
+        </div>
     </div>
 
     <div class="dcf-inputs">
