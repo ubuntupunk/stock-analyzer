@@ -108,6 +108,14 @@ class StockAnalyserManager {
         console.log('StockAnalyserManager: metrics:', metrics);
         const currentPrice = priceData?.currentPrice || priceData?.price || metrics?.price || 0;
         const priceChange = priceData?.changePercent || priceData?.change || 0;
+        
+        // Store market data for DCF calculations
+        this.marketData = {
+            marketCap: metrics?.market_cap || 0,
+            revenue: metrics?.revenue || metrics?.total_revenue || 500000000000, // Default $500B
+            sharesOutstanding: metrics?.shares_outstanding || (metrics?.market_cap && currentPrice ? metrics?.market_cap / currentPrice : 10000000000)
+        };
+        console.log('StockAnalyserManager: marketData stored:', this.marketData);
 
         // Update current price display
         const priceDisplay = document.getElementById('currentPrice');
@@ -256,7 +264,8 @@ class StockAnalyserManager {
     async runAnalysis() {
         console.log('StockAnalyserManager: runAnalysis called', { 
             currentSymbol: this.currentSymbol, 
-            currentPrice: this.currentPrice 
+            currentPrice: this.currentPrice,
+            marketData: this.marketData
         });
         
         if (!this.currentSymbol || !this.currentPrice) {
@@ -279,6 +288,10 @@ class StockAnalyserManager {
         const assumptions = this.getUserAssumptions();
         console.log('StockAnalyserManager: User assumptions:', assumptions);
 
+        // Include market data for accurate DCF calculation
+        assumptions._marketCap = this.marketData?.marketCap || (this.currentPrice * 10000000000);
+        assumptions._baseRevenue = this.marketData?.revenue || 500000000000;
+
         const requestData = {
             currentPrice: this.currentPrice,
             assumptions: {
@@ -287,7 +300,9 @@ class StockAnalyserManager {
                 fcfMargin: assumptions.fcfMargin,
                 discountRate: assumptions.discountRate,
                 terminalGrowthRate: assumptions.terminalGrowthRate,
-                desiredReturn: assumptions.desiredReturn
+                desiredReturn: assumptions.desiredReturn,
+                _marketCap: assumptions._marketCap,
+                _baseRevenue: assumptions._baseRevenue
             },
             yearsToProject: yearsToProject
         };
@@ -322,9 +337,23 @@ class StockAnalyserManager {
     calculateDCFLocal(params) {
         const { currentPrice, assumptions, yearsToProject } = params;
         
-        // Estimate shares outstanding from current market cap (approximation)
-        // This is a simplification - in production you'd have actual shares data
-        const sharesOutstanding = 1000; // Mock value in millions
+        console.log('StockAnalyserManager: calculateDCFLocal params:', {
+            currentPrice,
+            yearsToProject,
+            marketCap: assumptions._marketCap,
+            baseRevenue: assumptions._baseRevenue
+        });
+        
+        // Calculate shares outstanding from market cap
+        // market_cap is in dollars, shares = market_cap / price
+        const marketCap = assumptions._marketCap || (currentPrice * 10000000000);
+        const sharesOutstanding = marketCap / currentPrice;
+        
+        console.log('StockAnalyserManager: Market cap:', marketCap, 'Shares outstanding:', sharesOutstanding);
+
+        // Get base revenue from assumptions (already in dollars)
+        const baseRevenue = assumptions._baseRevenue || 500000000000;
+        console.log('StockAnalyserManager: Base revenue:', baseRevenue);
 
         const results = {};
 
@@ -335,9 +364,16 @@ class StockAnalyserManager {
             const discountRate = assumptions.discountRate[scenario];
             const terminalGrowth = assumptions.terminalGrowthRate[scenario];
 
+            console.log(`StockAnalyserManager: ${scenario} scenario:`, {
+                revGrowthRate,
+                profitMargin,
+                fcfMargin,
+                discountRate,
+                terminalGrowth
+            });
+
             // Project cash flows
             const projectedFCF = [];
-            const baseRevenue = 100; // Mock base revenue in millions
             
             for (let year = 1; year <= yearsToProject; year++) {
                 const revenue = baseRevenue * Math.pow(1 + revGrowthRate, year);
@@ -345,6 +381,8 @@ class StockAnalyserManager {
                 const fcf = revenue * fcfMargin;
                 projectedFCF.push(fcf);
             }
+
+            console.log(`StockAnalyserManager: ${scenario} projectedFCF first 3:`, projectedFCF.slice(0, 3));
 
             // Calculate present value of projected FCF
             let pvFCF = 0;
@@ -360,8 +398,17 @@ class StockAnalyserManager {
             // Total enterprise value
             const enterpriseValue = pvFCF + pvTerminal;
 
-            // Intrinsic value per share (simplified)
+            // Intrinsic value per share
             const intrinsicValue = enterpriseValue / sharesOutstanding;
+
+            console.log(`StockAnalyserManager: ${scenario} results:`, {
+                pvFCF: round(pvFCF, 0),
+                terminalValue: round(terminalValue, 0),
+                enterpriseValue: round(enterpriseValue, 0),
+                sharesOutstanding: round(sharesOutstanding, 0),
+                intrinsicValue: round(intrinsicValue, 2),
+                currentPrice
+            });
 
             // Expected return
             const expectedReturn = (intrinsicValue - currentPrice) / currentPrice;
