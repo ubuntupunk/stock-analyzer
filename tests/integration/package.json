@@ -1,0 +1,19 @@
+{
+  "name": "stock-analyzer-integration-tests",
+  "version": "1.0.0",
+  "description": "Integration tests for Stock Analyzer application",
+  "scripts": {
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watch",
+    "test:watchlist": "jest --config jest.config.js watchlist.test.js",
+    "test:ci": "jest --config jest.config.js --ci --coverage"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.40.0",
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-playwright-preset": "^3.0.1"
+  }
+}
