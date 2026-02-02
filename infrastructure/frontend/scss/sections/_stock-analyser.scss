@@ -78,6 +78,30 @@
   }
 }
 
+// My Assumptions auto-fill button
+.input-section h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  
+  .btn-secondary {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    background-color: var(--bg-light);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    
+    &:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+  }
+}
+
 .dcf-section {
   background-color: var(--bg-white);
   border-radius: var(--border-radius-lg);

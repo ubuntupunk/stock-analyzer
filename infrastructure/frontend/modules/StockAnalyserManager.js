@@ -526,3 +526,114 @@ window.handleAnalyserSymbolKeydown = function(event) {
         window.loadAnalyserSymbol();
     }
 };
+
+/**
+ * Extrapolate assumptions from historical data
+ * Reads historical values and auto-fills Low/Mid/High assumptions
+ */
+window.extrapolateFromHistorical = function() {
+    console.log('StockAnalyserManager: Extrapolating from historical data');
+    
+    // Helper to get cell value
+    const getCellValue = (id) => {
+        const cell = document.getElementById(id);
+        if (!cell) return null;
+        let text = cell.textContent.trim();
+        if (text === '—' || text === '') return null;
+        // Remove % sign and parse
+        text = text.replace('%', '');
+        const val = parseFloat(text);
+        return isNaN(val) ? null : val / 100; // Convert percentage to decimal
+    };
+    
+    // Helper to set input value
+    const setInputValue = (id, value) => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = (value * 100).toFixed(1);
+        }
+    };
+    
+    // Get historical values (use 1y as base)
+    const histRevGrowth = getCellValue('rev-growth-1y');
+    const histProfitMargin = getCellValue('profit-margin-1y');
+    const histFCFMargin = getCellValue('fcf-margin-1y');
+    const histROIC = getCellValue('roic-1y');
+    const histPE = getCellValue('pe-1y');
+    const histPFCF = getCellValue('pfcf-1y');
+    
+    console.log('StockAnalyserManager: Historical values:', {
+        revGrowth: histRevGrowth,
+        profitMargin: histProfitMargin,
+        fcfMargin: histFCFMargin,
+        roic: histROIC,
+        pe: histPE,
+        pfcf: histPFCF
+    });
+    
+    // Helper to calculate low/mid/high from a base value
+    const calcRange = (base, type) => {
+        if (base === null) {
+            // Return defaults if no historical data
+            if (type === 'growth') return { low: 0.03, mid: 0.06, high: 0.09 };
+            if (type === 'margin') return { low: 0.08, mid: 0.10, high: 0.12 };
+            return { low: 0.08, mid: 0.10, high: 0.12 };
+        }
+        
+        if (type === 'growth') {
+            // For growth rates: low = 70%, mid = 100%, high = 130% of historical
+            return {
+                low: Math.max(0, base * 0.70),
+                mid: base,
+                high: base * 1.30
+            };
+        } else {
+            // For margins: low = 80%, mid = 100%, high = 120% of historical
+            return {
+                low: Math.max(0, base * 0.80),
+                mid: base,
+                high: Math.min(1, base * 1.20)
+            };
+        }
+    };
+    
+    // Set Revenue Growth assumptions
+    const revGrowthRange = calcRange(histRevGrowth, 'growth');
+    setInputValue('assumption-rev-growth-low', revGrowthRange.low);
+    setInputValue('assumption-rev-growth-mid', revGrowthRange.mid);
+    setInputValue('assumption-rev-growth-high', revGrowthRange.high);
+    
+    // Set Profit Margin assumptions
+    const profitMarginRange = calcRange(histProfitMargin, 'margin');
+    setInputValue('assumption-profit-margin-low', profitMarginRange.low);
+    setInputValue('assumption-profit-margin-mid', profitMarginRange.mid);
+    setInputValue('assumption-profit-margin-high', profitMarginRange.high);
+    
+    // Set FCF Margin assumptions
+    const fcfMarginRange = calcRange(histFCFMargin, 'margin');
+    setInputValue('assumption-fcf-margin-low', fcfMarginRange.low);
+    setInputValue('assumption-fcf-margin-mid', fcfMarginRange.mid);
+    setInputValue('assumption-fcf-margin-high', fcfMarginRange.high);
+    
+    // Set Discount Rate (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-discount-rate-low', 0.08);
+    setInputValue('assumption-discount-rate-mid', 0.10);
+    setInputValue('assumption-discount-rate-high', 0.12);
+    
+    // Set Terminal Growth (default: low=2%, mid=3%, high=4%)
+    setInputValue('assumption-terminal-growth-low', 0.02);
+    setInputValue('assumption-terminal-growth-mid', 0.03);
+    setInputValue('assumption-terminal-growth-high', 0.04);
+    
+    // Set Desired Return (default: low=8%, mid=10%, high=12%)
+    setInputValue('assumption-desired-return-low', 0.08);
+    setInputValue('assumption-desired-return-mid', 0.10);
+    setInputValue('assumption-desired-return-high', 0.12);
+    
+    // Show notification
+    if (window.app && window.app.showNotification) {
+        window.app.showNotification('Assumptions auto-filled from historical data', 'success');
+    }
+    
+    console.log('StockAnalyserManager: Extrapolation complete');
+};
