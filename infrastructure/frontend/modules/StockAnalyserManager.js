@@ -254,8 +254,22 @@ class StockAnalyserManager {
      * Run DCF analysis
      */
     async runAnalysis() {
+        console.log('StockAnalyserManager: runAnalysis called', { 
+            currentSymbol: this.currentSymbol, 
+            currentPrice: this.currentPrice 
+        });
+        
         if (!this.currentSymbol || !this.currentPrice) {
             console.error('StockAnalyserManager: No stock selected or price available');
+            // Try to get price from display
+            const priceDisplay = document.getElementById('currentPrice');
+            if (priceDisplay && priceDisplay.textContent && priceDisplay.textContent !== '$0.00') {
+                console.log('StockAnalyserManager: Found price in display, retrying...');
+                // Price might be displayed but not stored, refresh data
+                if (this.currentSymbol) {
+                    await this.populateStockData(this.currentSymbol);
+                }
+            }
             return;
         }
 
@@ -263,6 +277,7 @@ class StockAnalyserManager {
         const yearsToProject = yearsSelect ? parseInt(yearsSelect.value) : 10;
 
         const assumptions = this.getUserAssumptions();
+        console.log('StockAnalyserManager: User assumptions:', assumptions);
 
         const requestData = {
             currentPrice: this.currentPrice,
@@ -317,8 +332,8 @@ class StockAnalyserManager {
             const revGrowthRate = assumptions.revenueGrowth[scenario];
             const profitMargin = assumptions.profitMargin[scenario];
             const fcfMargin = assumptions.fcfMargin[scenario];
-            const discountRate = assumptions.discountRate;
-            const terminalGrowth = assumptions.terminalGrowthRate;
+            const discountRate = assumptions.discountRate[scenario];
+            const terminalGrowth = assumptions.terminalGrowthRate[scenario];
 
             // Project cash flows
             const projectedFCF = [];
@@ -368,13 +383,20 @@ class StockAnalyserManager {
      * @param {Object} results - DCF results
      */
     displayResults(results) {
-        console.log('StockAnalyserManager: Displaying results', results);
+        console.log('StockAnalyserManager: displayResults called with:', results);
+
+        if (!results) {
+            console.error('StockAnalyserManager: No results to display');
+            return;
+        }
 
         // Multiple of Earnings Value (simplified - uses intrinsic value)
         const moeLow = document.getElementById('moeValueLow');
         const moeMid = document.getElementById('moeValueMid');
         const moeHigh = document.getElementById('moeValueHigh');
 
+        console.log('StockAnalyserManager: moeLow element:', moeLow, 'results.low:', results.low);
+        
         if (moeLow) moeLow.textContent = this.formatCurrency(results.low?.intrinsicValue || 0);
         if (moeMid) moeMid.textContent = this.formatCurrency(results.mid?.intrinsicValue || 0);
         if (moeHigh) moeHigh.textContent = this.formatCurrency(results.high?.intrinsicValue || 0);
