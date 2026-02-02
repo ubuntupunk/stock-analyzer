@@ -26,10 +26,12 @@ class TabManager {
         });
 
         // Subscribe to stock selection events
-        this.eventBus.on('stock:selected', ({ symbol }) => {
-            console.log('TabManager: Received stock:selected event for:', symbol);
-            // Auto-switch to metrics tab when stock is selected
-            this.switchTab('metrics');
+        // Note: StockManager now handles tab switching via targetTab
+        // This is kept for backward compatibility if no targetTab is provided
+        this.eventBus.on('stock:selected', ({ symbol, targetTab }) => {
+            console.log('TabManager: Received stock:selected event for:', symbol, 'targetTab:', targetTab);
+            // Only auto-switch to metrics if no targetTab is specified
+            // StockManager emits the correct tab via tab:switch event
         });
 
         // Subscribe to watchlist loaded event to trigger rendering if section exists
