@@ -125,11 +125,12 @@
   margin-bottom: var(--spacing-xl);
 }
 
-.dcf-output {
+.market-data-section {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-xl);
   align-items: flex-start;
+  margin-bottom: var(--spacing-xl);
   
   .current-price {
     flex: 0 0 150px;
@@ -187,14 +188,16 @@
       }
     }
   }
-  
-  .analyse-btn {
-    flex: 0 0 auto;
-    align-self: center;
-    padding: var(--spacing-md) var(--spacing-2xl);
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-  }
+}
+
+.analyse-btn {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-2xl);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
 }
 
 .dcf-result {
