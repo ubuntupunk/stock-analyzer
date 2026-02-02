@@ -8,6 +8,7 @@ class DataManager {
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
         this.retryAttempts = 3;
         this.retryDelay = 1000; // 1 second
+        this.pendingRequests = new Map(); // Deduplicate in-flight requests
     }
 
     /**
@@ -24,6 +25,12 @@ class DataManager {
         if (cachedData) {
             this.eventBus.emit('data:cached', { symbol, type, data: cachedData });
             return cachedData;
+        }
+
+        // Check for pending request - deduplicate in-flight requests
+        if (this.pendingRequests.has(cacheKey)) {
+            console.log(`DataManager: Reusing pending request for ${cacheKey}`);
+            return this.pendingRequests.get(cacheKey);
         }
 
         try {
@@ -70,6 +77,9 @@ class DataManager {
                     throw new Error(`Unknown data type: ${type}`);
             }
 
+            // Clear pending request on success
+            this.pendingRequests.delete(cacheKey);
+
             if (data.error) {
                 throw new Error(data.error);
             }
@@ -90,6 +100,8 @@ class DataManager {
             return data;
 
         } catch (error) {
+            // Clear pending request on error too
+            this.pendingRequests.delete(cacheKey);
             console.error(`Failed to load ${type} for ${symbol}:`, error);
             this.eventBus.emit('data:error', { symbol, type, error: error.message });
             throw error;

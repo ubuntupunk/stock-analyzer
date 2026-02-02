@@ -35,10 +35,13 @@ class StockManager {
         // Emit stock selection event with target tab
         this.eventBus.emit('stock:selected', { symbol: cleanSymbol, targetTab });
         
-        // Preload data for all tabs
-        await this.preloadStockData(cleanSymbol);
+        // Preload data for all tabs (non-blocking, fires and forgets)
+        // This ensures instant navigation when switching tabs later
+        this.preloadStockData(cleanSymbol).catch(err => {
+            console.warn('Preload failed (non-blocking):', err.message);
+        });
         
-        // Switch to target tab (default: metrics)
+        // Switch to target tab (default: metrics) - now returns immediately
         this.eventBus.emit('tab:switch', { tabName: targetTab });
         
         // Hide search results
@@ -51,7 +54,7 @@ class StockManager {
      * @param {string} targetTab - Optional target tab to switch to
      */
     selectStock(symbol, targetTab = 'metrics') {
-        return this.searchStock(symbol, targetTab);
+        this.searchStock(symbol, targetTab);
     }
 
     /**
