@@ -354,7 +354,32 @@ For issues or questions:
 
 ## License
 
-This project is provided as-is for educational and personal use.
+This project is licensed under the **Non-Commercial Software License Agreement**.
+
+### Non-Commercial Use
+This software is free to use for:
+- Personal use
+- Educational purposes
+- Academic research
+- Non-profit organizations
+- Evaluation and testing
+
+### Commercial Use
+**Commercial use requires a separate license agreement.**
+
+If you intend to use this software for commercial purposes (including but not limited to use by for-profit businesses, in commercial products/services, or in production environments), you must contact:
+
+**Netbones Solutions Pty Ltd**
+South Africa
+Email: [Please specify contact email]
+Website: [Please specify website]
+
+Please provide details about your intended commercial use, including organization name, use case, and expected scale of deployment.
+
+### License Terms
+By using this software, you agree to the terms and conditions outlined in the [LICENSE](LICENSE) file. For the full license agreement, please see the LICENSE file in this repository.
+
+**Important**: Any commercial use without obtaining a proper license agreement is a violation of the license terms.
 
 ## Acknowledgments
 
