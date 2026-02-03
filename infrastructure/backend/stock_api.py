@@ -7,7 +7,6 @@ import json
 import os
 import asyncio
 import aiohttp
-import yfinance as yf
 from typing import Dict, List, Optional
 from datetime import datetime
 from decimal import Decimal
@@ -278,35 +277,14 @@ class StockDataAPI:
         }
     
     def get_stock_news(self, symbol: str) -> Dict:
-        """Get news for a stock using yfinance"""
+        """Get news for a stock using YahooFinanceClient"""
         try:
-            ticker = yfinance.Ticker(symbol)
-            news_data = ticker.news
-            
-            if news_data and len(news_data) > 0:
-                # Transform yfinance news format to our format
-                news_articles = []
-                for item in news_data[:20]:  # Limit to 20 articles
-                    news_articles.append({
-                        'title': item.get('title', 'No Title'),
-                        'url': item.get('link', '#'),
-                        'publishedAt': item.get('providerPublishTime', item.get('pubDate', datetime.now().isoformat())),
-                        'source': item.get('provider', {}).get('name', 'Yahoo Finance') if isinstance(item.get('provider'), dict) else item.get('provider', 'Yahoo Finance'),
-                        'summary': item.get('summary', '')
-                    })
-                
-                return {
-                    'symbol': symbol,
-                    'news': news_articles,
-                    'last_updated': datetime.now().isoformat()
-                }
-            else:
-                # No news found - return empty array instead of placeholder
-                return {
-                    'symbol': symbol,
-                    'news': [],
-                    'last_updated': datetime.now().isoformat()
-                }
+            news_articles = self.yahoo.fetch_news(symbol)
+            return {
+                'symbol': symbol,
+                'news': news_articles,
+                'last_updated': datetime.now().isoformat()
+            }
         except Exception as e:
             print(f"Error fetching news for {symbol}: {str(e)}")
             return {

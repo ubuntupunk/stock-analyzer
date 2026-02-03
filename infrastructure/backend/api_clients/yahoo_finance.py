@@ -343,3 +343,60 @@ class YahooFinanceClient:
                 'balance_sheet': [],
                 'cash_flow': []
             }
+    
+    def fetch_news(self, symbol: str) -> List[Dict]:
+        """
+        Fetch news for a stock from Yahoo Finance
+        
+        Args:
+            symbol: Stock symbol (e.g., 'AAPL')
+            
+        Returns:
+            List of news articles with title, url, publishedAt, source, summary
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            news_data = ticker.news
+            
+            print(f"YFinance fetch_news for {symbol}: received {len(news_data) if news_data else 0} items")
+            if news_data and len(news_data) > 0:
+                # Log first item structure for debugging
+                print(f"YFinance news keys for {symbol}: {list(news_data[0].keys())}")
+                
+                articles = []
+                for item in news_data[:20]:  # Limit to 20 articles
+                    # Handle provider - can be dict or string
+                    provider = item.get('provider')
+                    if isinstance(provider, dict):
+                        source = provider.get('name', 'Yahoo Finance')
+                    elif provider:
+                        source = str(provider)
+                    else:
+                        source = 'Yahoo Finance'
+                    
+                    # Handle timestamp
+                    pub_time = item.get('providerPublishTime')
+                    if pub_time:
+                        # Convert Unix timestamp to ISO format
+                        from datetime import datetime
+                        try:
+                            pub_date = datetime.fromtimestamp(pub_time).isoformat()
+                        except:
+                            pub_date = str(pub_time)
+                    else:
+                        pub_date = item.get('pubDate', '')
+                    
+                    articles.append({
+                        'title': item.get('title', item.get('headline', 'No Title')),
+                        'url': item.get('link', item.get('url', '#')),
+                        'publishedAt': pub_date,
+                        'source': source,
+                        'summary': item.get('summary', item.get('description', ''))
+                    })
+                return articles
+            return []
+        except Exception as e:
+            print(f"YFinance fetch_news error for {symbol}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []
