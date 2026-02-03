@@ -191,18 +191,55 @@ class YahooFinanceClient:
         """Parse Yahoo Finance analyst estimates"""
         estimates = {}
         try:
-            # Try to get earnings estimates from available data
+            # Price targets
+            estimates['currentPrice'] = data.get('currentPrice', data.get('regularMarketPrice', 0))
+            estimates['targetMeanPrice'] = data.get('targetMeanPrice', 0)
+            estimates['targetHighPrice'] = data.get('targetHighPrice', 0)
+            estimates['targetLowPrice'] = data.get('targetLowPrice', 0)
+            estimates['targetMedianPrice'] = data.get('targetMedianPrice', 0)
+            
+            # Analyst ratings
+            estimates['recommendationMean'] = data.get('recommendationMean', 0)
+            estimates['recommendationKey'] = data.get('recommendationKey', 'N/A')
+            estimates['numberOfAnalystOpinions'] = data.get('numberOfAnalystOpinions', 0)
+            
+            # EPS estimates (current and next year)
+            estimates['epsForward'] = data.get('epsForward', 0)  # Next year EPS
+            estimates['epsCurrentYear'] = data.get('epsCurrentYear', 0)  # Current year EPS
+            estimates['epsTrailingTwelveMonths'] = data.get('epsTrailingTwelveMonths', 0)
+            
+            # Earnings estimates for display (using price targets as proxy)
             earnings_list = []
             revenue_list = []
             
-            # Forward estimates from info
+            # Price target estimate (1y)
             if 'targetMeanPrice' in data:
                 earnings_list.append({
-                    'period': '1y',
+                    'period': 'Price Target',
                     'avg': data.get('targetMeanPrice', 0),
                     'low': data.get('targetLowPrice', 0),
                     'high': data.get('targetHighPrice', 0),
                     'num_analysts': data.get('numberOfAnalystOpinions', 0)
+                })
+            
+            # Current Year EPS estimate
+            if data.get('epsCurrentYear'):
+                earnings_list.append({
+                    'period': 'Current Year EPS',
+                    'avg': data.get('epsCurrentYear', 0),
+                    'low': 0,
+                    'high': 0,
+                    'num_analysts': 0
+                })
+            
+            # Next Year EPS estimate
+            if data.get('epsForward'):
+                earnings_list.append({
+                    'period': 'Next Year EPS',
+                    'avg': data.get('epsForward', 0),
+                    'low': 0,
+                    'high': 0,
+                    'num_analysts': 0
                 })
             
             estimates['earnings_estimates'] = earnings_list

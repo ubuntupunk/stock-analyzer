@@ -1,0 +1,181 @@
+"""
+Local Development Flask Server for Stock Analyzer
+Serves the frontend and provides API endpoints
+"""
+
+import os
+import sys
+from flask import Flask, jsonify, request, send_from_directory, render_template
+
+# Add backend to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from stock_api import StockDataAPI
+
+app = Flask(__name__, template_folder='../frontend')
+
+# Initialize the Stock Data API
+stock_api = StockDataAPI()
+
+# Popular stocks fallback for local development (when DynamoDB is unavailable)
+LOCAL_POPULAR_STOCKS = [
+    {'symbol': 'AAPL', 'name': 'Apple Inc.', 'sector': 'Technology', 'marketCap': 2890000000000},
+    {'symbol': 'MSFT', 'name': 'Microsoft Corporation', 'sector': 'Technology', 'marketCap': 2780000000000},
+    {'symbol': 'GOOGL', 'name': 'Alphabet Inc.', 'sector': 'Technology', 'marketCap': 1750000000000},
+    {'symbol': 'AMZN', 'name': 'Amazon.com Inc.', 'sector': 'Consumer Cyclical', 'marketCap': 1580000000000},
+    {'symbol': 'NVDA', 'name': 'NVIDIA Corporation', 'sector': 'Technology', 'marketCap': 1200000000000},
+    {'symbol': 'META', 'name': 'Meta Platforms Inc.', 'sector': 'Technology', 'marketCap': 980000000000},
+    {'symbol': 'TSLA', 'name': 'Tesla Inc.', 'sector': 'Consumer Cyclical', 'marketCap': 780000000000},
+    {'symbol': 'BRK.B', 'name': 'Berkshire Hathaway Inc.', 'sector': 'Financial', 'marketCap': 780000000000},
+    {'symbol': 'LLY', 'name': 'Eli Lilly and Company', 'sector': 'Healthcare', 'marketCap': 560000000000},
+    {'symbol': 'V', 'name': 'Visa Inc.', 'sector': 'Financial', 'marketCap': 520000000000},
+    {'symbol': 'TSM', 'name': 'Taiwan Semiconductor', 'sector': 'Technology', 'marketCap': 510000000000},
+    {'symbol': 'JPM', 'name': 'JPMorgan Chase & Co.', 'sector': 'Financial', 'marketCap': 490000000000},
+    {'symbol': 'WMT', 'name': 'Walmart Inc.', 'sector': 'Consumer Defensive', 'marketCap': 420000000000},
+    {'symbol': 'XOM', 'name': 'Exxon Mobil Corporation', 'sector': 'Energy', 'marketCap': 410000000000},
+    {'symbol': 'MA', 'name': 'Mastercard Inc.', 'sector': 'Financial', 'marketCap': 400000000000},
+]
+
+# Serve static files from frontend directory
+frontend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend')
+print(f"Serving frontend from: {frontend_path}")
+
+@app.route('/')
+def index():
+    return send_from_directory(frontend_path, 'index.html')
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(frontend_path, filename)
+
+# Stock Data API Endpoints
+@app.route('/api/stock/price')
+def get_price():
+    symbol = request.args.get('symbol')
+    if not symbol:
+        return jsonify({'error': 'Symbol required'}), 400
+    result = stock_api.get_stock_price(symbol.upper())
+    return jsonify(result)
+
+@app.route('/api/stock/price/history')
+def get_price_history():
+    symbol = request.args.get('symbol')
+    period = request.args.get('period', '1mo')
+    startDate = request.args.get('startDate')
+    endDate = request.args.get('endDate')
+    
+    if not symbol:
+        return jsonify({'error': 'Symbol required'}), 400
+    
+    if startDate and endDate:
+        result = stock_api.get_stock_price(symbol.upper(), startDate=startDate, endDate=endDate)
+    else:
+        result = stock_api.get_stock_price(symbol.upper(), period=period)
+    
+    return jsonify(result)
+
+@app.route('/api/stock/metrics')
+def get_metrics():
+    symbol = request.args.get('symbol')
+    if not symbol:
+        return jsonify({'error': 'Symbol required'}), 400
+    result = stock_api.get_stock_metrics(symbol.upper())
+    return jsonify(result)
+
+@app.route('/api/stock/estimates')
+def get_estimates():
+    symbol = request.args.get('symbol')
+    if not symbol:
+        return jsonify({'error': 'Symbol required'}), 400
+    result = stock_api.get_analyst_estimates(symbol.upper())
+    return jsonify(result)
+
+@app.route('/api/stock/financials')
+def get_financials():
+    symbol = request.args.get('symbol')
+    if not symbol:
+        return jsonify({'error': 'Symbol required'}), 400
+    result = stock_api.get_financial_statements(symbol.upper())
+    return jsonify(result)
+
+@app.route('/api/stock/news')
+def get_news():
+    symbol = request.args.get('symbol')
+    if not symbol:
+        return jsonify({'error': 'Symbol required'}), 400
+    result = stock_api.get_stock_news(symbol.upper())
+    return jsonify(result)
+
+@app.route('/api/stock/factors')
+def get_factors():
+    symbol = request.args.get('symbol')
+    if not symbol:
+        return jsonify({'error': 'Symbol required'}), 400
+    result = stock_api.get_stock_factors(symbol.upper())
+    return jsonify(result)
+
+@app.route('/api/stocks/popular')
+def get_popular_stocks():
+    limit = request.args.get('limit', 10)
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 10
+    
+    # Try to use DynamoDB-based stock universe manager
+    try:
+        from stock_universe_api import StockUniverseManager
+        manager = StockUniverseManager()
+        result = manager.get_popular_stocks(limit)
+        if result:
+            return jsonify(result)
+    except Exception as e:
+        print(f"DynamoDB not available, using local fallback: {e}")
+    
+    # Fallback to local popular stocks list
+    sorted_stocks = sorted(LOCAL_POPULAR_STOCKS, key=lambda x: x.get('marketCap', 0), reverse=True)
+    return jsonify(sorted_stocks[:limit])
+
+# Batch endpoints
+@app.route('/api/stock/batch/prices')
+def get_batch_prices():
+    symbols = request.args.get('symbols', '').split(',')
+    if not symbols or not symbols[0]:
+        return jsonify({'error': 'Symbols required'}), 400
+    result = stock_api.get_multiple_stock_prices([s.upper() for s in symbols if s])
+    return jsonify(result)
+
+@app.route('/api/stock/batch/metrics')
+def get_batch_metrics():
+    symbols = request.args.get('symbols', '').split(',')
+    if not symbols or not symbols[0]:
+        return jsonify({'error': 'Symbols required'}), 400
+    result = stock_api.get_multiple_stock_metrics([s.upper() for s in symbols if s])
+    return jsonify(result)
+
+@app.route('/api/stock/batch/estimates')
+def get_batch_estimates():
+    symbols = request.args.get('symbols', '').split(',')
+    if not symbols or not symbols[0]:
+        return jsonify({'error': 'Symbols required'}), 400
+    result = stock_api.get_multiple_analyst_estimates([s.upper() for s in symbols if s])
+    return jsonify(result)
+
+@app.route('/api/stock/batch/financials')
+def get_batch_financials():
+    symbols = request.args.get('symbols', '').split(',')
+    if not symbols or not symbols[0]:
+        return jsonify({'error': 'Symbols required'}), 400
+    result = stock_api.get_multiple_financial_statements([s.upper() for s in symbols if s])
+    return jsonify(result)
+
+if __name__ == '__main__':
+    print("Starting local Flask server at http://localhost:5000")
+    print("API endpoints available:")
+    print("  - GET /api/stock/price?symbol=AAPL")
+    print("  - GET /api/stock/metrics?symbol=AAPL")
+    print("  - GET /api/stock/estimates?symbol=AAPL")
+    print("  - GET /api/stock/financials?symbol=AAPL")
+    print("  - GET /api/stock/news?symbol=AAPL")
+    print()
+    app.run(host='0.0.0.0', port=5000, debug=True)

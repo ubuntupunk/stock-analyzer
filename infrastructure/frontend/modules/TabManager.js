@@ -2,15 +2,37 @@
 // Handles tab switching, content loading, and tab state management
 
 class TabManager {
-    constructor(dataManager, eventBus) {
+    constructor(dataManager, eventBus, uiManager = null) {
         this.dataManager = dataManager;
         this.eventBus = eventBus;
+        this.uiManager = uiManager; // Store reference to UIManager for breadcrumb updates
         this.currentTab = 'popular-stocks';
         this.tabHistory = [];
         this.sectionsLoaded = new Set(); // Track which sections are loaded
         
+        // Tab display names for breadcrumbs
+        this.tabDisplayNames = {
+            'popular-stocks': 'Popular Stocks',
+            'metrics': 'Metrics',
+            'financials': 'Financials',
+            'factors': 'Factors',
+            'analyst-estimates': 'Analyst Estimates',
+            'news': 'News',
+            'stock-analyser': 'Stock Analyser',
+            'watchlist': 'Watchlist'
+        };
+        
         // Subscribe to tab events
         this.setupEventListeners();
+    }
+
+    /**
+     * Get the display name for a tab
+     * @param {string} tabName - Tab identifier
+     * @returns {string} Display name
+     */
+    getTabDisplayName(tabName) {
+        return this.tabDisplayNames[tabName] || tabName;
     }
 
     /**
@@ -91,6 +113,12 @@ class TabManager {
 
         this.currentTab = tabName;
         console.log('TabManager: Current tab set to:', tabName);
+
+        // Update breadcrumbs with current tab
+        if (this.uiManager) {
+            const currentSymbol = window.stockManager?.getCurrentSymbol();
+            this.uiManager.updateBreadcrumbs(currentSymbol, this.getTabDisplayName(tabName));
+        }
 
         // Load content for the specific tab (only if needed)
         console.log('TabManager: Loading content for tab:', tabName);

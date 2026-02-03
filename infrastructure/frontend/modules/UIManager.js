@@ -668,18 +668,48 @@ class UIManager {
     /**
      * Update breadcrumb navigation
      * @param {string} symbol - Stock symbol
-     * @param {string} searchType - Search type
+     * @param {string} searchType - Search type (e.g., 'search', 'watchlist', 'popular')
      */
     updateBreadcrumbs(symbol, searchType) {
         console.log('UIManager: updateBreadcrumbs called with:', { symbol, searchType });
-        const breadcrumbElement = document.getElementById('breadcrumbPath');
-        if (breadcrumbElement) {
+        
+        const breadcrumbTab = document.getElementById('breadcrumb-tab');
+        const breadcrumbSymbolContainer = document.getElementById('breadcrumb-symbol-container');
+        const breadcrumbSymbol = document.getElementById('breadcrumb-symbol');
+        
+        // Handle the new unified breadcrumb structure (index.html)
+        if (breadcrumbTab) {
             if (symbol) {
-                breadcrumbElement.textContent = `Home > ${searchType} > ${symbol}`;
-                console.log('UIManager: Breadcrumb updated to:', breadcrumbElement.textContent);
+                // Show symbol in breadcrumbs
+                breadcrumbTab.textContent = searchType || 'Stock';
+                if (breadcrumbSymbolContainer) {
+                    breadcrumbSymbolContainer.classList.remove('hidden');
+                }
+                if (breadcrumbSymbol) {
+                    breadcrumbSymbol.textContent = symbol;
+                    breadcrumbSymbol.classList.remove('hidden');
+                }
+                console.log('UIManager: Breadcrumb updated to:', `${searchType} > ${symbol}`);
             } else {
-                breadcrumbElement.textContent = 'Home > Popular Stocks';
-                console.log('UIManager: Breadcrumb set to default');
+                // Tab-only navigation - show current tab name
+                breadcrumbTab.textContent = searchType || 'Popular Stocks';
+                if (breadcrumbSymbolContainer) {
+                    breadcrumbSymbolContainer.classList.add('hidden');
+                }
+                if (breadcrumbSymbol) {
+                    breadcrumbSymbol.classList.add('hidden');
+                }
+                console.log('UIManager: Breadcrumb tab updated to:', searchType || 'Popular Stocks');
+            }
+        }
+        
+        // Also update legacy breadcrumbPath if it exists (metrics.html)
+        const breadcrumbPath = document.getElementById('breadcrumbPath');
+        if (breadcrumbPath) {
+            if (symbol) {
+                breadcrumbPath.textContent = `Home > ${searchType || 'Stock'} > ${symbol}`;
+            } else {
+                breadcrumbPath.textContent = `Home > ${searchType || 'Popular Stocks'}`;
             }
         }
     }

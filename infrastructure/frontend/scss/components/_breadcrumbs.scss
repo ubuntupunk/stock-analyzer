@@ -1,0 +1,245 @@
+// ============================================
+// Breadcrumbs Component
+// Unified breadcrumb navigation system
+// ============================================
+
+@use '../utils/variables' as *;
+@use '../utils/mixins' as *;
+
+// Breadcrumb container
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  
+  // Home link
+  &-home {
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-weight: var(--font-weight-medium);
+    transition: color var(--transition-fast);
+    
+    &:hover {
+      color: var(--primary-color);
+    }
+  }
+  
+  // Breadcrumb items
+  &-item {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-medium);
+    
+    // Symbol/item (last item, not clickable)
+    &.breadcrumb-symbol {
+      color: var(--primary-color);
+      font-weight: var(--font-weight-bold);
+      text-transform: uppercase;
+    }
+    
+    // Current tab
+    &#breadcrumb-tab {
+      color: var(--primary-color);
+    }
+  }
+  
+  // Separator (chevron)
+  &-separator {
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    padding: 0 var(--spacing-xs);
+    
+    i, svg {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    
+    // Hidden state
+    &.hidden {
+      display: none;
+    }
+  }
+  
+  // Clickable items
+  a.breadcrumb-item {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+    
+    &:hover {
+      color: var(--primary-color);
+      text-decoration: underline;
+    }
+  }
+  
+  // Symbol container wrapper
+  &#breadcrumb-symbol-container {
+    display: flex;
+    align-items: center;
+    
+    &.hidden {
+      display: none;
+    }
+  }
+  
+  // Symbol text
+  &#breadcrumb-symbol {
+    &.hidden {
+      display: none;
+    }
+  }
+}
+
+// Inline breadcrumb (used in section headers)
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  
+  // Path text (simple text version)
+  &#breadcrumbPath {
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+  }
+  
+  // Separator within breadcrumb
+  &-separator {
+    color: var(--text-muted);
+    padding: 0 var(--spacing-xs);
+  }
+  
+  // Active/current item
+  &-active {
+    color: var(--primary-color);
+    font-weight: var(--font-weight-semibold);
+  }
+  
+  // Home link
+  &-home {
+    color: var(--text-secondary);
+    cursor: pointer;
+    
+    &:hover {
+      color: var(--primary-color);
+    }
+  }
+  
+  // Link items
+  a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+    
+    &:hover {
+      color: var(--primary-color);
+      text-decoration: underline;
+    }
+  }
+}
+
+// Price indicators next to breadcrumbs
+.price-indicators {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-mono);
+  
+  .at-close,
+  .after-hours {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+  
+  .at-close {
+    color: var(--text-primary);
+  }
+  
+  .after-hours {
+    color: var(--text-secondary);
+    background-color: var(--bg-light);
+  }
+}
+
+// Responsive adjustments
+@include sm {
+  .breadcrumbs {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    
+    &-separator {
+      padding: 0 2px;
+      
+      i, svg {
+        font-size: 0.65rem;
+      }
+    }
+  }
+  
+  .breadcrumb {
+    font-size: var(--font-size-xs);
+    
+    &-separator {
+      padding: 0 2px;
+    }
+  }
+  
+  .price-indicators {
+    display: none;
+  }
+}
+
+@include xs {
+  .breadcrumbs {
+    // On very small screens, show simplified breadcrumbs
+    .breadcrumb-item:not(.breadcrumb-symbol):not(#breadcrumb-tab) {
+      display: none;
+    }
+    
+    .breadcrumb-symbol {
+      margin-left: auto;
+    }
+  }
+  
+  .breadcrumb {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+// Animation for breadcrumb changes
+.breadcrumbs,
+.breadcrumb {
+  transition: all 0.2s ease;
+}
+
+// Loading state for breadcrumbs
+.breadcrumbs.loading,
+.breadcrumb.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+// Success/error states
+.breadcrumbs.success,
+.breadcrumb.success {
+  border-color: var(--success-color);
+}
+
+.breadcrumbs.error,
+.breadcrumb.error {
+  border-color: var(--danger-color);
+}
