@@ -280,8 +280,19 @@ class UIManager {
 
         // Update source and timestamp
         console.log('UIManager: Updating source and timestamp');
-        this.updateElement('financialsSource', financials.source || 'Unknown');
         this.updateElement('financialsUpdated', financials.timestamp || new Date().toLocaleString());
+        
+        // Update source with link
+        const sourceElement = document.getElementById('financialsSource');
+        if (sourceElement) {
+            const source = financials.source || 'Unknown';
+            // Convert source to display format with link
+            if (source.toLowerCase().includes('yahoo')) {
+                sourceElement.innerHTML = '<a href="https://finance.yahoo.com" target="_blank" rel="noopener">Yahoo Finance</a>';
+            } else {
+                sourceElement.textContent = source;
+            }
+        }
         
         console.log('=== UIManager: updateFinancialsDisplay END ===');
     }
