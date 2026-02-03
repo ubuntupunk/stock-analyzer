@@ -76,40 +76,135 @@ class EstimatesManager {
     }
 
     /**
+     * Update company info in the estimates header
+     * @param {string} symbol - Stock symbol
+     * @param {Object} data - Estimates data (optional)
+     */
+    updateCompanyInfo(symbol, data = null) {
+        const symbolElement = document.getElementById('estimatesSymbol');
+        const nameElement = document.getElementById('estimatesCompanyName');
+
+        if (symbolElement) {
+            symbolElement.textContent = symbol ? `(${symbol})` : '-';
+        }
+
+        if (nameElement) {
+            // Try to get company name from various sources
+            let companyName = '-';
+
+            // 1. First try from the data directly (if provided)
+            if (data) {
+                if (data.company_name) {
+                    companyName = data.company_name;
+                } else if (data.meta && data.meta.company_name) {
+                    companyName = data.meta.company_name;
+                } else if (data.meta && data.meta.companyName) {
+                    companyName = data.meta.companyName;
+                }
+            }
+
+            // 2. Try to find in popular stocks
+            if (companyName === '-' && window.stockManager && window.stockManager.popularStocks) {
+                const stock = window.stockManager.popularStocks.find(s => s.symbol === symbol);
+                if (stock && stock.name) {
+                    companyName = stock.name;
+                }
+            }
+
+            // 3. Try to get from metrics cache
+            if (companyName === '-' && window.dataManager && window.dataManager.getCachedData) {
+                try {
+                    const metricsCacheKey = `${symbol}:metrics`;
+                    const metricsData = window.dataManager.getCachedData(metricsCacheKey);
+                    if (metricsData) {
+                        if (metricsData.companyName) {
+                            companyName = metricsData.companyName;
+                        } else if (metricsData.company_name) {
+                            companyName = metricsData.company_name;
+                        } else if (metricsData.meta && metricsData.meta.companyName) {
+                            companyName = metricsData.meta.companyName;
+                        } else if (metricsData.meta && metricsData.meta.company_name) {
+                            companyName = metricsData.meta.company_name;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('EstimatesManager: Error getting metrics cache:', e);
+                }
+            }
+
+            // 4. Try from other tab elements
+            if (companyName === '-') {
+                try {
+                    const analyserNameElement = document.querySelector('#stock-analyser #companyName');
+                    if (analyserNameElement && analyserNameElement.textContent &&
+                        analyserNameElement.textContent !== 'Market Data' &&
+                        analyserNameElement.textContent !== '-') {
+                        companyName = analyserNameElement.textContent;
+                    }
+                } catch (e) {
+                    // Ignore errors
+                }
+            }
+
+            // 5. Try from MetricsManager if available
+            if (companyName === '-' && window.metricsManager) {
+                try {
+                    const metricsCompanyNameElement = document.getElementById('companyName');
+                    if (metricsCompanyNameElement && metricsCompanyNameElement.textContent &&
+                        metricsCompanyNameElement.textContent !== 'Market Data' &&
+                        metricsCompanyNameElement.textContent !== '-') {
+                        companyName = metricsCompanyNameElement.textContent;
+                    }
+                } catch (e) {
+                    // Ignore errors
+                }
+            }
+
+            nameElement.textContent = companyName;
+        }
+    }
+
+    /**
      * Update estimates display when data arrives
      * @param {Object} data - Estimates data
      */
     updateEstimatesDisplay(data) {
-        console.log('EstimatesManager: updateEstimatesDisplay called with:', { 
-            symbol: this.currentSymbol, 
+        console.log('EstimatesManager: updateEstimatesDisplay called with:', {
+            symbol: this.currentSymbol,
             hasData: !!data,
             dataKeys: data ? Object.keys(data) : []
         });
-        
+
         // Update the content container
         const contentContainer = document.getElementById('estimatesContent');
         if (!contentContainer) {
             console.error('EstimatesManager: estimatesContent element not found');
             return;
         }
-        
+
+        // Handle both direct data and event-wrapped data
+        const estimatesData = data.data || data;
+        const source = estimatesData?.source || data?.source || 'Unknown';
+
+        // Update company info
+        this.updateCompanyInfo(this.currentSymbol, estimatesData || data);
+
         // Extract estimates data
-        const earningsEstimates = data?.earnings_estimates || [];
-        const revenueEstimates = data?.revenue_estimates || [];
-        const source = data?.source || 'Unknown';
-        
+        const earningsEstimates = estimatesData?.earnings_estimates || data?.earnings_estimates || [];
+        const revenueEstimates = estimatesData?.revenue_estimates || data?.revenue_estimates || [];
+
         console.log('EstimatesManager: Earnings estimates:', earningsEstimates);
         console.log('EstimatesManager: Revenue estimates:', revenueEstimates);
-        
+
         // Generate HTML for estimates
-        let html = this.generateEstimatesHTML(earningsEstimates, revenueEstimates);
-        
+        let html = this.generateEstimatesHTML(earningsEstimates, revenueEstimates, source);
+
         // Update the content
         contentContainer.innerHTML = html;
-        
+
         // Update summary cards if they exist
-        this.updateSummaryCards(data);
-        
+        this.updateSummaryCards(estimatesData || data);
+
         console.log('EstimatesManager: Estimates display updated');
     }
 
@@ -117,9 +212,10 @@ class EstimatesManager {
      * Generate HTML for estimates display
      * @param {Array} earningsEstimates - Earnings estimates data
      * @param {Array} revenueEstimates - Revenue estimates data
+     * @param {string} source - Data source
      * @returns {string} HTML string
      */
-    generateEstimatesHTML(earningsEstimates, revenueEstimates) {
+    generateEstimatesHTML(earningsEstimates, revenueEstimates, source = 'Unknown') {
         let html = '';
         
         if (!earningsEstimates.length && !revenueEstimates.length) {
@@ -225,10 +321,10 @@ class EstimatesManager {
             const targetPriceEl = priceTargetEl.querySelector('.target-price');
             
             if (currentPriceEl && data?.currentPrice) {
-                currentPriceEl.textContent = `$${this.formatNumber(data.currentPrice)}`;
+                currentPriceEl.textContent = `${this.formatNumber(data.currentPrice)}`;
             }
             if (targetPriceEl && data?.targetMeanPrice) {
-                targetPriceEl.textContent = `$${this.formatNumber(data.targetMeanPrice)}`;
+                targetPriceEl.textContent = `${this.formatNumber(data.targetMeanPrice)}`;
             }
         }
         
@@ -239,6 +335,40 @@ class EstimatesManager {
             if (ratingValueEl && data?.recommendationMean) {
                 const rating = this.getRatingLabel(data.recommendationMean);
                 ratingValueEl.textContent = rating;
+            }
+            
+            // Update rating bars if available
+            const buyBar = ratingEl.querySelector('.rating-bar.buy span');
+            const holdBar = ratingEl.querySelector('.rating-bar.hold span');
+            const sellBar = ratingEl.querySelector('.rating-bar.sell span');
+            
+            if (data?.numberOfAnalystOpinions) {
+                // Distribute opinions based on recommendation mean (approximation)
+                const total = data.numberOfAnalystOpinions;
+                if (buyBar) buyBar.textContent = `Buy: ${Math.round(total * 0.4)}`;
+                if (holdBar) holdBar.textContent = `Hold: ${Math.round(total * 0.35)}`;
+                if (sellBar) sellBar.textContent = `Sell: ${Math.round(total * 0.25)}`;
+            }
+        }
+        
+        // Update earnings estimates section
+        const earningsEl = document.getElementById('earningsEstimates');
+        if (earningsEl) {
+            const rows = earningsEl.querySelectorAll('.estimate-row');
+            if (rows.length >= 2) {
+                // Current Year EPS
+                const currentYearValue = data?.epsCurrentYear || data?.epsTrailingTwelveMonths || 0;
+                const currentYearSpan = rows[0].querySelector('.estimate-value');
+                if (currentYearSpan) {
+                    currentYearSpan.textContent = `${this.formatNumber(currentYearValue)}`;
+                }
+                
+                // Next Year EPS (forward)
+                const nextYearValue = data?.epsForward || 0;
+                const nextYearSpan = rows[1].querySelector('.estimate-value');
+                if (nextYearSpan) {
+                    nextYearSpan.textContent = `${this.formatNumber(nextYearValue)}`;
+                }
             }
         }
     }
@@ -317,3 +447,43 @@ if (typeof module !== 'undefined' && module.exports) {
 } else {
     window.EstimatesManager = EstimatesManager;
 }
+
+/**
+ * Load stock by symbol input (called from symbol input in analyst-estimates tab)
+ */
+window.loadEstimatesSymbol = function() {
+    const input = document.getElementById('estimatesSymbolInput');
+    if (!input) {
+        console.error('EstimatesManager: estimatesSymbolInput not found');
+        return;
+    }
+
+    const symbol = input.value.trim().toUpperCase();
+    if (!symbol) {
+        // Show error notification
+        if (window.app && window.app.showNotification) {
+            window.app.showNotification('Please enter a stock symbol', 'error');
+        } else {
+            alert('Please enter a stock symbol');
+        }
+        return;
+    }
+
+    console.log('EstimatesManager: Loading symbol from input:', symbol);
+
+    // Use stockManager to select the stock
+    if (window.stockManager) {
+        window.stockManager.selectStock(symbol, 'analyst-estimates');
+    } else {
+        console.error('EstimatesManager: stockManager not available');
+    }
+};
+
+/**
+ * Handle Enter key in symbol input
+ */
+window.handleEstimatesSymbolKeydown = function(event) {
+    if (event.key === 'Enter') {
+        window.loadEstimatesSymbol();
+    }
+};

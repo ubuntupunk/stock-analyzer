@@ -205,7 +205,7 @@ class StockDataAPI:
         
         # Try Yahoo Finance FIRST
         yf_data = self.yahoo.fetch_data(symbol)
-        if yf_data and 'earningsTrend' in yf_data:
+        if yf_data and ('earningsTrend' in yf_data or 'targetMeanPrice' in yf_data):
             estimates.update(self.yahoo.parse_estimates(yf_data))
             estimates['source'] = 'yahoo_finance'
         
@@ -399,7 +399,7 @@ class StockDataAPI:
                     continue
                     
                 symbol, data = item
-                if data and 'earningsTrend' in data:
+                if data and ('earningsTrend' in data or 'targetMeanPrice' in data):
                     estimates = {
                         'symbol': symbol,
                         'timestamp': datetime.now().isoformat(),

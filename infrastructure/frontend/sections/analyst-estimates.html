@@ -2,6 +2,18 @@
 <section id="analyst-estimates" class="content-section">
     <div class="estimates-header">
         <h2>ANALYST ESTIMATES</h2>
+        <div class="estimates-title-group">
+            <div id="estimatesCompanyInfo" class="company-info">
+                <span id="estimatesCompanyName">-</span>
+                <span id="estimatesSymbol" class="company-symbol">-</span>
+            </div>
+        </div>
+        <div class="estimates-controls">
+            <div class="symbol-input-group">
+                <input type="text" id="estimatesSymbolInput" placeholder="Enter symbol (e.g., AAPL)" maxlength="10" onkeydown="handleEstimatesSymbolKeydown(event)">
+                <button class="btn-small" onclick="loadEstimatesSymbol()">Load</button>
+            </div>
+        </div>
         <p>Professional analyst price targets and earnings estimates</p>
     </div>
     
