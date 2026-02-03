@@ -106,6 +106,10 @@ class StockAnalyzer {
         this.modules.metricsManager.initialize();
         this.modules.tabManager.setupTabHandlers();
         
+        // News Manager
+        this.modules.newsManager = new NewsManager(eventBus);
+        window.newsManager = this.modules.newsManager;
+        
         // Expose financials manager globally
         window.financialsManager = this.modules.financialsManager;
     }

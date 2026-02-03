@@ -142,6 +142,18 @@ Resources:
             RestApiId: !Ref StockAnalyzerAPI
             Path: /api/stock/batch/financials
             Method: get
+        GetNews:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/news
+            Method: get
+        GetFactors:
+          Type: Api
+          Properties:
+            RestApiId: !Ref StockAnalyzerAPI
+            Path: /api/stock/factors
+            Method: get
         OptionsStock:
           Type: Api
           Properties:

@@ -204,7 +204,13 @@ class TabManager {
                 case 'news':
                     console.log('TabManager: Loading news data');
                     await this.loadSection('news');
-                    await this.loadNewsData();
+                    // Delegate to NewsManager - it will handle loading if needed
+                    if (window.newsManager) {
+                        const currentSymbol = window.stockManager?.getCurrentSymbol();
+                        if (currentSymbol) {
+                            window.newsManager.loadNews(currentSymbol);
+                        }
+                    }
                     break;
                 case 'retirement-calculator':
                     console.log('TabManager: Loading retirement-calculator');

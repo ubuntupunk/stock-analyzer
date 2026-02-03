@@ -1,7 +1,11 @@
 <!-- News View -->
 <section id="news" class="content-section">
     <div class="news-header">
-        <h2>Stock News</h2>
+        <h2>Stock News <span id="newsSymbol">-</span> <span id="newsCompanyName" class="company-name"></span></h2>
+        <div class="news-symbol-input">
+            <input type="text" id="newsSymbolInput" placeholder="Enter symbol" onkeydown="handleNewsSymbolKeydown(event)">
+            <button onclick="loadNewsSymbol()">Load</button>
+        </div>
         <div class="news-controls">
             <select id="newsPeriod">
                 <option value="1">Last 24 Hours</option>
@@ -15,14 +19,14 @@
     </div>
 
     <div class="news-container" id="newsContainer">
-        <div class="news-loading">
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Loading news...</p>
+        <div class="news-empty">
+            <p>Select a stock to view news</p>
+            <p class="news-hint">Enter a symbol above or select from Popular Stocks</p>
         </div>
     </div>
 
     <div class="news-footer">
-        <p class="news-source">Source: <span id="newsSource">Loading...</span></p>
-        <p class="last-updated">Last updated: <span id="newsUpdated">Loading...</span></p>
+        <p class="news-source">Source: <span id="newsSource"><a href="https://finance.yahoo.com" target="_blank" rel="noopener">Yahoo Finance</a></span></p>
+        <p class="last-updated">Last updated: <span id="newsUpdated">-</span></p>
     </div>
 </section>
