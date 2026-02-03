@@ -361,37 +361,51 @@ class YahooFinanceClient:
             print(f"YFinance fetch_news for {symbol}: received {len(news_data) if news_data else 0} items")
             if news_data and len(news_data) > 0:
                 # Log first item structure for debugging
-                print(f"YFinance news keys for {symbol}: {list(news_data[0].keys())}")
+                print(f"YFinance news sample for {symbol}:")
+                print(f"  First item keys: {list(news_data[0].keys())}")
+                print(f"  First item: {news_data[0]}")
                 
                 articles = []
                 for item in news_data[:20]:  # Limit to 20 articles
                     # Handle provider - can be dict or string
                     provider = item.get('provider')
                     if isinstance(provider, dict):
-                        source = provider.get('name', 'Yahoo Finance')
+                        source = provider.get('displayName') or provider.get('name') or provider.get('id') or 'Yahoo Finance'
                     elif provider:
                         source = str(provider)
                     else:
                         source = 'Yahoo Finance'
                     
-                    # Handle timestamp
+                    # Handle title - try multiple fields
+                    title = item.get('title') or item.get('headline') or item.get('caption') or 'No Title'
+                    
+                    # Handle URL
+                    url = item.get('link') or item.get('url') or item.get('canonicalUrl') or '#'
+                    
+                    # Handle summary/description
+                    summary = item.get('summary') or item.get('description') or item.get('snippet') or ''
+                    
+                    # Handle timestamp - convert Unix timestamp to ISO
                     pub_time = item.get('providerPublishTime')
                     if pub_time:
-                        # Convert Unix timestamp to ISO format
                         from datetime import datetime
                         try:
-                            pub_date = datetime.fromtimestamp(pub_time).isoformat()
-                        except:
+                            # Try as Unix timestamp first (seconds)
+                            if isinstance(pub_time, (int, float)) and pub_time < 9999999999:
+                                pub_date = datetime.fromtimestamp(pub_time).isoformat()
+                            else:
+                                pub_date = str(pub_time)
+                        except Exception:
                             pub_date = str(pub_time)
                     else:
-                        pub_date = item.get('pubDate', '')
+                        pub_date = item.get('pubDate', '') or datetime.now().isoformat()
                     
                     articles.append({
-                        'title': item.get('title', item.get('headline', 'No Title')),
-                        'url': item.get('link', item.get('url', '#')),
+                        'title': title,
+                        'url': url,
                         'publishedAt': pub_date,
                         'source': source,
-                        'summary': item.get('summary', item.get('description', ''))
+                        'summary': summary[:500] if summary else ''  # Truncate long summaries
                     })
                 return articles
             return []

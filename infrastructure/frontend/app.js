@@ -110,6 +110,10 @@ class StockAnalyzer {
         this.modules.newsManager = new NewsManager(eventBus);
         window.newsManager = this.modules.newsManager;
         
+        // Estimates Manager
+        this.modules.estimatesManager = new EstimatesManager(eventBus);
+        window.estimatesManager = this.modules.estimatesManager;
+        
         // Expose financials manager globally
         window.financialsManager = this.modules.financialsManager;
     }

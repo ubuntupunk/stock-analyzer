@@ -560,6 +560,43 @@ class UIManager {
     }
 
     /**
+     * Update estimates display
+     * @param {object} data - Estimates data
+     * @param {string} symbol - Stock symbol
+     */
+    updateEstimatesDisplay(data, symbol) {
+        const container = document.getElementById('estimatesContent');
+        if (!container) return;
+
+        if (!data || (!data.earnings_estimates?.length && !data.revenue_estimates?.length)) {
+            container.innerHTML = '<p class="empty-message">No analyst estimates available for this stock</p>';
+            return;
+        }
+
+        let html = '';
+        
+        // Earnings Estimates
+        if (data.earnings_estimates?.length > 0) {
+            html += '<div class="estimates-section"><h3>Earnings Estimates</h3><table class="estimates-table"><thead><tr><th>Period</th><th>Avg</th><th>Low</th><th>High</th><th>Analysts</th></tr></thead><tbody>';
+            data.earnings_estimates.forEach(estimate => {
+                html += `<tr><td>${estimate.period || 'N/A'}</td><td>${Formatters.formatNumber(estimate.avg)}</td><td>${Formatters.formatNumber(estimate.low)}</td><td>${Formatters.formatNumber(estimate.high)}</td><td>${estimate.num_analysts || 0}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+        }
+
+        // Revenue Estimates
+        if (data.revenue_estimates?.length > 0) {
+            html += '<div class="estimates-section"><h3>Revenue Estimates</h3><table class="estimates-table"><thead><tr><th>Period</th><th>Avg</th><th>Low</th><th>High</th></tr></thead><tbody>';
+            data.revenue_estimates.forEach(estimate => {
+                html += `<tr><td>${estimate.period || 'N/A'}</td><td>${Formatters.formatNumber(estimate.avg)}</td><td>${Formatters.formatNumber(estimate.low)}</td><td>${Formatters.formatNumber(estimate.high)}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+        }
+
+        container.innerHTML = html;
+    }
+
+    /**
      * Evaluate factor status
      * @param {*} value - Factor value
      * @param {string} type - Factor type
