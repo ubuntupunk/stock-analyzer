@@ -219,16 +219,38 @@ class NewsManager {
     /**
      * Update news display when data arrives
      * @param {string} symbol - Stock symbol
-     * @param {Array} data - News data
+     * @param {Object|Array} data - News data (may be object with 'news' property or array)
      */
     updateNewsDisplay(symbol, data) {
-        console.log('NewsManager: updateNewsDisplay called with:', { symbol, hasData: !!data, dataLength: data?.length });
+        console.log('NewsManager: updateNewsDisplay called with:', { symbol, hasData: !!data, dataType: typeof data });
         
         const container = document.getElementById('newsContainer');
         if (!container) {
             console.error('NewsManager: newsContainer element not found');
             return;
         }
+        
+        // Handle data that may be wrapped in an object (API response format)
+        let newsArray = data;
+        if (data && typeof data === 'object') {
+            if (Array.isArray(data)) {
+                newsArray = data;
+            } else if (Array.isArray(data.news)) {
+                newsArray = data.news;
+            } else if (Array.isArray(data.data)) {
+                newsArray = data.data;
+            } else {
+                // Try to find an array property
+                const arrayProp = Object.keys(data).find(key => Array.isArray(data[key]));
+                if (arrayProp) {
+                    newsArray = data[arrayProp];
+                } else {
+                    newsArray = [];
+                }
+            }
+        }
+        
+        console.log('NewsManager: Extracted news array:', { newsLength: newsArray?.length });
         
         // Update source and timestamp
         const sourceElement = document.getElementById('newsSource');
@@ -242,7 +264,7 @@ class NewsManager {
             updatedElement.textContent = new Date().toLocaleString();
         }
         
-        if (!data || data.length === 0) {
+        if (!newsArray || newsArray.length === 0) {
             console.log('NewsManager: No news data available');
             container.innerHTML = `
                 <div class="news-empty">
@@ -253,10 +275,10 @@ class NewsManager {
             return;
         }
         
-        console.log('NewsManager: Rendering', data.length, 'news articles');
+        console.log('NewsManager: Rendering', newsArray.length, 'news articles');
         
         let html = '';
-        data.forEach(article => {
+        newsArray.forEach(article => {
             const publishedAt = article.publishedAt || article.pubDate || article.datetime;
             const timeAgo = this.getTimeAgo(publishedAt);
             const source = article.source || 'Unknown Source';

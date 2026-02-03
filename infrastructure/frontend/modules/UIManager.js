@@ -515,24 +515,44 @@ class UIManager {
 
     /**
      * Update news display
-     * @param {object} news - News data
+     * @param {object} news - News data (may be object with 'news' property or array)
      * @param {string} symbol - Stock symbol
      */
     updateNewsDisplay(news, symbol) {
         const container = document.getElementById('newsContainer');
         if (!container) return;
 
-        if (!news || news.length === 0) {
+        // Handle data that may be wrapped in an object (API response format)
+        let newsArray = news;
+        if (news && typeof news === 'object') {
+            if (Array.isArray(news)) {
+                newsArray = news;
+            } else if (Array.isArray(news.news)) {
+                newsArray = news.news;
+            } else if (Array.isArray(news.data)) {
+                newsArray = news.data;
+            } else {
+                // Try to find an array property
+                const arrayProp = Object.keys(news).find(key => Array.isArray(news[key]));
+                if (arrayProp) {
+                    newsArray = news[arrayProp];
+                } else {
+                    newsArray = [];
+                }
+            }
+        }
+
+        if (!newsArray || newsArray.length === 0) {
             container.innerHTML = '<p class="empty-message">No news available for this stock</p>';
             return;
         }
 
-        let html = news.map(article => `
+        let html = newsArray.map(article => `
             <div class="news-item">
-                <div class="news-title">${article.title}</div>
-                <div class="news-source">${article.source}</div>
+                <div class="news-title">${article.title || 'No Title'}</div>
+                <div class="news-source">${article.source || 'Unknown Source'}</div>
                 <div class="news-time">${Formatters.formatDate(article.publishedAt, 'time')}</div>
-                <div class="news-summary">${article.summary}</div>
+                <div class="news-summary">${article.summary || ''}</div>
             </div>
         `).join('');
 
