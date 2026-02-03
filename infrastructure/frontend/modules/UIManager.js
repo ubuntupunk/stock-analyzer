@@ -246,17 +246,44 @@ class UIManager {
      * @param {string} symbol - Stock symbol
      */
     updateFinancialsDisplay(financials, symbol) {
+        console.log('=== UIManager: updateFinancialsDisplay START ===');
+        console.log('UIManager: Received financials data:', {
+            symbol,
+            hasFinancials: !!financials,
+            financialsType: typeof financials,
+            financialsKeys: financials ? Object.keys(financials) : [],
+            hasIncomeStatement: !!financials.income_statement,
+            incomeLength: financials.income_statement?.length,
+            incomeFirstItem: financials.income_statement?.[0],
+            hasBalanceSheet: !!financials.balance_sheet,
+            balanceLength: financials.balance_sheet?.length,
+            balanceFirstItem: financials.balance_sheet?.[0],
+            hasCashFlow: !!financials.cash_flow,
+            cashFlowLength: financials.cash_flow?.length,
+            cashFlowFirstItem: financials.cash_flow?.[0],
+            fullFinancials: financials
+        });
+
         // Update stock symbol
+        console.log('UIManager: Updating stock symbol element');
         this.updateElement('stockSymbol', symbol);
 
         // Update financial statements tables
+        console.log('UIManager: Updating income statement table');
         this.updateFinancialsTable('incomeData', financials.income_statement || []);
+        
+        console.log('UIManager: Updating balance sheet table');
         this.updateFinancialsTable('balanceData', financials.balance_sheet || []);
+        
+        console.log('UIManager: Updating cash flow table');
         this.updateFinancialsTable('cashflowData', financials.cash_flow || []);
 
         // Update source and timestamp
+        console.log('UIManager: Updating source and timestamp');
         this.updateElement('financialsSource', financials.source || 'Unknown');
         this.updateElement('financialsUpdated', financials.timestamp || new Date().toLocaleString());
+        
+        console.log('=== UIManager: updateFinancialsDisplay END ===');
     }
 
     /**
@@ -265,23 +292,63 @@ class UIManager {
      * @param {Array} data - Table data (array of periods with values)
      */
     updateFinancialsTable(tableId, data) {
+        console.log(`=== UIManager: updateFinancialsTable START (${tableId}) ===`);
+        console.log(`UIManager: Table ${tableId} - received data:`, {
+            hasData: !!data,
+            dataIsArray: Array.isArray(data),
+            dataLength: data?.length,
+            dataType: typeof data,
+            firstItem: data?.[0],
+            tbodyExists: !!document.getElementById(tableId)
+        });
+
         const tbody = document.getElementById(tableId);
-        if (!tbody || !data || data.length === 0) {
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="5" class="loading">No financial data available</td></tr>';
-            }
+        if (!tbody) {
+            console.error(`UIManager: Table body element NOT FOUND: ${tableId}`);
+            console.log('UIManager: Available elements with IDs:', 
+                Array.from(document.querySelectorAll('[id]')).map(el => el.id)
+            );
+            return;
+        }
+        
+        console.log(`UIManager: Table body element FOUND for ${tableId}`);
+        
+        if (!data || data.length === 0) {
+            console.warn(`UIManager: No data for table: ${tableId}`);
+            tbody.innerHTML = '<tr><td colspan="5" class="loading">No financial data available</td></tr>';
+            console.log(`=== UIManager: updateFinancialsTable END (${tableId}) - NO DATA ===`);
             return;
         }
 
+        console.log(`UIManager: Processing ${data.length} data items for ${tableId}`);
         let html = '';
 
-        // Get years from data (e.g., ['2023', '2022', '2021', '2020'])
+        // Get years from data (e.g., ['2024', '2023', '2022', '2021'])
         const years = data.slice(0, 4).map(d => {
             const date = d.fiscal_date || d.fiscalDateEnding || '';
             return date.substring(0, 4); // Extract year from YYYY-MM format
         });
+        
+        console.log(`UIManager: Extracted years for ${tableId}:`, years);
+        
+        // Update table header with actual years
+        const tableElement = tbody.closest('table');
+        if (tableElement && years.length > 0) {
+            console.log(`UIManager: Updating table header for ${tableId}`);
+            const headerCells = tableElement.querySelectorAll('thead th');
+            console.log(`UIManager: Found ${headerCells.length} header cells`);
+            if (headerCells.length >= years.length + 1) {
+                years.forEach((year, index) => {
+                    headerCells[index + 1].textContent = year;
+                    console.log(`UIManager: Set header cell ${index + 1} to year: ${year}`);
+                });
+            }
+        } else {
+            console.warn(`UIManager: Could not find table element or no years for ${tableId}`);
+        }
 
         // Determine table structure based on tableId
+        console.log(`UIManager: Building rows for ${tableId}`);
         if (tableId === 'incomeData') {
             // Income Statement items
             const items = [
@@ -292,6 +359,7 @@ class UIManager {
                 { key: 'operating_income', label: 'Operating Income' }
             ];
 
+            console.log(`UIManager: Income statement items to render:`, items);
             items.forEach(item => {
                 html += `<tr><td>${item.label}</td>`;
                 data.slice(0, 4).forEach(period => {
@@ -300,6 +368,7 @@ class UIManager {
                 });
                 html += '</tr>';
             });
+            console.log(`UIManager: Income statement HTML generated, length: ${html.length}`);
         } else if (tableId === 'balanceData') {
             // Balance Sheet items
             const items = [
@@ -310,6 +379,7 @@ class UIManager {
                 { key: 'long_term_debt', label: 'Long-Term Debt' }
             ];
 
+            console.log(`UIManager: Balance sheet items to render:`, items);
             items.forEach(item => {
                 html += `<tr><td>${item.label}</td>`;
                 data.slice(0, 4).forEach(period => {
@@ -318,6 +388,7 @@ class UIManager {
                 });
                 html += '</tr>';
             });
+            console.log(`UIManager: Balance sheet HTML generated, length: ${html.length}`);
         } else if (tableId === 'cashflowData') {
             // Cash Flow items
             const items = [
@@ -328,6 +399,7 @@ class UIManager {
                 { key: 'stock_repurchased', label: 'Stock Repurchased' }
             ];
 
+            console.log(`UIManager: Cash flow items to render:`, items);
             items.forEach(item => {
                 html += `<tr><td>${item.label}</td>`;
                 data.slice(0, 4).forEach(period => {
@@ -336,9 +408,14 @@ class UIManager {
                 });
                 html += '</tr>';
             });
+            console.log(`UIManager: Cash flow HTML generated, length: ${html.length}`);
         }
 
+        console.log(`UIManager: Final HTML for ${tableId}, length: ${html.length}`);
+        console.log(`UIManager: Setting innerHTML for ${tableId}`);
         tbody.innerHTML = html || '<tr><td colspan="5" class="loading">No data available</td></tr>';
+        console.log(`UIManager: innerHTML set successfully for ${tableId}`);
+        console.log(`=== UIManager: updateFinancialsTable END (${tableId}) ===`);
     }
 
     /**

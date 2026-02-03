@@ -94,6 +94,10 @@
 }
 
 .financials-content {
+  margin-bottom: var(--spacing-xl);
+}
+
+.statement-content {
   display: none;
   
   &.active {

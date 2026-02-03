@@ -88,16 +88,29 @@ class StockAnalyserManager {
     /**
      * Populate historical data table from stock metrics
      * @param {Object} data - Stock data object
+     * @param {number} retryCount - Number of retries attempted (internal use)
      */
-    async populateHistoricalData(data) {
-        console.log('StockAnalyserManager: Populating historical data');
+    async populateHistoricalData(data, retryCount = 0) {
+        const MAX_RETRIES = 10; // Max 10 retries = 1 second total
+        
+        // Only log on first attempt or every 5th retry to reduce console spam
+        if (retryCount === 0 || retryCount % 5 === 0) {
+            console.log(`StockAnalyserManager: Populating historical data (attempt ${retryCount + 1})`);
+        }
 
         // Check if section is loaded
         const section = document.getElementById('stock-analyser');
         if (!section) {
-            console.log('StockAnalyserManager: Section not yet loaded, will try again');
-            // Retry after a short delay
-            setTimeout(() => this.populateHistoricalData(data), 100);
+            if (retryCount < MAX_RETRIES) {
+                // Only log occasionally to reduce spam
+                if (retryCount === 0 || retryCount === MAX_RETRIES - 1) {
+                    console.log(`StockAnalyserManager: Section not yet loaded, will retry (${retryCount + 1}/${MAX_RETRIES})`);
+                }
+                // Retry after a short delay
+                setTimeout(() => this.populateHistoricalData(data, retryCount + 1), 100);
+            } else {
+                console.warn('StockAnalyserManager: Section not loaded after max retries, giving up');
+            }
             return;
         }
 

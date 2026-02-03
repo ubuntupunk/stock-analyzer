@@ -95,6 +95,7 @@ class StockAnalyzer {
         this.modules.watchlistManager = new WatchlistManager(this.modules.dataManager, eventBus);
         this.modules.chartManager = new ChartManager(eventBus);
         this.modules.metricsManager = new MetricsManager(eventBus);
+        this.modules.financialsManager = new FinancialsManager(eventBus);
 
         // Initialize modules that need setup
         this.modules.searchManager.initialize();
@@ -104,6 +105,9 @@ class StockAnalyzer {
         this.modules.watchlistManager.initialize();
         this.modules.metricsManager.initialize();
         this.modules.tabManager.setupTabHandlers();
+        
+        // Expose financials manager globally
+        window.financialsManager = this.modules.financialsManager;
     }
 
     /**

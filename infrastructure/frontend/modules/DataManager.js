@@ -59,7 +59,15 @@ class DataManager {
                     };
                     break;
                 case 'financials':
+                    console.log('=== DataManager: Loading financials START ===');
+                    console.log('DataManager: Calling API for financials, symbol:', symbol);
                     data = await this.loadWithRetry(() => api.getFinancialStatements(symbol));
+                    console.log('DataManager: Financials data received from API:', {
+                        hasData: !!data,
+                        dataType: typeof data,
+                        dataKeys: data ? Object.keys(data) : [],
+                        rawData: data
+                    });
                     break;
                 case 'analyst-estimates':
                     data = await this.loadWithRetry(() => api.getAnalystEstimates(symbol));
@@ -88,7 +96,9 @@ class DataManager {
             if (type === 'metrics' && data) {
                 data = this.transformMetricsData(data);
             } else if (type === 'financials' && data) {
+                console.log('DataManager: Transforming financials data BEFORE:', data);
                 data = this.transformFinancialsData(data);
+                console.log('DataManager: Transforming financials data AFTER:', data);
             } else if (type === 'analyst-estimates' && data) {
                 data = this.transformEstimatesData(data);
             }
@@ -96,7 +106,25 @@ class DataManager {
             // Cache the successful response
             this.setCachedData(cacheKey, data);
             
+            if (type === 'financials') {
+                console.log('DataManager: Emitting data:loaded event for financials:', {
+                    symbol,
+                    type,
+                    hasData: !!data,
+                    dataStructure: {
+                        hasIncomeStatement: !!data?.income_statement,
+                        hasBalanceSheet: !!data?.balance_sheet,
+                        hasCashFlow: !!data?.cash_flow
+                    }
+                });
+            }
+            
             this.eventBus.emit('data:loaded', { symbol, type, data });
+            
+            if (type === 'financials') {
+                console.log('=== DataManager: Loading financials END ===');
+            }
+            
             return data;
 
         } catch (error) {

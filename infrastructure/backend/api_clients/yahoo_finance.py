@@ -236,15 +236,16 @@ class YahooFinanceClient:
                     financials = ticker.financials
                     if financials is not None and not financials.empty:
                         income_statement = []
-                        for i, (date, row) in enumerate(financials.iterrows()):
-                            # Get up to 4 years of data
-                            if i < 4:
-                                income_statement.append({
-                                    'fiscal_date': date.strftime('%Y-%m') if hasattr(date, 'strftime') else str(date),
-                                    'revenue': float(row.get('Total Revenue', 0)) if not pd.isna(row.get('Total Revenue', 0)) else 0,
-                                    'net_income': float(row.get('Net Income', 0)) if not pd.isna(row.get('Net Income', 0)) else 0,
-                                    'ebitda': float(row.get('EBITDA', 0)) if not pd.isna(row.get('EBITDA', 0)) else 0
-                                })
+                        # Columns are dates, rows are line items
+                        for date in financials.columns[:4]:  # Get up to 4 years
+                            income_statement.append({
+                                'fiscal_date': date.strftime('%Y-%m') if hasattr(date, 'strftime') else str(date),
+                                'revenue': float(financials.loc['Total Revenue', date]) if 'Total Revenue' in financials.index and not pd.isna(financials.loc['Total Revenue', date]) else 0,
+                                'net_income': float(financials.loc['Net Income', date]) if 'Net Income' in financials.index and not pd.isna(financials.loc['Net Income', date]) else 0,
+                                'ebitda': float(financials.loc['EBITDA', date]) if 'EBITDA' in financials.index and not pd.isna(financials.loc['EBITDA', date]) else 0,
+                                'gross_profit': float(financials.loc['Gross Profit', date]) if 'Gross Profit' in financials.index and not pd.isna(financials.loc['Gross Profit', date]) else 0,
+                                'operating_income': float(financials.loc['Operating Income', date]) if 'Operating Income' in financials.index and not pd.isna(financials.loc['Operating Income', date]) else 0
+                            })
                         parsed['income_statement'] = income_statement
                 except Exception as e:
                     print(f"Error parsing income statement: {str(e)}")
@@ -255,15 +256,16 @@ class YahooFinanceClient:
                     balance_sheet = ticker.balance_sheet
                     if balance_sheet is not None and not balance_sheet.empty:
                         balance_data = []
-                        for i, (date, row) in enumerate(balance_sheet.iterrows()):
-                            if i < 4:
-                                balance_data.append({
-                                    'fiscal_date': date.strftime('%Y-%m') if hasattr(date, 'strftime') else str(date),
-                                    'total_assets': float(row.get('Total Assets', 0)) if not pd.isna(row.get('Total Assets', 0)) else 0,
-                                    'total_liabilities': float(row.get('Total Liabilities', 0)) if not pd.isna(row.get('Total Liabilities', 0)) else 0,
-                                    'shareholders_equity': float(row.get('Total Stockholder Equity', 0)) if not pd.isna(row.get('Total Stockholder Equity', 0)) else 0,
-                                    'cash': float(row.get('Cash', 0)) if not pd.isna(row.get('Cash', 0)) else 0
-                                })
+                        # Columns are dates, rows are line items
+                        for date in balance_sheet.columns[:4]:  # Get up to 4 years
+                            balance_data.append({
+                                'fiscal_date': date.strftime('%Y-%m') if hasattr(date, 'strftime') else str(date),
+                                'total_assets': float(balance_sheet.loc['Total Assets', date]) if 'Total Assets' in balance_sheet.index and not pd.isna(balance_sheet.loc['Total Assets', date]) else 0,
+                                'total_liabilities': float(balance_sheet.loc['Total Liabilities Net Minority Interest', date]) if 'Total Liabilities Net Minority Interest' in balance_sheet.index and not pd.isna(balance_sheet.loc['Total Liabilities Net Minority Interest', date]) else 0,
+                                'shareholders_equity': float(balance_sheet.loc['Stockholders Equity', date]) if 'Stockholders Equity' in balance_sheet.index and not pd.isna(balance_sheet.loc['Stockholders Equity', date]) else 0,
+                                'cash': float(balance_sheet.loc['Cash And Cash Equivalents', date]) if 'Cash And Cash Equivalents' in balance_sheet.index and not pd.isna(balance_sheet.loc['Cash And Cash Equivalents', date]) else 0,
+                                'long_term_debt': float(balance_sheet.loc['Long Term Debt', date]) if 'Long Term Debt' in balance_sheet.index and not pd.isna(balance_sheet.loc['Long Term Debt', date]) else 0
+                            })
                         parsed['balance_sheet'] = balance_data
                 except Exception as e:
                     print(f"Error parsing balance sheet: {str(e)}")
@@ -274,14 +276,16 @@ class YahooFinanceClient:
                     cashflow = ticker.cashflow
                     if cashflow is not None and not cashflow.empty:
                         cash_flow = []
-                        for i, (date, row) in enumerate(cashflow.iterrows()):
-                            if i < 4:
-                                cash_flow.append({
-                                    'fiscal_date': date.strftime('%Y-%m') if hasattr(date, 'strftime') else str(date),
-                                    'operating_cashflow': float(row.get('Operating Cash Flow', 0)) if not pd.isna(row.get('Operating Cash Flow', 0)) else 0,
-                                    'free_cash_flow': float(row.get('Free Cash Flow', 0)) if not pd.isna(row.get('Free Cash Flow', 0)) else 0,
-                                    'capex': float(row.get('Capital Expenditures', 0)) if not pd.isna(row.get('Capital Expenditures', 0)) else 0
-                                })
+                        # Columns are dates, rows are line items
+                        for date in cashflow.columns[:4]:  # Get up to 4 years
+                            cash_flow.append({
+                                'fiscal_date': date.strftime('%Y-%m') if hasattr(date, 'strftime') else str(date),
+                                'operating_cashflow': float(cashflow.loc['Operating Cash Flow', date]) if 'Operating Cash Flow' in cashflow.index and not pd.isna(cashflow.loc['Operating Cash Flow', date]) else 0,
+                                'free_cash_flow': float(cashflow.loc['Free Cash Flow', date]) if 'Free Cash Flow' in cashflow.index and not pd.isna(cashflow.loc['Free Cash Flow', date]) else 0,
+                                'capex': float(cashflow.loc['Capital Expenditure', date]) if 'Capital Expenditure' in cashflow.index and not pd.isna(cashflow.loc['Capital Expenditure', date]) else 0,
+                                'dividends_paid': float(cashflow.loc['Cash Dividends Paid', date]) if 'Cash Dividends Paid' in cashflow.index and not pd.isna(cashflow.loc['Cash Dividends Paid', date]) else 0,
+                                'stock_repurchased': float(cashflow.loc['Repurchase Of Capital Stock', date]) if 'Repurchase Of Capital Stock' in cashflow.index and not pd.isna(cashflow.loc['Repurchase Of Capital Stock', date]) else 0
+                            })
                         parsed['cash_flow'] = cash_flow
                 except Exception as e:
                     print(f"Error parsing cash flow: {str(e)}")

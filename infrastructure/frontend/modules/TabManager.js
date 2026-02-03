@@ -148,6 +148,9 @@ class TabManager {
                     // Verify it's in the DOM
                     const verifySection = document.getElementById(sectionName);
                     console.log('TabManager: Verification - section in DOM:', !!verifySection);
+                    
+                    // Emit section loaded event
+                    this.eventBus.emit('section:loaded', { sectionName });
                 }
             }
         } catch (error) {

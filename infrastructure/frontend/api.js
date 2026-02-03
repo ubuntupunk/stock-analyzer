@@ -74,7 +74,34 @@ class APIService {
     }
 
     async getFinancialStatements(symbol) {
-        return this.request(`/api/stock/financials?symbol=${symbol}`);
+        console.log('=== API: getFinancialStatements START ===');
+        console.log('API: Requesting financials for symbol:', symbol);
+        console.log('API: Request URL:', `${this.baseURL}/api/stock/financials?symbol=${symbol}`);
+        
+        try {
+            const data = await this.request(`/api/stock/financials?symbol=${symbol}`);
+            console.log('API: Financials response received:', {
+                hasData: !!data,
+                dataKeys: data ? Object.keys(data) : [],
+                hasIncomeStatement: !!data?.income_statement,
+                incomeStatementLength: data?.income_statement?.length,
+                hasBalanceSheet: !!data?.balance_sheet,
+                balanceSheetLength: data?.balance_sheet?.length,
+                hasCashFlow: !!data?.cash_flow,
+                cashFlowLength: data?.cash_flow?.length,
+                fullData: data
+            });
+            console.log('=== API: getFinancialStatements END ===');
+            return data;
+        } catch (error) {
+            console.error('API: getFinancialStatements ERROR:', error);
+            console.error('API: Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            console.log('=== API: getFinancialStatements END (ERROR) ===');
+            throw error;
+        }
     }
 
     async getStockFactors(symbol) {
