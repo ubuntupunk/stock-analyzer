@@ -84,7 +84,7 @@ class StockAnalyzer {
         // Core modules
         this.modules.dataManager = new DataManager(eventBus);
         this.modules.uiManager = new UIManager(eventBus);
-        this.modules.tabManager = new TabManager(this.modules.dataManager, eventBus);
+        this.modules.tabManager = new TabManager(this.modules.dataManager, eventBus, this.modules.uiManager);
         
         // Auth module (depends on DynamoDBService)
         this.modules.userManager = new UserManager(eventBus);
