@@ -1,7 +1,17 @@
 <!-- Financial Statements View -->
 <section id="financials" class="content-section">
     <div class="financials-header">
-        <h3>Financial Statements</h3>
+        <div class="financials-title-group">
+            <h3>Financial Statements</h3>
+            <div id="financialsCompanyInfo" class="company-info">
+                <span id="financialsCompanyName">-</span>
+                <span id="financialsSymbol" class="company-symbol">-</span>
+            </div>
+        </div>
+        <div class="symbol-input-group">
+            <input type="text" id="financialsSymbolInput" placeholder="Enter symbol (e.g., AAPL)" maxlength="10" onkeydown="handleFinancialsSymbolKeydown(event)">
+            <button class="btn-small financials-load-btn" onclick="loadFinancialsSymbol()">Load</button>
+        </div>
     </div>
 
     <div class="financials-tabs">

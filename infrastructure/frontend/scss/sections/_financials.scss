@@ -17,9 +17,86 @@
     padding-bottom: var(--spacing-md);
     border-bottom: 2px solid var(--primary-color);
     
-    h3 {
-      margin: 0;
-      color: var(--primary-color);
+    .financials-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      
+      h3 {
+        margin: 0;
+        color: var(--primary-color);
+      }
+      
+      .company-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        
+        #financialsCompanyName {
+          font-size: var(--font-size-base);
+          color: var(--text-secondary);
+          font-weight: var(--font-weight-normal);
+        }
+        
+        .company-symbol {
+          font-size: var(--font-size-sm);
+          color: var(--text-muted);
+          background-color: var(--bg-light);
+          padding: var(--spacing-xs) var(--spacing-sm);
+          border-radius: var(--border-radius-sm);
+          font-weight: var(--font-weight-medium);
+        }
+      }
+    }
+    
+    .symbol-input-group {
+      display: flex;
+      gap: var(--spacing-sm);
+      
+      input {
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius-sm);
+        font-size: var(--font-size-base);
+        width: 120px;
+        text-transform: uppercase;
+        
+        &:focus {
+          outline: none;
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 2px rgba(91, 163, 208, 0.2);
+        }
+        
+        &::placeholder {
+          color: var(--text-muted);
+          text-transform: none;
+        }
+      }
+      
+      .financials-load-btn {
+        padding: var(--spacing-sm) var(--spacing-lg);
+        background: linear-gradient(135deg, var(--primary-color), color-mix(in srgb, var(--primary-color), white 20%));
+        color: var(--text-light);
+        border: none;
+        border-radius: var(--border-radius-sm);
+        cursor: pointer;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        transition: all var(--transition-fast);
+        white-space: nowrap;
+        box-shadow: 0 2px 4px rgba(91, 163, 208, 0.3);
+        
+        &:hover {
+          background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color), black 10%), var(--primary-color));
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(91, 163, 208, 0.4);
+        }
+        
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(91, 163, 208, 0.3);
+        }
+      }
     }
   }
 }
@@ -83,6 +160,7 @@
     
     &:hover {
       color: var(--primary-color);
+      background-color: var(--bg-hover);
     }
     
     &.active {
@@ -121,12 +199,41 @@
     &-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: var(--spacing-sm);
+      gap: var(--spacing-md);
       margin-bottom: var(--spacing-md);
       padding-bottom: var(--spacing-sm);
       
-      h3 {
-        font-size: var(--font-size-xl);
+      .financials-title-group {
+        h3 {
+          font-size: var(--font-size-xl);
+        }
+        
+        .company-info {
+          flex-wrap: wrap;
+          
+          #financialsCompanyName {
+            font-size: var(--font-size-sm);
+          }
+          
+          .company-symbol {
+            font-size: var(--font-size-xs);
+          }
+        }
+      }
+      
+      .symbol-input-group {
+        width: 100%;
+        
+        input {
+          flex: 1;
+          min-width: 80px;
+          font-size: var(--font-size-sm);
+        }
+        
+        .financials-load-btn {
+          padding: var(--spacing-sm) var(--spacing-md);
+          font-size: var(--font-size-sm);
+        }
       }
     }
   }
@@ -157,8 +264,34 @@
 @include xs {
   .financials {
     &-header {
-      h3 {
-        font-size: var(--font-size-lg);
+      .financials-title-group {
+        h3 {
+          font-size: var(--font-size-lg);
+        }
+        
+        .company-info {
+          #financialsCompanyName {
+            font-size: var(--font-size-xs);
+          }
+          
+          .company-symbol {
+            font-size: 10px;
+            padding: 2px 6px;
+          }
+        }
+      }
+      
+      .symbol-input-group {
+        input {
+          width: 100%;
+          font-size: var(--font-size-xs);
+          padding: var(--spacing-xs) var(--spacing-sm);
+        }
+        
+        .financials-load-btn {
+          padding: var(--spacing-xs) var(--spacing-md);
+          font-size: var(--font-size-xs);
+        }
       }
     }
   }

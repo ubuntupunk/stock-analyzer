@@ -7,6 +7,7 @@ class FinancialsManager {
         this.currentStatement = 'income';
         this.currentPeriod = 'annual';
         this.setupEventListeners();
+        this.setupSymbolInputHandlers();
     }
 
     /**
@@ -17,6 +18,8 @@ class FinancialsManager {
         this.eventBus.on('data:loaded', ({ type, data, symbol }) => {
             if (type === 'financials') {
                 console.log('FinancialsManager: Financials data loaded, setting up UI');
+                // Update company info in header
+                this.updateCompanyInfo(symbol, data);
                 // Use a small delay to ensure DOM is fully updated
                 setTimeout(() => this.setupFinancialsUI(), 50);
             }
@@ -38,6 +41,135 @@ class FinancialsManager {
                 setTimeout(() => this.setupFinancialsUI(), 100);
             }
         });
+
+        // Listen for stock selected events to update company info
+        this.eventBus.on('stock:selected', ({ symbol }) => {
+            console.log('FinancialsManager: Stock selected:', symbol);
+            this.updateCompanyInfo(symbol, null);
+        });
+    }
+
+    /**
+     * Update company info in the financials header
+     * @param {string} symbol - Stock symbol
+     * @param - Financial data (optional, contains company {object} data name)
+     */
+    updateCompanyInfo(symbol, data = null) {
+        const symbolElement = document.getElementById('financialsSymbol');
+        const nameElement = document.getElementById('financialsCompanyName');
+        
+        if (symbolElement) {
+            symbolElement.textContent = symbol ? `(${symbol})` : '-';
+        }
+        
+        if (nameElement) {
+            // Try to get company name from various sources
+            let companyName = '-';
+            
+            // 1. First try from the financial data directly (if provided)
+            if (data) {
+                if (data.company_name) {
+                    companyName = data.company_name;
+                } else if (data.meta && data.meta.company_name) {
+                    companyName = data.meta.company_name;
+                } else if (data.meta && data.meta.companyName) {
+                    companyName = data.meta.companyName;
+                }
+            }
+            
+            // 2. Try to find in popular stocks
+            if (companyName === '-' && window.stockManager && window.stockManager.popularStocks) {
+                const stock = window.stockManager.popularStocks.find(s => s.symbol === symbol);
+                if (stock && stock.name) {
+                    companyName = stock.name;
+                }
+            }
+            
+            // 3. Try to get from metrics cache (this is where company_name is typically stored)
+            if (companyName === '-' && window.dataManager && window.dataManager.getCachedData) {
+                try {
+                    const metricsCacheKey = `${symbol}:metrics`;
+                    const metricsData = window.dataManager.getCachedData(metricsCacheKey);
+                    if (metricsData) {
+                        // Check various possible locations for company name
+                        if (metricsData.companyName) {
+                            companyName = metricsData.companyName;
+                        } else if (metricsData.company_name) {
+                            companyName = metricsData.company_name;
+                        } else if (metricsData.meta && metricsData.meta.companyName) {
+                            companyName = metricsData.meta.companyName;
+                        } else if (metricsData.meta && metricsData.meta.company_name) {
+                            companyName = metricsData.meta.company_name;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('FinancialsManager: Error getting metrics cache:', e);
+                }
+            }
+            
+            // 4. Try to get from metrics manager or other tabs
+            if (companyName === '-') {
+                try {
+                    // Try from StockAnalyserManager (has companyName element)
+                    const analyserNameElement = document.querySelector('#stockAnalyserSection #companyName');
+                    if (analyserNameElement && analyserNameElement.textContent && 
+                        analyserNameElement.textContent !== 'Market Data' && 
+                        analyserNameElement.textContent !== '-') {
+                        companyName = analyserNameElement.textContent;
+                    }
+                } catch (e) {
+                    // Ignore errors
+                }
+            }
+            
+            // 5. Try from MetricsManager if available
+            if (companyName === '-' && window.metricsManager) {
+                try {
+                    const metricsCompanyNameElement = document.getElementById('companyName');
+                    if (metricsCompanyNameElement && metricsCompanyNameElement.textContent && 
+                        metricsCompanyNameElement.textContent !== 'Market Data' && 
+                        metricsCompanyNameElement.textContent !== '-') {
+                        companyName = metricsCompanyNameElement.textContent;
+                    }
+                } catch (e) {
+                    // Ignore errors
+                }
+            }
+            
+            nameElement.textContent = companyName;
+        }
+    }
+
+    /**
+     * Setup symbol input handlers for the financials section
+     */
+    setupSymbolInputHandlers() {
+        console.log('FinancialsManager: Setting up symbol input handlers');
+        
+        // Make the loadFinancialsSymbol function globally available
+        window.loadFinancialsSymbol = () => {
+            const input = document.getElementById('financialsSymbolInput');
+            if (input && input.value.trim()) {
+                const symbol = input.value.trim().toUpperCase();
+                console.log('FinancialsManager: Loading financials for symbol:', symbol);
+                if (window.stockManager) {
+                    window.stockManager.selectStock(symbol, 'financials');
+                } else if (window.app && window.app.modules && window.app.modules.stockManager) {
+                    window.app.modules.stockManager.selectStock(symbol, 'financials');
+                } else {
+                    console.error('FinancialsManager: stockManager not available');
+                }
+            }
+        };
+        
+        // Make the keydown handler globally available
+        window.handleFinancialsSymbolKeydown = (event) => {
+            if (event.key === 'Enter') {
+                loadFinancialsSymbol();
+            }
+        };
+        
+        console.log('FinancialsManager: Symbol input handlers set up');
     }
 
     /**
