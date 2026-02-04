@@ -33,9 +33,32 @@ class SearchManager {
     /**
      * Initialize search functionality
      */
-    initialize() {
+    async initialize() {
+        // Wait for the search input to be available (header is loaded dynamically)
+        await this.waitForSearchInput();
         this.setupSearchInput();
         this.setupSearchKeyboardHandlers();
+    }
+
+    /**
+     * Wait for the search input element to be available
+     * Header is loaded dynamically after DOMContentLoaded, so we need to wait
+     */
+    async waitForSearchInput() {
+        console.log('SearchManager: Waiting for search input...');
+        let attempts = 0;
+        const maxAttempts = 50; // 2.5 seconds max (50 * 50ms)
+
+        while (!document.getElementById('stockSearch') && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+        }
+
+        if (document.getElementById('stockSearch')) {
+            console.log('SearchManager: Search input found after', attempts * 50, 'ms');
+        } else {
+            console.warn('SearchManager: Search input not found after timeout');
+        }
     }
 
     /**
