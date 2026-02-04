@@ -62,6 +62,18 @@ class UIManager {
         this.eventBus.on('dcf:analyzed', ({ results }) => {
             this.hideDCFAnalyzing();
         });
+
+        // Home breadcrumb click handler
+        const breadcrumbHomeLink = document.getElementById('breadcrumb-home-link');
+        if (breadcrumbHomeLink) {
+            breadcrumbHomeLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Navigate to home (Popular Stocks tab)
+                if (this.eventBus && this.eventBus.emit) {
+                    this.eventBus.emit('tab:switch', { tabName: 'popular-stocks' });
+                }
+            });
+        }
     }
 
     /**

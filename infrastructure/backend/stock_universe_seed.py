@@ -23,7 +23,11 @@ class StockUniverseSeeder:
             url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
             
             import pandas as pd
-            tables = pd.read_html(url)
+            # Add user agent to avoid 403 errors from Wikipedia
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            tables = pd.read_html(url, storage_options=headers)
             sp500_table = tables[0]
             
             stocks = []
