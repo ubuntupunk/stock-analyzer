@@ -115,7 +115,7 @@ class SearchManager {
      */
     handleSearchKeydown(e) {
         const resultsContainer = document.getElementById('searchResults');
-        if (!resultsContainer || resultsContainer.style.display === 'none') {
+        if (!resultsContainer || !resultsContainer.classList.contains('show')) {
             return;
         }
 
@@ -238,7 +238,7 @@ class SearchManager {
         `).join('');
 
         resultsContainer.innerHTML = resultsHtml;
-        resultsContainer.style.display = 'block';
+        resultsContainer.classList.add('show');
         
         this.eventBus.emit('search:resultsShown', { results: this.searchResults });
     }
@@ -249,7 +249,7 @@ class SearchManager {
     hideSearchResults() {
         const resultsContainer = document.getElementById('searchResults');
         if (resultsContainer) {
-            resultsContainer.style.display = 'none';
+            resultsContainer.classList.remove('show');
         }
         
         this.eventBus.emit('search:resultsHidden');
@@ -267,7 +267,7 @@ class SearchManager {
         const resultsContainer = document.getElementById('searchResults');
         if (resultsContainer) {
             resultsContainer.innerHTML = '<div class="search-loading">Searching...</div>';
-            resultsContainer.style.display = 'block';
+            resultsContainer.classList.add('show');
         }
     }
 
