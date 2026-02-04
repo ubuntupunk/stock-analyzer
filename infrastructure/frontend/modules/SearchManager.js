@@ -133,13 +133,13 @@ class SearchManager {
             case 'ArrowDown':
                 e.preventDefault();
                 currentIndex = Math.min(currentIndex + 1, resultItems.length - 1);
-                this.selectSearchResult(resultItems, currentIndex);
+                this.highlightSearchResult(resultItems, currentIndex);
                 break;
 
             case 'ArrowUp':
                 e.preventDefault();
                 currentIndex = Math.max(currentIndex - 1, 0);
-                this.selectSearchResult(resultItems, currentIndex);
+                this.highlightSearchResult(resultItems, currentIndex);
                 break;
 
             case 'Enter':
@@ -159,11 +159,11 @@ class SearchManager {
     }
 
     /**
-     * Select a search result item
+     * Highlight a search result item during keyboard navigation
      * @param {NodeList} resultItems - Search result items
      * @param {number} index - Index to select
      */
-    selectSearchResult(resultItems, index) {
+    highlightSearchResult(resultItems, index) {
         // Remove previous selection
         resultItems.forEach(item => item.classList.remove('selected'));
         

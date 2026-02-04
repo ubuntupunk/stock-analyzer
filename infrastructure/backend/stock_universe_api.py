@@ -24,24 +24,35 @@ class StockUniverseManager:
         """
         try:
             query_upper = query.upper()
+            query_lower = query.lower()
+            query_title = query.title()
             
-            # Scan with filter for symbol or name containing query
-            response = self.table.scan(
-                FilterExpression=Attr('symbol').contains(query_upper) | 
-                                Attr('name').contains(query_upper),
-                Limit=limit
-            )
+            # Since DynamoDB contains() is case-sensitive, we need to scan all and filter in Python
+            response = self.table.scan()
             
             items = response.get('Items', [])
             
-            # Sort by relevance (exact symbol match first, then alphabetically)
-            items.sort(key=lambda x: (
+            # Filter by symbol or name (case-insensitive)
+            filtered_items = []
+            for item in items:
+                symbol = item.get('symbol', '')
+                name = item.get('name', '')
+                
+                # Check if query matches (case-insensitive)
+                if (query_upper in symbol.upper() or 
+                    query_lower in name.lower() or
+                    query_upper in name.upper() or
+                    query_title in name):
+                    filtered_items.append(item)
+            
+            # Sort by relevance (exact symbol match first, then starts with, then alphabetically)
+            filtered_items.sort(key=lambda x: (
                 0 if x['symbol'] == query_upper else 1,
                 1 if x['symbol'].startswith(query_upper) else 2,
                 x['symbol']
             ))
             
-            return items[:limit]
+            return filtered_items[:limit]
         except Exception as e:
             print(f"Error searching stocks: {str(e)}")
             return []
