@@ -114,6 +114,48 @@ def get_factors():
     result = stock_api.get_stock_factors(symbol.upper())
     return jsonify(result)
 
+@app.route('/api/stocks/search')
+def search_stocks():
+    query = request.args.get('q', '')
+    limit = request.args.get('limit', 20)
+    
+    if not query:
+        return jsonify({'error': 'Query parameter "q" is required'}), 400
+    
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 20
+    
+    # Try to use DynamoDB-based stock universe manager
+    try:
+        from stock_universe_api import StockUniverseManager
+        manager = StockUniverseManager()
+        result = manager.search_stocks(query, limit)
+        if result:
+            return jsonify(result)
+    except Exception as e:
+        print(f"DynamoDB not available, using local fallback: {e}")
+    
+    # Fallback to local search in popular stocks list
+    query_upper = query.upper()
+    results = []
+    
+    for stock in LOCAL_POPULAR_STOCKS:
+        # Check if query matches symbol or name
+        if (query_upper in stock['symbol'] or 
+            query_upper in stock['name'].upper()):
+            results.append(stock)
+    
+    # Sort by relevance (exact symbol match first)
+    results.sort(key=lambda x: (
+        0 if x['symbol'] == query_upper else 1,
+        1 if x['symbol'].startswith(query_upper) else 2,
+        x['symbol']
+    ))
+    
+    return jsonify(results[:limit])
+
 @app.route('/api/stocks/popular')
 def get_popular_stocks():
     limit = request.args.get('limit', 10)
@@ -177,5 +219,7 @@ if __name__ == '__main__':
     print("  - GET /api/stock/estimates?symbol=AAPL")
     print("  - GET /api/stock/financials?symbol=AAPL")
     print("  - GET /api/stock/news?symbol=AAPL")
+    print("  - GET /api/stocks/search?q=apple")
+    print("  - GET /api/stocks/popular?limit=10")
     print()
     app.run(host='0.0.0.0', port=5000, debug=True)

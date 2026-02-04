@@ -5,6 +5,7 @@ class MetricsManager {
     constructor(eventBus) {
         this.eventBus = eventBus;
         this.currentView = 'grid'; // 'grid' or 'list'
+        this.setupSymbolInputHandlers();
     }
 
     /**
@@ -12,6 +13,121 @@ class MetricsManager {
      */
     initialize() {
         this.setupViewToggleHandlers();
+        this.setupEventListeners();
+    }
+
+    /**
+     * Setup event listeners for metrics interactions
+     */
+    setupEventListeners() {
+        // Listen for data loaded events
+        this.eventBus.on('data:loaded', ({ type, data, symbol }) => {
+            if (type === 'metrics') {
+                console.log('MetricsManager: Metrics data loaded, updating company info');
+                this.updateCompanyInfo(symbol, data);
+            }
+        });
+
+        // Listen for stock selected events to update company info
+        this.eventBus.on('stock:selected', ({ symbol }) => {
+            console.log('MetricsManager: Stock selected:', symbol);
+            this.updateCompanyInfo(symbol, null);
+        });
+    }
+
+    /**
+     * Update company info in the metrics header
+     * @param {string} symbol - Stock symbol
+     * @param {object} data - Metrics data (optional, contains company name)
+     */
+    updateCompanyInfo(symbol, data = null) {
+        const symbolElement = document.getElementById('metricsSymbol');
+        const nameElement = document.getElementById('metricsCompanyName');
+        
+        if (symbolElement) {
+            symbolElement.textContent = symbol ? `(${symbol})` : '-';
+        }
+        
+        if (nameElement) {
+            // Try to get company name from various sources
+            let companyName = '-';
+            
+            // 1. First try from the metrics data directly (if provided)
+            if (data) {
+                if (data.company_name) {
+                    companyName = data.company_name;
+                } else if (data.companyName) {
+                    companyName = data.companyName;
+                } else if (data.meta && data.meta.company_name) {
+                    companyName = data.meta.company_name;
+                } else if (data.meta && data.meta.companyName) {
+                    companyName = data.meta.companyName;
+                }
+            }
+            
+            // 2. Try to find in popular stocks
+            if (companyName === '-' && window.stockManager && window.stockManager.popularStocks) {
+                const stock = window.stockManager.popularStocks.find(s => s.symbol === symbol);
+                if (stock && stock.name) {
+                    companyName = stock.name;
+                }
+            }
+            
+            // 3. Try to get from cache
+            if (companyName === '-' && window.dataManager && window.dataManager.getCachedData) {
+                try {
+                    const metricsCacheKey = `${symbol}:metrics`;
+                    const metricsData = window.dataManager.getCachedData(metricsCacheKey);
+                    if (metricsData) {
+                        if (metricsData.companyName) {
+                            companyName = metricsData.companyName;
+                        } else if (metricsData.company_name) {
+                            companyName = metricsData.company_name;
+                        } else if (metricsData.meta && metricsData.meta.companyName) {
+                            companyName = metricsData.meta.companyName;
+                        } else if (metricsData.meta && metricsData.meta.company_name) {
+                            companyName = metricsData.meta.company_name;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('MetricsManager: Error getting metrics cache:', e);
+                }
+            }
+            
+            nameElement.textContent = companyName;
+        }
+    }
+
+    /**
+     * Setup symbol input handlers for the metrics section
+     */
+    setupSymbolInputHandlers() {
+        console.log('MetricsManager: Setting up symbol input handlers');
+        
+        // Make the loadMetricsSymbol function globally available
+        window.loadMetricsSymbol = () => {
+            const input = document.getElementById('metricsSymbolInput');
+            if (input && input.value.trim()) {
+                const symbol = input.value.trim().toUpperCase();
+                console.log('MetricsManager: Loading metrics for symbol:', symbol);
+                if (window.stockManager) {
+                    window.stockManager.selectStock(symbol, 'metrics');
+                } else if (window.app && window.app.modules && window.app.modules.stockManager) {
+                    window.app.modules.stockManager.selectStock(symbol, 'metrics');
+                } else {
+                    console.error('MetricsManager: stockManager not available');
+                }
+            }
+        };
+        
+        // Make the keydown handler globally available
+        window.handleMetricsSymbolKeydown = (event) => {
+            if (event.key === 'Enter') {
+                loadMetricsSymbol();
+            }
+        };
+        
+        console.log('MetricsManager: Symbol input handlers set up');
     }
 
     /**
