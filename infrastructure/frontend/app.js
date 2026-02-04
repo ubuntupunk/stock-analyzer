@@ -125,9 +125,11 @@ class StockAnalyzer {
         // Stock selection flow
         eventBus.on('stock:selected', ({ symbol, targetTab }) => {
             this.modules.watchlistManager.updateWatchlistButtonState(symbol);
-            this.modules.uiManager.updateBreadcrumbs(symbol, 'search');
+            // Default to 'metrics' tab when no targetTab is specified (e.g., from search)
+            const effectiveTargetTab = targetTab || 'metrics';
+            this.modules.uiManager.updateBreadcrumbs(symbol, 'metrics');
             // Update URL with symbol and target tab
-            this.updateURL(symbol, targetTab);
+            this.updateURL(symbol, effectiveTargetTab);
         });
 
         // Tab switching flow
