@@ -8,6 +8,7 @@ class FactorsManager {
         this.factors = [];
         this.customFactors = [];
         this.currentStock = null;
+        this.dropZoneSetup = false; // Guard to prevent duplicate event listeners
         this.availableFactors = [
             { id: 'pe_ratio', name: 'P/E Ratio', category: 'valuation', description: '5yr P/E Ratio' },
             { id: 'roic', name: 'ROIC', category: 'profitability', description: '5yr Return on Invested Capital' },
@@ -388,16 +389,18 @@ class FactorsManager {
     }
 
     handleDrop(e, dropIndex) {
+        // Stop propagation to prevent container handler from also handling this drop
         if (e.stopPropagation) {
             e.stopPropagation();
         }
         e.preventDefault();
+        e.stopImmediatePropagation();
 
         try {
             const data = JSON.parse(e.dataTransfer.getData('application/json'));
             
             if (data.type === 'active-factor') {
-                // Reordering active factors
+                // Reordering active factors - only handle on individual items
                 const dragIndex = data.index;
                 if (dragIndex !== dropIndex) {
                     const draggedItem = this.factors[dragIndex];
@@ -405,10 +408,8 @@ class FactorsManager {
                     this.factors.splice(dropIndex, 0, draggedItem);
                     this.renderActiveFactors();
                 }
-            } else if (data.type === 'factor-block') {
-                // Dropping a factor block onto active list
-                this.quickAddFactor(data.factor);
             }
+            // Factor blocks are handled by the container drop zone only
         } catch (error) {
             console.error('Error handling drop:', error);
         }
@@ -423,7 +424,9 @@ class FactorsManager {
     // Drop zone for active factors list
     setupActiveListDropZone() {
         const activeList = document.getElementById('activeFactorsList');
-        if (!activeList) return;
+        if (!activeList || this.dropZoneSetup) return;
+
+        this.dropZoneSetup = true;
 
         activeList.addEventListener('dragover', (e) => {
             e.preventDefault();
