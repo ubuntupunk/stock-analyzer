@@ -15,7 +15,9 @@ class StockScreener:
     
     def __init__(self):
         self.dynamodb = boto3.resource('dynamodb')
-        self.factors_table = self.dynamodb.Table(os.environ.get('FACTORS_TABLE', 'stock-factors'))
+        # Use single-table design with the main StockAnalyzer table
+        table_name = os.environ.get('TABLE_NAME', os.environ.get('FACTORS_TABLE', 'StockAnalyzer'))
+        self.table = self.dynamodb.Table(table_name)
         self.stock_universe_table = self.dynamodb.Table(os.environ.get('STOCK_UNIVERSE_TABLE', 'stock-universe'))
     
     def screen_stocks(self, criteria: Dict) -> List[Dict]:
@@ -81,39 +83,44 @@ class StockScreener:
         return True
     
     def save_factor(self, user_id: str, factor_data: Dict) -> Dict:
-        """Save a custom factor screen for a user"""
+        """Save a custom factor using single-table design"""
         try:
+            factor_id = factor_data.get('factorId')
             item = {
+                'PK': f'USER#{user_id}',
+                'SK': f'FACTOR#{factor_id}',
                 'userId': user_id,
-                'factorId': factor_data.get('factorId'),
+                'factorId': factor_id,
                 'name': factor_data.get('name'),
+                'description': factor_data.get('description', ''),
                 'criteria': factor_data.get('criteria'),
-                'createdAt': factor_data.get('createdAt')
+                'createdAt': factor_data.get('createdAt'),
+                'entityType': 'CUSTOM_FACTOR'
             }
             
-            self.factors_table.put_item(Item=item)
+            self.table.put_item(Item=item)
             return {'success': True, 'factor': item}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
     def get_user_factors(self, user_id: str) -> List[Dict]:
-        """Get all saved factors for a user"""
+        """Get all saved factors for a user using single-table design"""
         try:
-            response = self.factors_table.query(
-                KeyConditionExpression='userId = :uid',
-                ExpressionAttributeValues={':uid': user_id}
+            from boto3.dynamodb.conditions import Key
+            response = self.table.query(
+                KeyConditionExpression=Key('PK').eq(f'USER#{user_id}') & Key('SK').begins_with('FACTOR#')
             )
             return response.get('Items', [])
         except Exception as e:
             return {'error': str(e)}
     
     def delete_factor(self, user_id: str, factor_id: str) -> Dict:
-        """Delete a custom factor for a user"""
+        """Delete a custom factor using single-table design"""
         try:
-            self.factors_table.delete_item(
+            self.table.delete_item(
                 Key={
-                    'userId': user_id,
-                    'factorId': factor_id
+                    'PK': f'USER#{user_id}',
+                    'SK': f'FACTOR#{factor_id}'
                 }
             )
             return {'success': True, 'message': 'Factor deleted successfully'}

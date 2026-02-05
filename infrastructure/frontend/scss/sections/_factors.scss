@@ -141,6 +141,11 @@
                 cursor: grabbing;
             }
 
+            &.dragging {
+                opacity: 0.5;
+                transform: scale(0.95);
+            }
+
             .factor-block-header {
                 padding: 1rem 1.25rem;
                 color: white;
@@ -170,6 +175,34 @@
                 .factor-block-name {
                     font-size: 1.1rem;
                     text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    flex: 1;
+                }
+
+                .factor-quick-add {
+                    margin-left: auto;
+                    background: rgba(255, 255, 255, 0.2);
+                    border: none;
+                    color: white;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.1rem;
+
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.9);
+                        color: var(--primary-color);
+                        transform: scale(1.15) rotate(90deg);
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    }
+
+                    &:active {
+                        transform: scale(1.05) rotate(90deg);
+                    }
                 }
 
                 .factor-delete-btn {
@@ -377,6 +410,15 @@
         }
 
         .active-factors-list {
+            min-height: 100px;
+            transition: all 0.3s ease;
+
+            &.drop-zone-active {
+                background: rgba(59, 130, 246, 0.1);
+                border: 2px dashed var(--primary-color);
+                border-radius: 8px;
+            }
+
             .no-factors {
                 text-align: center;
                 color: var(--text-secondary);

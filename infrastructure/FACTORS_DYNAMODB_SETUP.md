@@ -224,7 +224,13 @@ If you want to use the single `StockAnalyzer` table (recommended for production)
    export STOCK_UNIVERSE_TABLE=stock-universe
    ```
 
-**Current Status:** Code uses separate tables by default. Single-table is an optimization you can implement later.
+**✅ UPDATE: Code now uses SINGLE-TABLE design by default!**
+
+The `screener_api.py` has been updated to use the existing `StockAnalyzer` table with PK/SK pattern:
+- PK: `USER#{userId}`
+- SK: `FACTOR#{factorId}`
+
+This means you don't need to create a separate `stock-factors` table!
 
 ---
 

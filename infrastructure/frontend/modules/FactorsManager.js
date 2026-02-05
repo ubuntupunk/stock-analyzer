@@ -39,6 +39,7 @@ class FactorsManager {
         console.log('FactorsManager: DOM ready, initializing...');
         this.loadCustomFactorsFromBackend();
         this.setupEventListeners();
+        this.setupActiveListDropZone();
         this.renderFactorBlocks();
         this.renderActiveFactors();
     }
@@ -140,6 +141,8 @@ class FactorsManager {
         block.className = `factor-block factor-block-${factor.category}`;
         block.draggable = true;
         block.dataset.factorId = factor.id;
+        block.dataset.factorName = factor.name;
+        block.dataset.factorCategory = factor.category;
 
         const categoryColors = {
             valuation: '#3b82f6',
@@ -152,26 +155,56 @@ class FactorsManager {
             <div class="factor-block-header" style="background: ${categoryColors[factor.category] || '#6b7280'}">
                 <span class="factor-block-icon">📊</span>
                 <span class="factor-block-name">${factor.name}</span>
+                <button class="factor-quick-add" title="Add to screening">
+                    <i class="fas fa-plus"></i>
+                </button>
             </div>
             <div class="factor-block-body">
                 <p class="factor-description">${factor.description}</p>
-                <div class="factor-controls">
-                    <select class="factor-operator" data-factor="${factor.id}">
-                        ${this.operators.map(op => `<option value="${op}">${op}</option>`).join('')}
-                    </select>
-                    <input type="number" class="factor-value" placeholder="Value" step="0.01" data-factor="${factor.id}">
-                    <button class="factor-add-btn" data-factor="${factor.id}">
-                        <i class="fas fa-plus"></i> Add
-                    </button>
-                </div>
             </div>
         `;
 
-        // Add event listener to the add button
-        const addBtn = block.querySelector('.factor-add-btn');
-        addBtn.addEventListener('click', () => this.addFactorToScreen(factor));
+        // Quick add button
+        const quickAddBtn = block.querySelector('.factor-quick-add');
+        quickAddBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.quickAddFactor(factor);
+        });
+
+        // Drag and drop handlers for blocks
+        block.addEventListener('dragstart', (e) => this.handleBlockDragStart(e, factor));
+        block.addEventListener('dragend', (e) => this.handleBlockDragEnd(e));
 
         return block;
+    }
+
+    quickAddFactor(factor) {
+        // Show a quick modal to get operator and value
+        const operator = prompt(`Add ${factor.name} with operator (>, <, >=, <=, =):`, '>');
+        if (!operator) return;
+
+        const value = prompt(`Enter value for ${factor.name}:`, '');
+        if (!value || isNaN(value)) {
+            alert('Please enter a valid number');
+            return;
+        }
+
+        this.addFactorToScreenDirect(factor, operator, parseFloat(value));
+    }
+
+    addFactorToScreenDirect(factor, operator, value) {
+        const screenFactor = {
+            id: factor.id,
+            name: factor.name,
+            operator: operator,
+            value: value,
+            category: factor.category
+        };
+
+        this.factors.push(screenFactor);
+        this.renderActiveFactors();
+        
+        console.log('Factor added to screen:', screenFactor);
     }
 
     createCustomFactorBlock(factor) {
@@ -274,10 +307,27 @@ class FactorsManager {
         container.appendChild(list);
     }
 
-    // Drag and Drop handlers for active factors
+    // Drag and Drop handlers for factor blocks
+    handleBlockDragStart(e, factor) {
+        e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.setData('application/json', JSON.stringify({
+            type: 'factor-block',
+            factor: factor
+        }));
+        e.target.classList.add('dragging');
+    }
+
+    handleBlockDragEnd(e) {
+        e.target.classList.remove('dragging');
+    }
+
+    // Drag and Drop handlers for active factors (reordering)
     handleDragStart(e, index) {
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', index);
+        e.dataTransfer.setData('application/json', JSON.stringify({
+            type: 'active-factor',
+            index: index
+        }));
         e.target.classList.add('dragging');
     }
 
@@ -295,16 +345,24 @@ class FactorsManager {
         }
         e.preventDefault();
 
-        const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-        
-        if (dragIndex !== dropIndex) {
-            // Reorder factors array
-            const draggedItem = this.factors[dragIndex];
-            this.factors.splice(dragIndex, 1);
-            this.factors.splice(dropIndex, 0, draggedItem);
+        try {
+            const data = JSON.parse(e.dataTransfer.getData('application/json'));
             
-            // Re-render
-            this.renderActiveFactors();
+            if (data.type === 'active-factor') {
+                // Reordering active factors
+                const dragIndex = data.index;
+                if (dragIndex !== dropIndex) {
+                    const draggedItem = this.factors[dragIndex];
+                    this.factors.splice(dragIndex, 1);
+                    this.factors.splice(dropIndex, 0, draggedItem);
+                    this.renderActiveFactors();
+                }
+            } else if (data.type === 'factor-block') {
+                // Dropping a factor block onto active list
+                this.quickAddFactor(data.factor);
+            }
+        } catch (error) {
+            console.error('Error handling drop:', error);
         }
 
         return false;
@@ -312,6 +370,39 @@ class FactorsManager {
 
     handleDragEnd(e) {
         e.target.classList.remove('dragging');
+    }
+
+    // Drop zone for active factors list
+    setupActiveListDropZone() {
+        const activeList = document.getElementById('activeFactorsList');
+        if (!activeList) return;
+
+        activeList.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            activeList.classList.add('drop-zone-active');
+        });
+
+        activeList.addEventListener('dragleave', (e) => {
+            if (e.target === activeList) {
+                activeList.classList.remove('drop-zone-active');
+            }
+        });
+
+        activeList.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            activeList.classList.remove('drop-zone-active');
+
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                if (data.type === 'factor-block') {
+                    this.quickAddFactor(data.factor);
+                }
+            } catch (error) {
+                console.error('Error handling drop on active list:', error);
+            }
+        });
     }
 
     removeFactor(index) {
@@ -700,6 +791,7 @@ class FactorsManager {
         console.log('FactorsManager: Tab activated, rendering blocks...');
         // Wait a bit for DOM to be ready
         setTimeout(() => {
+            this.setupActiveListDropZone();
             this.renderFactorBlocks();
             this.renderActiveFactors();
         }, 50);
