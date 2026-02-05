@@ -19,6 +19,16 @@ class FactorsManager {
         this.operators = ['>', '<', '>=', '<=', '=', '!='];
         this.screenResults = [];
         
+        // Default values for quick add - sensible defaults for each factor type
+        this.factorDefaults = {
+            'pe_ratio': { operator: '>', value: 15 },
+            'roic': { operator: '>', value: 15 },
+            'revenue_growth': { operator: '>', value: 10 },
+            'debt_to_equity': { operator: '<', value: 1 },
+            'current_ratio': { operator: '>', value: 1.5 },
+            'price_to_fcf': { operator: '>', value: 15 }
+        };
+        
         this.init();
     }
 
@@ -151,24 +161,48 @@ class FactorsManager {
             financial_health: '#f59e0b'
         };
 
+        const defaults = this.factorDefaults[factor.id] || { operator: '>', value: 10 };
+
+        // Generate operator options with the default pre-selected
+        const operatorOptions = this.operators.map(op =>
+            `<option value="${op}" ${op === defaults.operator ? 'selected' : ''}>${op}</option>`
+        ).join('');
+
         block.innerHTML = `
             <div class="factor-block-header" style="background: ${categoryColors[factor.category] || '#6b7280'}">
                 <span class="factor-block-icon">📊</span>
                 <span class="factor-block-name">${factor.name}</span>
-                <button class="factor-quick-add" title="Add to screening">
+                <button class="factor-quick-add" title="Add with defaults">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
             <div class="factor-block-body">
                 <p class="factor-description">${factor.description}</p>
+                <div class="factor-controls">
+                    <select class="factor-operator" data-factor="${factor.id}">
+                        ${operatorOptions}
+                    </select>
+                    <input type="number" class="factor-value" data-factor="${factor.id}"
+                           placeholder="Value" value="${defaults.value}" step="0.1">
+                    <button class="factor-add-btn" data-factor="${factor.id}">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
             </div>
         `;
 
-        // Quick add button
+        // Quick add button - uses defaults, no popup
         const quickAddBtn = block.querySelector('.factor-quick-add');
         quickAddBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.quickAddFactor(factor);
+        });
+
+        // Inline Add button - uses current values in dropdown and input
+        const addBtn = block.querySelector('.factor-add-btn');
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.addFactorFromBlock(factor);
         });
 
         // Drag and drop handlers for blocks
@@ -178,18 +212,32 @@ class FactorsManager {
         return block;
     }
 
-    quickAddFactor(factor) {
-        // Show a quick modal to get operator and value
-        const operator = prompt(`Add ${factor.name} with operator (>, <, >=, <=, =):`, '>');
-        if (!operator) return;
+    /**
+     * Add factor using values from the inline controls in the block
+     */
+    addFactorFromBlock(factor) {
+        // We need to find the block that was clicked - use event target
+        const addBtn = event.target.closest('.factor-add-btn');
+        if (!addBtn) return;
+        
+        const blockEl = addBtn.closest('.factor-block');
+        if (!blockEl) return;
+        
+        const operator = blockEl.querySelector('.factor-operator').value;
+        const value = parseFloat(blockEl.querySelector('.factor-value').value);
 
-        const value = prompt(`Enter value for ${factor.name}:`, '');
-        if (!value || isNaN(value)) {
+        if (isNaN(value)) {
             alert('Please enter a valid number');
             return;
         }
 
-        this.addFactorToScreenDirect(factor, operator, parseFloat(value));
+        this.addFactorToScreenDirect(factor, operator, value);
+    }
+
+    quickAddFactor(factor) {
+        // Use preloaded defaults - no popup dialogs
+        const defaults = this.factorDefaults[factor.id] || { operator: '>', value: 10 };
+        this.addFactorToScreenDirect(factor, defaults.operator, defaults.value);
     }
 
     addFactorToScreenDirect(factor, operator, value) {
