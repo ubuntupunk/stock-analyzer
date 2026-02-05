@@ -329,6 +329,19 @@ class FactorsManager {
             item.className = 'active-factor-item';
             item.draggable = true;
             item.dataset.index = index;
+            
+            // Get category color for this factor
+            const categoryColors = {
+                valuation: '#3b82f6',
+                profitability: '#10b981',
+                growth: '#8b5cf6',
+                financial_health: '#f59e0b'
+            };
+            const borderColor = categoryColors[factor.category] || '#6b7280';
+            
+            item.style.borderLeftColor = borderColor;
+            item.style.background = `linear-gradient(135deg, ${borderColor}15, ${borderColor}05)`;
+
             item.innerHTML = `
                 <span class="drag-handle" title="Drag to reorder">
                     <i class="fas fa-grip-vertical"></i>
