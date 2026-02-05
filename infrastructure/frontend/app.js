@@ -114,6 +114,10 @@ class StockAnalyzer {
         this.modules.estimatesManager = new EstimatesManager(eventBus);
         window.estimatesManager = this.modules.estimatesManager;
         
+        // Factors Manager
+        this.modules.factorsManager = new FactorsManager(eventBus);
+        window.factorsManager = this.modules.factorsManager;
+        
         // Expose financials manager globally
         window.financialsManager = this.modules.financialsManager;
     }

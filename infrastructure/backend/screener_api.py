@@ -106,6 +106,19 @@ class StockScreener:
             return response.get('Items', [])
         except Exception as e:
             return {'error': str(e)}
+    
+    def delete_factor(self, user_id: str, factor_id: str) -> Dict:
+        """Delete a custom factor for a user"""
+        try:
+            self.factors_table.delete_item(
+                Key={
+                    'userId': user_id,
+                    'factorId': factor_id
+                }
+            )
+            return {'success': True, 'message': 'Factor deleted successfully'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
 
 class DCFAnalyzer:
     """Discounted Cash Flow analysis"""
@@ -230,6 +243,20 @@ def lambda_handler(event, context):
                 else:
                     body = json.loads(event.get('body', '{}'))
                     result = screener.save_factor(user_id, body)
+            
+            elif method == 'DELETE':
+                # DELETE factor - require authentication
+                authorizer = event.get('requestContext', {}).get('authorizer', {})
+                claims = authorizer.get('claims', {})
+                user_id = claims.get('sub')
+                
+                if not user_id:
+                    result = {'error': 'Unauthorized - Authentication required'}
+                else:
+                    # Extract factor_id from path
+                    factor_id = path.split('/')[-1]
+                    result = screener.delete_factor(user_id, factor_id)
+            
             else:
                 # GET factors - require authentication
                 authorizer = event.get('requestContext', {}).get('authorizer', {})

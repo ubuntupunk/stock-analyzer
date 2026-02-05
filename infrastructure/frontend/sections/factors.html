@@ -2,33 +2,99 @@
 <section id="factors" class="content-section">
     <div class="factor-header">
         <h2>MY FOUNDATION</h2>
-        <p>You haven't created any Factors yet</p>
-        <button class="add-factor-btn" id="addFactorBtn">
-            <i class="fas fa-plus"></i>
-        </button>
-    </div>
-
-    <div class="factors-list" id="factorsList">
-        <div class="factor-row">
-            <span>1. 5yr P/E ration > 22.5</span>
-            <span>3. Shares outstanding</span>
-            <span>5. Net Income Growth 5yr</span>
-            <span>7. LTL / 5yr FCF &lt;5</span>
-        </div>
-        <div class="factor-row">
-            <span>2. 5yr ROIC > 9%</span>
-            <span>4. Cash flow growth 5 year</span>
-            <span>6. Revenue Growth 5yr</span>
-            <span>8. 5yr Price to free cash flow &lt; 22.5</span>
+        <div class="factor-header-controls">
+            <div class="stock-selector">
+                <label for="factorStockInput">Stock Symbol:</label>
+                <input type="text" id="factorStockInput" placeholder="e.g., AAPL" class="stock-input">
+                <span class="current-stock-badge" id="currentStockDisplay">No stock selected</span>
+            </div>
+            <button class="add-custom-factor-btn" id="addFactorBtn" title="Add Custom Factor">
+                <i class="fas fa-plus-circle"></i> Add Custom Factor
+            </button>
         </div>
     </div>
 
+    <!-- Factor Building Blocks -->
+    <div class="factor-blocks-section">
+        <h3 class="section-title">
+            <i class="fas fa-cube"></i> Factor Building Blocks
+            <span class="subtitle">Drag and drop or configure factors below</span>
+        </h3>
+        <div class="factor-blocks-container" id="factorBlocksContainer">
+            <!-- Factor blocks will be rendered here by FactorsManager.js -->
+        </div>
+    </div>
+
+    <!-- Active Factors -->
+    <div class="active-factors-section">
+        <div class="active-factors-header">
+            <h3><i class="fas fa-filter"></i> Active Screening Factors</h3>
+            <div class="factor-actions">
+                <button class="btn-secondary" id="clearFactorsBtn">
+                    <i class="fas fa-eraser"></i> Clear All
+                </button>
+                <button class="btn-primary" id="screenStocksBtn">
+                    <i class="fas fa-search"></i> Screen Stocks
+                </button>
+                <button class="btn-success" id="exportResultsBtn" style="display: none;">
+                    <i class="fas fa-file-csv"></i> Export CSV
+                </button>
+            </div>
+        </div>
+        <div class="active-factors-list" id="activeFactorsList">
+            <p class="no-factors">No active factors. Add factors from the building blocks above.</p>
+        </div>
+    </div>
+
+    <!-- Screening Results -->
+    <div class="screen-results-section" id="screenResults">
+        <!-- Results will be rendered here -->
+    </div>
+
+    <!-- Glossary -->
     <div class="glossary">
-        <h4>Glossary</h4>
-        <p>TTM = Trailing 12-month</p>
-        <p>FCF = Free Cash Flow</p>
-        <p>EV = Enterprise Value</p>
-        <p>ATH = All Time High</p>
-        <p>LTL = Less to Least?</p>
+        <h4><i class="fas fa-book"></i> Glossary</h4>
+        <div class="glossary-grid">
+            <div class="glossary-item"><strong>TTM:</strong> Trailing 12-month</div>
+            <div class="glossary-item"><strong>FCF:</strong> Free Cash Flow</div>
+            <div class="glossary-item"><strong>EV:</strong> Enterprise Value</div>
+            <div class="glossary-item"><strong>ATH:</strong> All Time High</div>
+            <div class="glossary-item"><strong>P/E:</strong> Price to Earnings Ratio</div>
+            <div class="glossary-item"><strong>ROIC:</strong> Return on Invested Capital</div>
+            <div class="glossary-item"><strong>D/E:</strong> Debt to Equity Ratio</div>
+            <div class="glossary-item"><strong>5yr:</strong> 5-year average</div>
+        </div>
     </div>
 </section>
+
+<!-- Custom Factor Modal -->
+<div id="customFactorModal" class="modal custom-factor-modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-star"></i> Create Custom Factor</h3>
+            <button class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="customFactorName">Factor Name:</label>
+                <input type="text" id="customFactorName" class="form-control" placeholder="e.g., High Growth Low Debt">
+            </div>
+            <div class="form-group">
+                <label for="customFactorDesc">Description:</label>
+                <input type="text" id="customFactorDesc" class="form-control" placeholder="Brief description of this factor">
+            </div>
+            <div class="form-group">
+                <label for="customFactorCriteria">Criteria/Formula:</label>
+                <textarea id="customFactorCriteria" class="form-control" rows="3" placeholder="e.g., Revenue Growth > 20% AND Debt/Equity < 0.5"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" id="cancelCustomFactorBtn">Cancel</button>
+            <button class="btn-primary" id="saveCustomFactorBtn">
+                <i class="fas fa-save"></i> Save Factor
+            </button>
+        </div>
+    </div>
+</div>

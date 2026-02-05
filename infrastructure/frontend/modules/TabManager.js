@@ -212,6 +212,10 @@ class TabManager {
                 case 'factors':
                     console.log('TabManager: Loading factors data');
                     await this.loadSection('factors');
+                    // Trigger FactorsManager to render after section loads
+                    if (window.factorsManager) {
+                        window.factorsManager.onTabActivated();
+                    }
                     await this.loadFactorsData();
                     break;
                 case 'stock-analyser':
@@ -326,6 +330,11 @@ class TabManager {
         console.log('TabManager: loadFactorsTab called');
         try {
             await componentLoader.loadSection('factors');
+            
+            // Trigger FactorsManager to render after section loads
+            if (window.factorsManager) {
+                window.factorsManager.onTabActivated();
+            }
             
             const currentSymbol = window.stockManager?.getCurrentSymbol();
             if (currentSymbol) {

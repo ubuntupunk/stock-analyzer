@@ -211,6 +211,77 @@ def get_batch_financials():
     result = stock_api.get_multiple_financial_statements([s.upper() for s in symbols if s])
     return jsonify(result)
 
+# ============================================
+# Screener & Custom Factors Endpoints
+# ============================================
+
+@app.route('/api/screener/screen', methods=['POST', 'OPTIONS'])
+def screen_stocks():
+    """Screen stocks based on custom criteria"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        from screener_api import StockScreener
+        screener = StockScreener()
+        
+        data = request.get_json()
+        criteria = data.get('criteria', {})
+        
+        result = screener.screen_stocks(criteria)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error screening stocks: {str(e)}")
+        return jsonify({'error': str(e), 'results': []}), 500
+
+@app.route('/api/factors', methods=['GET', 'POST', 'OPTIONS'])
+def custom_factors():
+    """Get or save custom screening factors"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        from screener_api import StockScreener
+        screener = StockScreener()
+        
+        # Mock user ID for local development (in production, get from auth)
+        user_id = 'local-dev-user'
+        
+        if request.method == 'POST':
+            # Save custom factor
+            data = request.get_json()
+            result = screener.save_factor(user_id, data)
+            return jsonify(result)
+        
+        else:  # GET
+            # Get user's custom factors
+            result = screener.get_user_factors(user_id)
+            return jsonify(result)
+    
+    except Exception as e:
+        print(f"Error with custom factors: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/factors/<factor_id>', methods=['DELETE', 'OPTIONS'])
+def delete_custom_factor(factor_id):
+    """Delete a custom factor"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        from screener_api import StockScreener
+        screener = StockScreener()
+        
+        # Mock user ID for local development
+        user_id = 'local-dev-user'
+        
+        result = screener.delete_factor(user_id, factor_id)
+        return jsonify(result)
+    
+    except Exception as e:
+        print(f"Error deleting factor: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     print("Starting local Flask server at http://localhost:5000")
     print("API endpoints available:")
