@@ -42,7 +42,7 @@ class StockManager {
         });
         
         // Switch to target tab (default: metrics) - now returns immediately
-        this.eventBus.emit('tab:switched', { tabName: targetTab });
+        this.eventBus.emit('tab:switch', { tabName: targetTab });
         
         // Hide search results
         this.hideSearchResults();
