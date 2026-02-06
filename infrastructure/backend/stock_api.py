@@ -497,4 +497,140 @@ class StockDataAPI:
         # Try Yahoo Finance with full financial statements
         try:
             yf_financials = self.yahoo.fetch_financials(symbol)
-            if yf_financials and (yf_financials.get('income_statement
+            if yf_financials and (yf_financials.get('income_statement') or 
+                                   yf_financials.get('balance_sheet') or 
+                                   yf_financials.get('cash_flow')):
+                financials.update(self.yahoo.parse_financials(yf_financials))
+                financials['source'] = 'yahoo_finance'
+        except Exception as e:
+            print(f"Yahoo financials error for {symbol}: {str(e)}")
+        
+        self._set_cache(cache_key, financials)
+        return financials
+
+    def get_all_data(self, symbol: str) -> Dict:
+        """
+        Get all available stock data from multiple sources
+        
+        This is the main entry point for fetching comprehensive stock data.
+        It tries multiple sources and combines the results.
+        """
+        data = {
+            'symbol': symbol,
+            'timestamp': datetime.now().isoformat(),
+            'source': 'unknown'
+        }
+        
+        # Get price data
+        try:
+            price = self.get_stock_price(symbol)
+            if price:
+                data['price'] = price
+        except Exception as e:
+            print(f"Error fetching price for {symbol}: {str(e)}")
+        
+        # Get metrics
+        try:
+            metrics = self.get_stock_metrics(symbol)
+            if metrics:
+                data['metrics'] = metrics
+        except Exception as e:
+            print(f"Error fetching metrics for {symbol}: {str(e)}")
+        
+        # Get analyst estimates
+        try:
+            estimates = self.get_analyst_estimates(symbol)
+            if estimates and estimates.get('earnings_estimates'):
+                data['estimates'] = estimates
+        except Exception as e:
+            print(f"Error fetching estimates for {symbol}: {str(e)}")
+        
+        # Get financials
+        try:
+            financials = self.get_financial_statements(symbol)
+            if financials and (financials.get('income_statement') or 
+                              financials.get('balance_sheet')):
+                data['financials'] = financials
+        except Exception as e:
+            print(f"Error fetching financials for {symbol}: {str(e)}")
+        
+        # Add cache metadata
+        data['cached'] = False
+        
+        return data
+
+
+def lambda_handler(event, context):
+    """
+    AWS Lambda handler for stock API requests
+    """
+    try:
+        # Parse request
+        http_method = event.get('httpMethod', 'GET')
+        path = event.get('path', '/')
+        params = event.get('queryStringParameters') or {}
+        body = event.get('body')
+        
+        # Create API instance
+        api = StockDataAPI()
+        
+        # Route request
+        if http_method == 'GET':
+            if '/metrics' in path:
+                symbol = params.get('symbol')
+                if not symbol:
+                    return {'statusCode': 400, 'body': json.dumps({'error': 'symbol required'})}
+                result = api.get_stock_metrics(symbol)
+                return {'statusCode': 200, 'body': json.dumps(result, default=decimal_default)}
+            
+            elif '/price' in path:
+                symbol = params.get('symbol')
+                if not symbol:
+                    return {'statusCode': 400, 'body': json.dumps({'error': 'symbol required'})}
+                period = params.get('period', '1mo')
+                result = api.get_stock_price(symbol, period)
+                return {'statusCode': 200, 'body': json.dumps(result, default=decimal_default)}
+            
+            elif '/estimates' in path:
+                symbol = params.get('symbol')
+                if not symbol:
+                    return {'statusCode': 400, 'body': json.dumps({'error': 'symbol required'})}
+                result = api.get_analyst_estimates(symbol)
+                return {'statusCode': 200, 'body': json.dumps(result, default=decimal_default)}
+            
+            elif '/financials' in path:
+                symbol = params.get('symbol')
+                if not symbol:
+                    return {'statusCode': 400, 'body': json.dumps({'error': 'symbol required'})}
+                result = api.get_financial_statements(symbol)
+                return {'statusCode': 200, 'body': json.dumps(result, default=decimal_default)}
+            
+            elif '/health' in path:
+                result = {
+                    'status': 'healthy',
+                    'circuit_breaker': api.cb.get_health_report(),
+                    'metrics': api.metrics.get_metrics()
+                }
+                return {'statusCode': 200, 'body': json.dumps(result)}
+            
+            else:
+                return {'statusCode': 404, 'body': json.dumps({'error': 'not found'})}
+        
+        elif http_method == 'POST':
+            if '/all' in path:
+                data = json.loads(body) if body else {}
+                symbol = data.get('symbol')
+                if not symbol:
+                    return {'statusCode': 400, 'body': json.dumps({'error': 'symbol required'})}
+                result = api.get_all_data(symbol)
+                return {'statusCode': 200, 'body': json.dumps(result, default=decimal_default)}
+            
+            else:
+                return {'statusCode': 404, 'body': json.dumps({'error': 'not found'})}
+        
+        else:
+            return {'statusCode': 405, 'body': json.dumps({'error': 'method not allowed'})}
+    
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
