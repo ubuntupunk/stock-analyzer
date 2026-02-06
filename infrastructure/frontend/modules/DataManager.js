@@ -134,7 +134,8 @@ class RequestQueue {
         if (this.queue.length === 0) return null;
 
         const item = this.queue.shift();
-        this.processing.add(item.key || item.fn.name);
+        const itemKey = item.key || item.fn?.name || 'anonymous';
+        this.processing.add(itemKey);
         return item;
     }
 
@@ -150,11 +151,12 @@ class RequestQueue {
      */
     retry(item) {
         item.attempts++;
+        const fnName = item.fn?.name || 'anonymous';
         if (item.attempts < 3) {
             this.enqueue(item.fn, item.priority, item.key);
-            console.log(`RequestQueue: Retrying ${item.key || item.fn.name} (attempt ${item.attempts})`);
+            console.log(`RequestQueue: Retrying ${item.key || fnName} (attempt ${item.attempts})`);
         } else {
-            console.warn(`RequestQueue: Max retries reached for ${item.key || item.fn.name}`);
+            console.warn(`RequestQueue: Max retries reached for ${item.key || fnName}`);
         }
     }
 

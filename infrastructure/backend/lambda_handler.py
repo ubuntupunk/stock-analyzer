@@ -86,13 +86,13 @@ def lambda_handler(event, context):
             
             # Route to appropriate batch handler
             if '/batch/prices' in path or '/batch/price' in path:
-                result = api.get_multiple_stock_prices(symbols)
+                result = api.get_batch_prices(symbols)
             elif '/batch/metrics' in path:
-                result = api.get_multiple_stock_metrics(symbols)
+                result = api.get_batch_metrics(symbols)
             elif '/batch/estimates' in path:
-                result = api.get_multiple_analyst_estimates(symbols)
+                result = api.get_batch_estimates(symbols)
             elif '/batch/financials' in path:
-                result = api.get_multiple_financial_statements(symbols)
+                result = api.get_batch_financials(symbols)
             else:
                 result = {'error': 'Invalid batch endpoint'}
         

@@ -184,7 +184,7 @@ def get_batch_prices():
     symbols = request.args.get('symbols', '').split(',')
     if not symbols or not symbols[0]:
         return jsonify({'error': 'Symbols required'}), 400
-    result = stock_api.get_multiple_stock_prices([s.upper() for s in symbols if s])
+    result = stock_api.get_batch_prices([s.upper() for s in symbols if s])
     return jsonify(result)
 
 @app.route('/api/stock/batch/metrics')
@@ -192,7 +192,7 @@ def get_batch_metrics():
     symbols = request.args.get('symbols', '').split(',')
     if not symbols or not symbols[0]:
         return jsonify({'error': 'Symbols required'}), 400
-    result = stock_api.get_multiple_stock_metrics([s.upper() for s in symbols if s])
+    result = stock_api.get_batch_metrics([s.upper() for s in symbols if s])
     return jsonify(result)
 
 @app.route('/api/stock/batch/estimates')
@@ -200,7 +200,7 @@ def get_batch_estimates():
     symbols = request.args.get('symbols', '').split(',')
     if not symbols or not symbols[0]:
         return jsonify({'error': 'Symbols required'}), 400
-    result = stock_api.get_multiple_analyst_estimates([s.upper() for s in symbols if s])
+    result = stock_api.get_batch_estimates([s.upper() for s in symbols if s])
     return jsonify(result)
 
 @app.route('/api/stock/batch/financials')
@@ -208,7 +208,7 @@ def get_batch_financials():
     symbols = request.args.get('symbols', '').split(',')
     if not symbols or not symbols[0]:
         return jsonify({'error': 'Symbols required'}), 400
-    result = stock_api.get_multiple_financial_statements([s.upper() for s in symbols if s])
+    result = stock_api.get_batch_financials([s.upper() for s in symbols if s])
     return jsonify(result)
 
 # ============================================

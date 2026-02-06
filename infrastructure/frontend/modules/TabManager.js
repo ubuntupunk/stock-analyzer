@@ -140,7 +140,9 @@ class TabManager {
             const existingSection = document.getElementById(sectionName);
             if (existingSection) {
                 console.log('TabManager: Section already in DOM:', sectionName);
-                return;
+                // Emit section loaded event so managers know it's ready
+                this.eventBus.emit('section:loaded', { sectionName });
+                return existingSection;
             }
 
             console.log('TabManager: Fetching sections/' + sectionName + '.html');
@@ -149,7 +151,7 @@ class TabManager {
 
             if (!response.ok) {
                 console.error('TabManager: Failed to fetch section, status:', response.status);
-                return;
+                return null;
             }
 
             const html = await response.text();
@@ -173,16 +175,16 @@ class TabManager {
                     this.sectionsLoaded.add(sectionName);
                     console.log('TabManager: Section loaded successfully:', sectionName);
 
-                    // Verify it's in the DOM
-                    const verifySection = document.getElementById(sectionName);
-                    console.log('TabManager: Verification - section in DOM:', !!verifySection);
-                    
                     // Emit section loaded event
                     this.eventBus.emit('section:loaded', { sectionName });
+                    
+                    return section;
                 }
             }
+            return null;
         } catch (error) {
             console.error('TabManager: Failed to load section:', sectionName, error);
+            return null;
         }
     }
 
@@ -192,26 +194,51 @@ class TabManager {
      */
     async loadTabContent(tabName) {
         console.log('TabManager: loadTabContent called for:', tabName);
+        
+        // Helper: wait for section element to exist in DOM
+        const waitForSection = async (sectionName, timeoutMs = 5000) => {
+            const startTime = Date.now();
+            while (Date.now() - startTime < timeoutMs) {
+                const section = document.getElementById(sectionName);
+                if (section) {
+                    console.log(`TabManager: Section "${sectionName}" found after ${Date.now() - startTime}ms`);
+                    return section;
+                }
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            console.warn(`TabManager: Section "${sectionName}" not found after timeout`);
+            return null;
+        };
+
         try {
             switch (tabName) {
                 case 'analyst-estimates':
                     console.log('TabManager: Loading analyst-estimates data');
                     await this.loadSection('analyst-estimates');
+                    await waitForSection('analyst-estimates');
+                    // Small delay to ensure DOM is ready
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     await this.loadAnalystEstimatesData();
                     break;
                 case 'metrics':
                     console.log('TabManager: Loading metrics data');
                     await this.loadSection('metrics');
+                    await waitForSection('metrics');
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     await this.loadMetricsData();
                     break;
                 case 'financials':
                     console.log('TabManager: Loading financials data');
                     await this.loadSection('financials');
+                    await waitForSection('financials');
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     await this.loadFinancialsData();
                     break;
                 case 'factors':
                     console.log('TabManager: Loading factors data');
                     await this.loadSection('factors');
+                    await waitForSection('factors');
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     // Trigger FactorsManager to render after section loads
                     if (window.factorsManager) {
                         window.factorsManager.onTabActivated();
@@ -221,21 +248,28 @@ class TabManager {
                 case 'stock-analyser':
                     console.log('TabManager: Loading stock-analyser data');
                     await this.loadSection('stock-analyser');
+                    await waitForSection('stock-analyser');
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     await this.loadStockAnalyserData();
                     break;
                 case 'watchlist':
                     console.log('TabManager: Loading watchlist data');
                     await this.loadSection('watchlist');
+                    await waitForSection('watchlist');
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     await this.loadWatchlistData();
                     break;
                 case 'popular-stocks':
                     console.log('TabManager: Loading popular-stocks data');
                     await this.loadSection('popular-stocks');
+                    await waitForSection('popular-stocks');
                     await this.loadPopularStocksData();
                     break;
                 case 'news':
                     console.log('TabManager: Loading news data');
                     await this.loadSection('news');
+                    await waitForSection('news');
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     // Delegate to NewsManager - it will handle loading if needed
                     if (window.newsManager) {
                         const currentSymbol = window.stockManager?.getCurrentSymbol();
