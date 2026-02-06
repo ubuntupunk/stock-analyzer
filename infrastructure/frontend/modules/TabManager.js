@@ -887,9 +887,25 @@ class TabManager {
         console.log('TabManager: loadMetricsData called');
         try {
             const currentSymbol = window.stockManager?.getCurrentSymbol();
-            if (currentSymbol) {
-                await this.dataManager.loadStockData(currentSymbol, 'metrics');
+            if (!currentSymbol) {
+                console.log('TabManager: No stock selected, skipping metrics load');
+                return;
             }
+            
+            const data = await this.dataManager.loadStockData(currentSymbol, 'metrics');
+                
+            // If data was cached and chart wasn't created, create it now
+            if (data && data.hasHistoricalData) {
+                const canvas = document.getElementById('priceChart');
+                if (canvas && window.chartManager) {
+                    const existingChart = window.chartManager.charts?.get('priceChart');
+                    if (!existingChart) {
+                        console.log('TabManager: Creating chart from cached data');
+                        window.chartManager.createPriceChart('priceChart', data, currentSymbol);
+                    }
+                }
+            }
+            
             // Setup custom range handlers after metrics section is loaded
             if (window.chartManager && window.chartManager.setupCustomRangeHandlers) {
                 setTimeout(() => {

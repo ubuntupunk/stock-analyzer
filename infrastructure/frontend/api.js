@@ -4,7 +4,7 @@
 class APIService {
     constructor() {
         this.baseURL = config.apiEndpoint;
-        this.timeout = 10000; // 10 second timeout
+        this.timeout = 30000; // 30 second timeout (increased for cold starts)
         this.maxRetries = 3;
         this.retryDelays = [1000, 2000, 4000]; // Exponential backoff
         this.rateLimitDelay = 60000; // 60 second delay on 429

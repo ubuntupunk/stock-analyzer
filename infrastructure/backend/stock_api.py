@@ -215,27 +215,41 @@ class StockDataAPI:
             print(f"All circuits OPEN for {symbol}")
             return None
         
-        # Wait for first successful result
-        results = {}
-        
-        for i, task in enumerate(asyncio.as_completed(tasks)):
-            try:
-                result = await task
-                source = sources_to_try[i]
-                
-                if result:
-                    latency_ms = (time.time() - start_time) * 1000
-                    await self.metrics.record_request(source, True, latency_ms)
-                    results[source] = result
-                    
-                    # Return immediately on success
-                    return result
-                    
-            except Exception as e:
-                source = sources_to_try[i]
-                latency_ms = (time.time() - start_time) * 1000
-                await self.metrics.record_request(source, False, latency_ms)
-                self.cb.record_failure(source, type(e).__name__)
+        # Wait for first successful result using asyncio.wait with FIRST_COMPLETED
+        try:
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            
+            # Cancel pending tasks
+            for task in pending:
+                task.cancel()
+            
+            # Check completed task
+            for task in done:
+                try:
+                    result = task.result()
+                    if result:
+                        latency_ms = (time.time() - start_time) * 1000
+                        print(f"Parallel fetch succeeded in {latency_ms:.0f}ms")
+                        return result
+                except Exception as e:
+                    print(f"Task failed: {e}")
+                    continue
+            
+            # If first task failed, try remaining tasks
+            if pending:
+                done, _ = await asyncio.wait(pending)
+                for task in done:
+                    try:
+                        result = task.result()
+                        if result:
+                            latency_ms = (time.time() - start_time) * 1000
+                            print(f"Parallel fetch succeeded (fallback) in {latency_ms:.0f}ms")
+                            return result
+                    except Exception as e:
+                        continue
+                        
+        except Exception as e:
+            print(f"Parallel fetch error: {e}")
         
         # All failed
         return None

@@ -175,6 +175,13 @@ class StockAnalyzer {
             const hasHistoricalData = (type === 'price' && data?.historicalData) ||
                                       (type === 'metrics' && data?.hasHistoricalData);
             if (hasHistoricalData) {
+                // Only create chart if canvas element exists (metrics tab is loaded)
+                const canvas = document.getElementById('priceChart');
+                if (!canvas) {
+                    console.log('ChartManager: Canvas not ready yet, chart will be created when tab loads');
+                    return;
+                }
+                
                 const chart = this.modules.chartManager.createPriceChart('priceChart', data, symbol);
                 if (chart) {
                     // Setup timeframe handlers after chart is created

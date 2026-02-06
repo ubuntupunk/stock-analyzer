@@ -520,10 +520,8 @@ class DataManager {
                             throw new Error(data.error);
                         }
 
-                        // Transform data if needed
-                        if (type === 'metrics' && data) {
-                            data = this.transformMetricsData(data);
-                        } else if (type === 'financials' && data) {
+                        // Transform data if needed (skip metrics - already transformed in dataLoader)
+                        if (type === 'financials' && data) {
                             data = this.transformFinancialsData(data);
                         } else if (type === 'analyst-estimates' && data) {
                             data = this.transformEstimatesData(data);
