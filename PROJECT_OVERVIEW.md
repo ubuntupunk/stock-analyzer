@@ -553,6 +553,58 @@ DELETE /api/watchlist?symbol={SYMBOL}
 - **X-Ray**: Distributed tracing (optional)
 - **Cost Explorer**: Usage and cost tracking
 
+## Gotchas & Technical Debt
+
+### Frontend Issues Fixed ✅
+
+1. **Circuit Breaker Module Not Loaded**
+   - **Problem**: `CircuitBreaker.js` existed but wasn't imported in `index.html`, causing "CircuitBreaker is not defined" error
+   - **Solution**: Added `<script src="modules/CircuitBreaker.js"></script>` to index.html
+   - **Files Modified**: `infrastructure/frontend/index.html`
+
+2. **Memory Leak in DataManager**
+   - **Problem**: `setInterval()` for cache pruning never cleared on page unload
+   - **Solution**: Added `cleanup()` method that clears the interval and all caches
+   - **Files Modified**: `infrastructure/frontend/modules/DataManager.js`
+
+3. **Missing Error Boundaries**
+   - **Problem**: No global error handler - single module failures could crash entire app
+   - **Solution**: Created `ErrorBoundary.js` with global error catching and fallback UIs
+   - **Files Created**: `infrastructure/frontend/modules/ErrorBoundary.js`
+
+### Architecture Gotchas ⚠️
+
+4. **Backend-Frontend Circuit Breaker Desync**
+   - **Issue**: Frontend and backend circuit breakers operate independently
+   - **Impact**: Frontend may open circuit while backend is healthy
+   - **Mitigation**: Added `HealthManager.js` with periodic backend health checks
+   - **Files Created**: `infrastructure/frontend/modules/HealthManager.js`
+
+5. **Missing Frontend Tests**
+   - **Issue**: Only backend had unit test coverage
+   - **Solution**: Added Jest tests for CircuitBreaker.js
+   - **Files Created**: `tests/integration/circuitbreaker.test.js` (20 tests)
+
+### Known Limitations
+
+6. **API Key Exposure**
+   - API URLs visible in browser network tab (acceptable for client-side apps)
+   - API keys stored in Lambda environment variables (secure)
+
+7. **No WebSocket Support**
+   - Real-time updates require polling (future enhancement)
+
+8. **Lambda Cold Starts**
+   - First request after idle period may be slow (30+ seconds)
+   - Mitigated by circuit breaker timeout configuration
+
+### Recommended Actions
+
+- Add Jest tests for DataManager, ErrorBoundary, and HealthManager
+- Implement WebSocket for real-time updates
+- Add end-to-end tests with Playwright
+- Consider Cognito for user authentication
+
 ## Future Enhancements
 
 ### Phase 1 (Foundation)
