@@ -508,7 +508,7 @@ class DataManager {
         };
 
         // Enqueue request based on priority
-        return new Promise((resolve, reject) => {
+        const promise = new Promise((resolve, reject) => {
             this.requestQueue.enqueue(
                 async () => {
                     try {
@@ -547,6 +547,11 @@ class DataManager {
             // Process queue
             this.processQueue();
         });
+        
+        // Store promise to prevent duplicate requests
+        this.pendingRequests.set(cacheKey, promise);
+        
+        return promise;
     }
 
     /**
