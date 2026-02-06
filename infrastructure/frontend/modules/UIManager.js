@@ -208,7 +208,7 @@ class UIManager {
     updateDataDisplay(type, data, symbol) {
         switch (type) {
             case 'metrics':
-                this.updateMetricsDisplay(data);
+                // MetricsManager handles metrics display
                 break;
             case 'financials':
                 this.updateFinancialsDisplay(data, symbol);
@@ -226,30 +226,6 @@ class UIManager {
                 this.updateNewsDisplay(data, symbol);
                 break;
         }
-    }
-
-    /**
-     * Update metrics display
-     * @param {object} metrics - Metrics data
-     */
-    updateMetricsDisplay(metrics) {
-        const fields = {
-            'marketCap': Formatters.formatCurrency(metrics.marketCap),
-            'revenue': Formatters.formatCurrency(metrics.revenue),
-            'peRatio': Formatters.formatRatio(metrics.peRatio),
-            'roe': Formatters.formatPercentage(metrics.roe),
-            'debtToEquity': Formatters.formatRatio(metrics.debtToEquity),
-            'currentRatio': Formatters.formatNumber(metrics.currentRatio),
-            'revenueGrowth': Formatters.formatPercentage(metrics.revenueGrowth),
-            'earningsGrowth': Formatters.formatPercentage(metrics.earningsGrowth),
-            'profitMargin': Formatters.formatPercentage(metrics.profitMargin),
-            'operatingMargin': Formatters.formatPercentage(metrics.operatingMargin),
-            'netMargin': Formatters.formatPercentage(metrics.netMargin)
-        };
-
-        Object.entries(fields).forEach(([id, value]) => {
-            this.updateElement(id, value || 'N/A');
-        });
     }
 
     /**
