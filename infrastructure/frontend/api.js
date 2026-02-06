@@ -4,6 +4,40 @@
 class APIService {
     constructor() {
         this.baseURL = config.apiEndpoint;
+        this.timeout = 10000; // 10 second timeout
+        this.maxRetries = 3;
+        this.retryDelays = [1000, 2000, 4000]; // Exponential backoff
+        this.rateLimitDelay = 60000; // 60 second delay on 429
+        this.tokenRefreshThreshold = 300000; // Refresh token 5 min before expiry
+    }
+
+    /**
+     * Check if token needs refresh
+     */
+    async shouldRefreshToken() {
+        if (!window.authManager || !window.authManager.getTokenExpiry) return false;
+        const expiry = await window.authManager.getTokenExpiry();
+        if (!expiry) return false;
+        return (expiry - Date.now()) < this.tokenRefreshThreshold;
+    }
+
+    /**
+     * Proactively refresh auth token if needed
+     */
+    async refreshTokenIfNeeded() {
+        if (await this.shouldRefreshToken()) {
+            console.log('APIService: Proactively refreshing auth token');
+            if (window.authManager && window.authManager.refreshAuthToken) {
+                await window.authManager.refreshAuthToken();
+            }
+        }
+    }
+
+    /**
+     * Sleep utility for delays
+     */
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     async request(endpoint, options = {}) {
@@ -14,7 +48,10 @@ class APIService {
         if (window.authManager) {
             authToken = await window.authManager.getAuthToken();
         }
-        
+
+        // Proactively refresh token if needed
+        await this.refreshTokenIfNeeded();
+
         // Build headers
         const headers = {
             'Content-Type': 'application/json',
@@ -25,29 +62,92 @@ class APIService {
         if (authToken) {
             headers['Authorization'] = `Bearer ${authToken}`;
         }
-        
+
+        // Make request with retry logic
+        let lastError;
+        for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+            try {
+                const response = await this.fetchWithTimeout(url, {
+                    ...options,
+                    headers: headers
+                }, this.timeout);
+
+                // Handle 429 Rate Limiting - wait and retry
+                if (response.status === 429) {
+                    console.warn(`APIService: Rate limited (429), attempt ${attempt + 1}/${this.maxRetries + 1}`);
+                    if (attempt < this.maxRetries) {
+                        // Exponential backoff for rate limiting
+                        const waitTime = this.rateLimitDelay * Math.pow(2, attempt);
+                        await this.sleep(waitTime);
+                        continue;
+                    } else {
+                        throw new Error('Rate limited - too many requests');
+                    }
+                }
+
+                // Handle 401 Unauthorized - try token refresh once
+                if (response.status === 401 && attempt === 0) {
+                    console.warn('APIService: Unauthorized (401), attempting token refresh');
+                    if (window.authManager && window.authManager.refreshAuthToken) {
+                        await window.authManager.refreshAuthToken();
+                        // Retry with new token
+                        continue;
+                    }
+                    throw new Error('Authentication required');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                lastError = error;
+
+                // Handle timeout specifically
+                if (error.message === 'Timeout') {
+                    console.warn(`APIService: Request timeout (${this.timeout}ms), attempt ${attempt + 1}/${this.maxRetries + 1}`);
+                    if (attempt < this.maxRetries) {
+                        // Exponential backoff for timeouts
+                        await this.sleep(this.retryDelays[attempt]);
+                        continue;
+                    }
+                }
+
+                // Don't retry client errors (except 429 and 401 which are handled above)
+                if (response && response.status >= 400 && response.status < 500 && response.status !== 429 && response.status !== 401) {
+                    throw error;
+                }
+
+                if (attempt < this.maxRetries) {
+                    await this.sleep(this.retryDelays[attempt]);
+                }
+            }
+        }
+
+        console.error('APIService: All retry attempts exhausted:', lastError);
+        throw lastError;
+    }
+
+    /**
+     * Fetch with timeout wrapper
+     */
+    async fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
         try {
             const response = await fetch(url, {
                 ...options,
-                headers: headers
+                signal: controller.signal
             });
-
-            // Handle 401 Unauthorized - redirect to login
-            if (response.status === 401) {
-                console.warn('Unauthorized request - authentication required');
-                if (window.app && window.app.showLoginModal) {
-                    window.app.showLoginModal();
-                }
-                throw new Error('Authentication required');
-            }
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
+            clearTimeout(timeoutId);
+            return response;
         } catch (error) {
-            console.error('API request failed:', error);
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                throw new Error('Timeout');
+            }
             throw error;
         }
     }
