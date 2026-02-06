@@ -11,10 +11,11 @@ from typing import Dict, Optional
 class AlpacaClient:
     """Client for Alpaca API"""
     
-    def __init__(self):
+    def __init__(self, timeout_seconds: float = 10):
         self.api_key = os.environ.get('ALPACA_API_KEY', '')
         self.api_secret = os.environ.get('ALPACA_SECRET_KEY', '')
         self.base_url = "https://data.alpaca.markets"
+        self.timeout = timeout_seconds
     
     def fetch_snapshot(self, symbol: str) -> Optional[Dict]:
         """Fetch snapshot from Alpaca"""
@@ -28,10 +29,16 @@ class AlpacaClient:
                 'APCA-API-SECRET-KEY': self.api_secret
             }
             
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=self.timeout)
             
             if response.status_code == 200:
                 return response.json()
+            elif response.status_code == 429:
+                print(f"Alpaca rate limited for {symbol}")
+                return None
+            return None
+        except requests.Timeout:
+            print(f"Alpaca timeout for {symbol}")
             return None
         except Exception as e:
             print(f"Alpaca error for {symbol}: {str(e)}")

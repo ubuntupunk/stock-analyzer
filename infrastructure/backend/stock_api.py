@@ -1,17 +1,20 @@
 """
 Stock Data API - Main Orchestrator
-Coordinates multiple API clients with fallback mechanisms
+Coordinates multiple API clients with fallback mechanisms, circuit breaker, and metrics
 """
 
 import json
 import os
 import asyncio
 import aiohttp
+import time
 from typing import Dict, List, Optional
 from datetime import datetime
 from decimal import Decimal
+from concurrent.futures import ThreadPoolExecutor
 
 from api_clients import YahooFinanceClient, AlphaVantageClient, PolygonClient, AlpacaClient
+from circuit_breaker import CircuitBreakerManager, get_circuit_breaker
 
 
 def decimal_default(obj):
@@ -21,33 +24,130 @@ def decimal_default(obj):
     raise TypeError
 
 
+class APIMetrics:
+    """Track API performance metrics"""
+    
+    def __init__(self):
+        self.metrics = {
+            'requests': {'total': 0, 'success': 0, 'failed': 0},
+            'sources': {},
+            'latency': {'total_ms': 0, 'count': 0, 'avg_ms': 0},
+            'rate_limits': 0,
+            'timeouts': 0,
+            'errors': {}
+        }
+        self._lock = asyncio.Lock()
+    
+    async def record_request(self, source: str, success: bool, latency_ms: float):
+        """Record an API request"""
+        async with self._lock:
+            self.metrics['requests']['total'] += 1
+            if success:
+                self.metrics['requests']['success'] += 1
+            else:
+                self.metrics['requests']['failed'] += 1
+            
+            # Source-specific tracking
+            if source not in self.metrics['sources']:
+                self.metrics['sources'][source] = {'calls': 0, 'success': 0, 'failed': 0}
+            self.metrics['sources'][source]['calls'] += 1
+            if success:
+                self.metrics['sources'][source]['success'] += 1
+            else:
+                self.metrics['sources'][source]['failed'] += 1
+            
+            # Latency tracking
+            self.metrics['latency']['total_ms'] += latency_ms
+            self.metrics['latency']['count'] += 1
+            self.metrics['latency']['avg_ms'] = (
+                self.metrics['latency']['total_ms'] / self.metrics['latency']['count']
+            )
+    
+    def record_rate_limit(self, source: str):
+        """Record a rate limit hit"""
+        self.metrics['rate_limits'] += 1
+        if source not in self.metrics['errors']:
+            self.metrics['errors'][source] = {'rate_limits': 0, 'timeouts': 0, 'other': 0}
+        self.metrics['errors'][source]['rate_limits'] += 1
+    
+    def record_timeout(self, source: str):
+        """Record a timeout"""
+        self.metrics['timeouts'] += 1
+        if source not in self.metrics['errors']:
+            self.metrics['errors'][source] = {'rate_limits': 0, 'timeouts': 0, 'other': 0}
+        self.metrics['errors'][source]['timeouts'] += 1
+    
+    def get_metrics(self) -> Dict:
+        """Get current metrics"""
+        return {
+            **self.metrics,
+            'success_rate': (
+                f"{(self.metrics['requests']['success'] / self.metrics['requests']['total'] * 100):.1f}%"
+                if self.metrics['requests']['total'] > 0 else "N/A"
+            )
+        }
+    
+    def get_source_stats(self, source: str) -> Dict:
+        """Get stats for a specific source"""
+        if source not in self.metrics['sources']:
+            return {'calls': 0, 'success': 0, 'failed': 0}
+        
+        source_data = self.metrics['sources'][source]
+        total = source_data['calls']
+        return {
+            **source_data,
+            'success_rate': f"{(source_data['success'] / total * 100):.1f}%" if total > 0 else "N/A"
+        }
+
+
 class StockDataAPI:
     """
     Multi-source stock data API with fallback mechanisms
     
-    API Priority Order (from highest to lowest):
-    1. Yahoo Finance - FREE, no API key required, no rate limits (best option)
+    Features:
+    - Circuit breaker pattern for API resilience
+    - Parallel fallback for faster responses
+    - API metrics tracking
+    - Configurable priorities
+    
+    API Priority Order (configurable):
+    1. Yahoo Finance - FREE, no API key required, no rate limits
     2. Alpaca - Real-time data with free tier, requires API key
     3. Polygon.io - Requires API key, some rate limits
     4. Alpha Vantage - FREE but RATE LIMITED (5 calls/minute on free tier)
-    
-    Strategy:
-    - Try free, unlimited APIs first (Yahoo Finance)
-    - Use sequential fallback (not concurrent) to avoid hitting rate limits
-    - Alpha Vantage is last resort due to strict rate limiting
-    - Cache all responses for 5 minutes to minimize API calls
     """
     
-    def __init__(self):
+    def __init__(self, config: Optional[Dict] = None):
+        # Configuration
+        cfg = config or {}
+        self.timeout = cfg.get('timeout', 10)
+        
         # Initialize API clients
-        self.yahoo = YahooFinanceClient()
+        self.yahoo = YahooFinanceClient(timeout_seconds=self.timeout)
         self.alpha_vantage = AlphaVantageClient()
-        self.polygon = PolygonClient()
-        self.alpaca = AlpacaClient()
+        self.polygon = PolygonClient(timeout_seconds=self.timeout)
+        self.alpaca = AlpacaClient(timeout_seconds=self.timeout)
+        
+        # Circuit breaker manager
+        self.cb = get_circuit_breaker()
+        
+        # Metrics tracker
+        self.metrics = APIMetrics()
         
         # Cache for reducing API calls
         self.cache = {}
-        self.cache_timeout = 300  # 5 minutes
+        self.cache_timeout = cfg.get('cache_timeout', 300)  # 5 minutes
+        
+        # Configurable priorities
+        self.priorities = cfg.get('priorities', [
+            ('yahoo_finance', 1),
+            ('alpaca', 2),
+            ('polygon', 3),
+            ('alpha_vantage', 4)
+        ])
+        
+        # Thread pool for sync fallback
+        self.executor = ThreadPoolExecutor(max_workers=4)
     
     # ========================================================================
     # CACHE MANAGEMENT
@@ -79,23 +179,159 @@ class StockDataAPI:
         }
     
     # ========================================================================
+    # PARALLEL FALLBACK STRATEGY
+    # ========================================================================
+    
+    async def _fetch_parallel(self, symbol: str, data_type: str) -> Optional[Dict]:
+        """
+        Fetch data from multiple APIs in parallel
+        Returns first successful result
+        """
+        start_time = time.time()
+        
+        # Build tasks for enabled sources
+        tasks = []
+        sources_to_try = []
+        
+        for source_name, priority in self.priorities:
+            if not self.cb.can_call(source_name):
+                print(f"Circuit OPEN for {source_name}, skipping")
+                continue
+            
+            if source_name == 'yahoo_finance':
+                tasks.append(self._fetch_yahoo_price(symbol))
+                sources_to_try.append('yahoo_finance')
+            elif source_name == 'alpaca' and self.alpaca.api_key:
+                tasks.append(self._fetch_alpaca_price(symbol))
+                sources_to_try.append('alpaca')
+            elif source_name == 'polygon' and self.polygon.api_key:
+                tasks.append(self._fetch_polygon_price(symbol))
+                sources_to_try.append('polygon')
+            elif source_name == 'alpha_vantage':
+                tasks.append(self._fetch_alpha_price(symbol))
+                sources_to_try.append('alpha_vantage')
+        
+        if not tasks:
+            print(f"All circuits OPEN for {symbol}")
+            return None
+        
+        # Wait for first successful result
+        results = {}
+        
+        for i, task in enumerate(asyncio.as_completed(tasks)):
+            try:
+                result = await task
+                source = sources_to_try[i]
+                
+                if result:
+                    latency_ms = (time.time() - start_time) * 1000
+                    await self.metrics.record_request(source, True, latency_ms)
+                    results[source] = result
+                    
+                    # Return immediately on success
+                    return result
+                    
+            except Exception as e:
+                source = sources_to_try[i]
+                latency_ms = (time.time() - start_time) * 1000
+                await self.metrics.record_request(source, False, latency_ms)
+                self.cb.record_failure(source, type(e).__name__)
+        
+        # All failed
+        return None
+    
+    async def _fetch_yahoo_price(self, symbol: str) -> Optional[Dict]:
+        """Fetch price from Yahoo Finance"""
+        try:
+            start = time.time()
+            data = await asyncio.get_event_loop().run_in_executor(
+                self.executor, self.yahoo.fetch_data, symbol
+            )
+            latency_ms = (time.time() - start) * 1000
+            
+            if data:
+                await self.metrics.record_request('yahoo_finance', True, latency_ms)
+                return self.yahoo.parse_price(data)
+            else:
+                await self.metrics.record_request('yahoo_finance', False, latency_ms)
+                return None
+        except Exception as e:
+            await self.metrics.record_request('yahoo_finance', False, 0)
+            self.cb.record_failure('yahoo_finance', type(e).__name__)
+            return None
+    
+    async def _fetch_alpaca_price(self, symbol: str) -> Optional[Dict]:
+        """Fetch price from Alpaca"""
+        try:
+            start = time.time()
+            data = await asyncio.get_event_loop().run_in_executor(
+                self.executor, self.alpaca.fetch_snapshot, symbol
+            )
+            latency_ms = (time.time() - start) * 1000
+            
+            if data:
+                await self.metrics.record_request('alpaca', True, latency_ms)
+                return self.alpaca.parse_price(data)
+            else:
+                await self.metrics.record_request('alpaca', False, latency_ms)
+                return None
+        except Exception as e:
+            await self.metrics.record_request('alpaca', False, 0)
+            self.cb.record_failure('alpaca', type(e).__name__)
+            return None
+    
+    async def _fetch_polygon_price(self, symbol: str) -> Optional[Dict]:
+        """Fetch price from Polygon"""
+        try:
+            start = time.time()
+            data = await asyncio.get_event_loop().run_in_executor(
+                self.executor, self.polygon.fetch_snapshot, symbol
+            )
+            latency_ms = (time.time() - start) * 1000
+            
+            if data:
+                await self.metrics.record_request('polygon', True, latency_ms)
+                return self.polygon.parse_price(data)
+            else:
+                await self.metrics.record_request('polygon', False, latency_ms)
+                return None
+        except Exception as e:
+            await self.metrics.record_request('polygon', False, 0)
+            self.cb.record_failure('polygon', type(e).__name__)
+            return None
+    
+    async def _fetch_alpha_price(self, symbol: str) -> Optional[Dict]:
+        """Fetch price from Alpha Vantage"""
+        try:
+            start = time.time()
+            data = await asyncio.get_event_loop().run_in_executor(
+                self.executor, self.alpha_vantage.fetch_quote, symbol
+            )
+            latency_ms = (time.time() - start) * 1000
+            
+            if data and '05. price' in data:
+                await self.metrics.record_request('alpha_vantage', True, latency_ms)
+                return self.alpha_vantage.parse_price(data)
+            else:
+                await self.metrics.record_request('alpha_vantage', False, latency_ms)
+                return None
+        except Exception as e:
+            await self.metrics.record_request('alpha_vantage', False, 0)
+            self.cb.record_failure('alpha_vantage', type(e).__name__)
+            return None
+    
+    # ========================================================================
     # SINGLE STOCK METHODS
     # ========================================================================
     
     def get_stock_price(self, symbol: str, period: str = '1mo', startDate: str = None, endDate: str = None) -> Dict:
         """
         Get current stock price and basic quote information
-        Priority: Yahoo Finance (free) > Alpaca > Polygon > Alpha Vantage (rate limited)
-        Also includes historical data for charting
         
-        Args:
-            symbol: Stock symbol (e.g., 'AAPL')
-            period: Historical data period ('1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max')
-            startDate: Custom start date (YYYY-MM-DD) - takes precedence over period
-            endDate: Custom end date (YYYY-MM-DD)
+        Uses parallel fallback strategy - tries multiple APIs concurrently
+        for faster response times.
         """
-        # Cache key includes period since different periods return different data
-        # Use startDate for cache key when using custom range
+        # Check cache first
         cache_key = self._get_cache_key(f'price:{period}:{startDate or "default"}', symbol)
         cached = self._get_from_cache(cache_key)
         if cached:
@@ -107,40 +343,31 @@ class StockDataAPI:
             'source': 'unknown'
         }
         
-        # 1. Try Yahoo Finance first
-        yf_data = self.yahoo.fetch_data(symbol)
-        if yf_data:
-            price_data.update(self.yahoo.parse_price(yf_data))
-            price_data['source'] = 'yahoo_finance'
-        
-        # 2. Fetch historical data for charting (support custom date range)
-        if startDate and endDate:
-            history = self.yahoo.fetch_history_range(symbol, startDate, endDate)
-        else:
-            history = self.yahoo.fetch_history(symbol, period)
-        if history:
-            price_data['historicalData'] = history
-        
-        # 3. Try Alpaca
-        if price_data['source'] == 'unknown' and self.alpaca.api_key:
-            alpaca_data = self.alpaca.fetch_snapshot(symbol)
-            if alpaca_data:
-                price_data.update(self.alpaca.parse_price(alpaca_data))
-                price_data['source'] = 'alpaca'
-        
-        # 4. Try Polygon
-        if price_data['source'] == 'unknown' and self.polygon.api_key:
-            poly_snap = self.polygon.fetch_snapshot(symbol)
-            if poly_snap:
-                price_data.update(self.polygon.parse_price(poly_snap))
-                price_data['source'] = 'polygon'
-        
-        # 5. Try Alpha Vantage as LAST RESORT
-        if price_data['source'] == 'unknown':
-            av_quote = self.alpha_vantage.fetch_quote(symbol)
-            if av_quote:
-                price_data.update(self.alpha_vantage.parse_price(av_quote))
-                price_data['source'] = 'alpha_vantage'
+        try:
+            # Run parallel fallback
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(self._fetch_parallel(symbol, 'price'))
+                
+                if result:
+                    price_data.update(result)
+                    price_data['source'] = 'parallel_fallback'
+                    
+                    # Also fetch historical data from Yahoo
+                    if startDate and endDate:
+                        history = self.yahoo.fetch_history_range(symbol, startDate, endDate)
+                    else:
+                        history = self.yahoo.fetch_history(symbol, period)
+                    
+                    if history:
+                        price_data['historicalData'] = history
+                        
+            finally:
+                loop.close()
+                
+        except Exception as e:
+            print(f"Error in parallel fallback for {symbol}: {str(e)}")
         
         self._set_cache(cache_key, price_data)
         return price_data
@@ -161,35 +388,61 @@ class StockDataAPI:
             'source': 'unknown'
         }
         
-        # Try Yahoo Finance FIRST
-        yf_data = self.yahoo.fetch_data(symbol)
-        if yf_data:
-            metrics.update(self.yahoo.parse_metrics(yf_data))
-            metrics['source'] = 'yahoo_finance'
+        # Try Yahoo Finance FIRST (fastest, most complete)
+        try:
+            start = time.time()
+            yf_data = self.yahoo.fetch_data(symbol)
+            latency_ms = (time.time() - start) * 1000
+            
+            if yf_data:
+                metrics.update(self.yahoo.parse_metrics(yf_data))
+                metrics['source'] = 'yahoo_finance'
+                self.metrics.record_request('yahoo_finance', True, latency_ms)
+            else:
+                self.metrics.record_request('yahoo_finance', False, latency_ms)
+                
+        except Exception as e:
+            self.metrics.record_request('yahoo_finance', False, 0)
+            print(f"Yahoo metrics error for {symbol}: {str(e)}")
         
-        # Fallback to Alpha Vantage
+        # Fallback to Alpha Vantage if needed
         if metrics['source'] == 'unknown':
-            av_data = self.alpha_vantage.fetch_overview(symbol)
-            if av_data:
-                metrics.update(self.alpha_vantage.parse_metrics(av_data))
-                metrics['source'] = 'alpha_vantage'
+            try:
+                start = time.time()
+                av_data = self.alpha_vantage.fetch_overview(symbol)
+                latency_ms = (time.time() - start) * 1000
+                
+                if av_data:
+                    metrics.update(self.alpha_vantage.parse_metrics(av_data))
+                    metrics['source'] = 'alpha_vantage'
+                    self.metrics.record_request('alpha_vantage', True, latency_ms)
+                else:
+                    self.metrics.record_request('alpha_vantage', False, latency_ms)
+            except Exception as e:
+                self.metrics.record_request('alpha_vantage', False, 0)
         
         # Enhance with Polygon data if available
-        if self.polygon.api_key:
-            poly_data = self.polygon.fetch_ticker(symbol)
-            if poly_data:
-                metrics.update(self.polygon.parse_metrics(poly_data))
-                if metrics['source'] == 'unknown':
-                    metrics['source'] = 'polygon'
+        if self.polygon.api_key and metrics['source'] == 'unknown':
+            try:
+                start = time.time()
+                poly_data = self.polygon.fetch_ticker(symbol)
+                latency_ms = (time.time() - start) * 1000
+                
+                if poly_data:
+                    metrics.update(self.polygon.parse_metrics(poly_data))
+                    if metrics['source'] == 'unknown':
+                        metrics['source'] = 'polygon'
+                    self.metrics.record_request('polygon', True, latency_ms)
+                else:
+                    self.metrics.record_request('polygon', False, latency_ms)
+            except Exception as e:
+                self.metrics.record_request('polygon', False, 0)
         
         self._set_cache(cache_key, metrics)
         return metrics
     
     def get_analyst_estimates(self, symbol: str) -> Dict:
-        """
-        Get analyst estimates for earnings and revenue
-        Priority: Yahoo Finance > Alpha Vantage
-        """
+        """Get analyst estimates for earnings and revenue"""
         cache_key = self._get_cache_key('estimates', symbol)
         cached = self._get_from_cache(cache_key)
         if cached:
@@ -204,26 +457,29 @@ class StockDataAPI:
         }
         
         # Try Yahoo Finance FIRST
-        yf_data = self.yahoo.fetch_data(symbol)
-        if yf_data and ('earningsTrend' in yf_data or 'targetMeanPrice' in yf_data):
-            estimates.update(self.yahoo.parse_estimates(yf_data))
-            estimates['source'] = 'yahoo_finance'
+        try:
+            yf_data = self.yahoo.fetch_data(symbol)
+            if yf_data and ('earningsTrend' in yf_data or 'targetMeanPrice' in yf_data):
+                estimates.update(self.yahoo.parse_estimates(yf_data))
+                estimates['source'] = 'yahoo_finance'
+        except Exception as e:
+            print(f"Yahoo estimates error for {symbol}: {str(e)}")
         
         # Fallback to Alpha Vantage
         if estimates['source'] == 'unknown':
-            av_earnings = self.alpha_vantage.fetch_earnings(symbol)
-            if av_earnings:
-                estimates.update(self.alpha_vantage.parse_estimates(av_earnings))
-                estimates['source'] = 'alpha_vantage'
+            try:
+                av_earnings = self.alpha_vantage.fetch_earnings(symbol)
+                if av_earnings:
+                    estimates.update(self.alpha_vantage.parse_estimates(av_earnings))
+                    estimates['source'] = 'alpha_vantage'
+            except Exception as e:
+                print(f"Alpha Vantage estimates error for {symbol}: {str(e)}")
         
         self._set_cache(cache_key, estimates)
         return estimates
     
     def get_financial_statements(self, symbol: str) -> Dict:
-        """
-        Get financial statements (income statement, balance sheet, cash flow)
-        Priority: Yahoo Finance > Alpha Vantage
-        """
+        """Get financial statements (income statement, balance sheet, cash flow)"""
         cache_key = self._get_cache_key('financials', symbol)
         cached = self._get_from_cache(cache_key)
         if cached:
@@ -239,264 +495,6 @@ class StockDataAPI:
         }
         
         # Try Yahoo Finance with full financial statements
-        yf_financials = self.yahoo.fetch_financials(symbol)
-        if yf_financials and (yf_financials.get('income_statement') or yf_financials.get('balance_sheet') or yf_financials.get('cash_flow')):
-            financials.update(yf_financials)
-            financials['source'] = 'yahoo_finance'
-        
-        # Fallback to Alpha Vantage (makes 3 API calls) if Yahoo Finance returned no data
-        if not financials['income_statement'] and not financials['balance_sheet'] and not financials['cash_flow']:
-            av_income = self.alpha_vantage.fetch_income_statement(symbol)
-            av_balance = self.alpha_vantage.fetch_balance_sheet(symbol)
-            av_cashflow = self.alpha_vantage.fetch_cash_flow(symbol)
-            
-            if av_income or av_balance or av_cashflow:
-                if av_income:
-                    financials['income_statement'] = self.alpha_vantage.parse_income(av_income)
-                if av_balance:
-                    financials['balance_sheet'] = self.alpha_vantage.parse_balance(av_balance)
-                if av_cashflow:
-                    financials['cash_flow'] = self.alpha_vantage.parse_cashflow(av_cashflow)
-                financials['source'] = 'alpha_vantage'
-        
-        self._set_cache(cache_key, financials)
-        return financials
-    
-    def get_stock_factors(self, symbol: str) -> Dict:
-        """Get factor scores for a stock"""
-        return {
-            'symbol': symbol,
-            'factors': {
-                'value': 0.5,
-                'growth': 0.6,
-                'quality': 0.7,
-                'momentum': 0.4,
-                'volatility': 0.3
-            },
-            'last_updated': datetime.now().isoformat()
-        }
-    
-    def get_stock_news(self, symbol: str) -> Dict:
-        """Get news for a stock using YahooFinanceClient"""
         try:
-            news_articles = self.yahoo.fetch_news(symbol)
-            return {
-                'symbol': symbol,
-                'news': news_articles,
-                'last_updated': datetime.now().isoformat()
-            }
-        except Exception as e:
-            print(f"Error fetching news for {symbol}: {str(e)}")
-            return {
-                'symbol': symbol,
-                'news': [],
-                'last_updated': datetime.now().isoformat(),
-                'error': str(e)
-            }
-    
-    # ========================================================================
-    # ASYNC BATCH METHODS
-    # ========================================================================
-    
-    async def get_multiple_stock_prices_async(self, symbols: List[str]) -> Dict[str, Dict]:
-        """Fetch stock prices for multiple symbols concurrently"""
-        results = {}
-        print(f"get_multiple_stock_prices_async: Fetching prices for {symbols}")
-
-        async with aiohttp.ClientSession() as session:
-            tasks = [self.yahoo.fetch_data_async(session, symbol) for symbol in symbols]
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-
-            print(f"get_multiple_stock_prices_async: Got {len(responses)} responses")
-
-            for item in responses:
-                if isinstance(item, Exception):
-                    print(f"get_multiple_stock_prices_async: Exception in response: {item}")
-                    continue
-
-                symbol, data = item
-                print(f"get_multiple_stock_prices_async: Processing {symbol}, data is {'truthy' if data else 'falsy'}")
-
-                if data:
-                    price_data = {
-                        'symbol': symbol,
-                        'timestamp': datetime.now().isoformat(),
-                        'source': 'yahoo_finance'
-                    }
-
-                    # Parse the price data
-                    parsed = self.yahoo.parse_price(data)
-                    print(f"get_multiple_stock_prices_async: Parsed price for {symbol}: {parsed}")
-
-                    if parsed:
-                        price_data.update(parsed)
-                        results[symbol] = price_data
-
-                        cache_key = self._get_cache_key('price', symbol)
-                        self._set_cache(cache_key, price_data)
-                    else:
-                        # If parsing failed, store error
-                        results[symbol] = {
-                            'symbol': symbol,
-                            'error': 'Failed to parse price data',
-                            'timestamp': datetime.now().isoformat()
-                        }
-                        print(f"get_multiple_stock_prices_async: WARNING - no parsed data for {symbol}")
-                else:
-                    results[symbol] = {
-                        'symbol': symbol,
-                        'error': 'Failed to fetch data',
-                        'timestamp': datetime.now().isoformat()
-                    }
-                    print(f"get_multiple_stock_prices_async: WARNING - no data for {symbol}")
-
-        print(f"get_multiple_stock_prices_async: Final results: {results}")
-        return results
-    
-    async def get_multiple_stock_metrics_async(self, symbols: List[str]) -> Dict[str, Dict]:
-        """Fetch stock metrics for multiple symbols concurrently"""
-        results = {}
-        
-        async with aiohttp.ClientSession() as session:
-            tasks = [self.yahoo.fetch_data_async(session, symbol) for symbol in symbols]
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            for item in responses:
-                if isinstance(item, Exception):
-                    continue
-                    
-                symbol, data = item
-                if data:
-                    metrics = {
-                        'symbol': symbol,
-                        'timestamp': datetime.now().isoformat(),
-                        'source': 'yahoo_finance'
-                    }
-                    metrics.update(self.yahoo.parse_metrics(data))
-                    results[symbol] = metrics
-                    
-                    cache_key = self._get_cache_key('metrics', symbol)
-                    self._set_cache(cache_key, metrics)
-                else:
-                    results[symbol] = {
-                        'symbol': symbol,
-                        'error': 'Failed to fetch data',
-                        'timestamp': datetime.now().isoformat()
-                    }
-        
-        return results
-    
-    async def get_multiple_analyst_estimates_async(self, symbols: List[str]) -> Dict[str, Dict]:
-        """Fetch analyst estimates for multiple symbols concurrently"""
-        results = {}
-        
-        async with aiohttp.ClientSession() as session:
-            tasks = [self.yahoo.fetch_data_async(session, symbol) for symbol in symbols]
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            for item in responses:
-                if isinstance(item, Exception):
-                    continue
-                    
-                symbol, data = item
-                if data and ('earningsTrend' in data or 'targetMeanPrice' in data):
-                    estimates = {
-                        'symbol': symbol,
-                        'timestamp': datetime.now().isoformat(),
-                        'earnings_estimates': [],
-                        'revenue_estimates': [],
-                        'source': 'yahoo_finance'
-                    }
-                    estimates.update(self.yahoo.parse_estimates(data))
-                    results[symbol] = estimates
-                    
-                    cache_key = self._get_cache_key('estimates', symbol)
-                    self._set_cache(cache_key, estimates)
-                else:
-                    results[symbol] = {
-                        'symbol': symbol,
-                        'error': 'Failed to fetch data',
-                        'timestamp': datetime.now().isoformat()
-                    }
-        
-        return results
-    
-    async def get_multiple_financial_statements_async(self, symbols: List[str]) -> Dict[str, Dict]:
-        """Fetch financial statements for multiple symbols concurrently"""
-        results = {}
-        
-        async with aiohttp.ClientSession() as session:
-            tasks = [self.yahoo.fetch_data_async(session, symbol) for symbol in symbols]
-            responses = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            for item in responses:
-                if isinstance(item, Exception):
-                    continue
-                    
-                symbol, data = item
-                if data:
-                    financials = {
-                        'symbol': symbol,
-                        'timestamp': datetime.now().isoformat(),
-                        'income_statement': [],
-                        'balance_sheet': [],
-                        'cash_flow': [],
-                        'source': 'yahoo_finance'
-                    }
-                    financials.update(self.yahoo.parse_financials(data))
-                    results[symbol] = financials
-                    
-                    cache_key = self._get_cache_key('financials', symbol)
-                    self._set_cache(cache_key, financials)
-                else:
-                    results[symbol] = {
-                        'symbol': symbol,
-                        'error': 'Failed to fetch data',
-                        'timestamp': datetime.now().isoformat()
-                    }
-        
-        return results
-    
-    # ========================================================================
-    # SYNCHRONOUS WRAPPERS FOR BATCH METHODS
-    # ========================================================================
-    
-    def get_multiple_stock_prices(self, symbols: List[str]) -> Dict[str, Dict]:
-        """Synchronous wrapper for batch price fetching"""
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        return loop.run_until_complete(self.get_multiple_stock_prices_async(symbols))
-    
-    def get_multiple_stock_metrics(self, symbols: List[str]) -> Dict[str, Dict]:
-        """Synchronous wrapper for batch metrics fetching"""
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        return loop.run_until_complete(self.get_multiple_stock_metrics_async(symbols))
-    
-    def get_multiple_analyst_estimates(self, symbols: List[str]) -> Dict[str, Dict]:
-        """Synchronous wrapper for batch estimates fetching"""
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        return loop.run_until_complete(self.get_multiple_analyst_estimates_async(symbols))
-    
-    def get_multiple_financial_statements(self, symbols: List[str]) -> Dict[str, Dict]:
-        """Synchronous wrapper for batch financial statements fetching"""
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        return loop.run_until_complete(self.get_multiple_financial_statements_async(symbols))
+            yf_financials = self.yahoo.fetch_financials(symbol)
+            if yf_financials and (yf_financials.get('income_statement

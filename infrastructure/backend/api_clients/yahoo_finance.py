@@ -5,50 +5,90 @@ Primary data source - Uses yfinance library (handles authentication internally)
 
 import yfinance as yf
 import pandas as pd
+import asyncio
 from typing import Dict, List, Optional
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+import time
+
+
+# Timeout configuration
+DEFAULT_TIMEOUT_SECONDS = 10
+LONG_TIMEOUT_SECONDS = 30  # For financial statements that take longer
 
 
 class YahooFinanceClient:
     """Client for Yahoo Finance API using yfinance library"""
     
-    def __init__(self):
+    def __init__(self, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS):
         self.base_url = "https://query2.finance.yahoo.com/v10/finance/quoteSummary"
+        self.timeout = timeout_seconds
+    
+    def _fetch_with_timeout(self, func, timeout: float = None):
+        """Execute a function with timeout protection"""
+        timeout = timeout or self.timeout
+        
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(func)
+            try:
+                return future.result(timeout=timeout)
+            except FuturesTimeoutError:
+                print(f"YFinance timeout after {timeout}s")
+                return None
     
     def fetch_data(self, symbol: str, modules: str = None) -> Optional[Dict]:
         """
         Fetch data from Yahoo Finance using yfinance
+        With timeout protection to prevent hanging
         """
-        try:
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
-            
-            # Return the info dict which contains all data
-            # yfinance handles the API authentication internally
-            if info:
-                return info
-            return None
-        except Exception as e:
-            print(f"YFinance error for {symbol}: {str(e)}")
-            return None
+        def _fetch():
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info
+                if info:
+                    return info
+                return None
+            except Exception as e:
+                print(f"YFinance error for {symbol}: {str(e)}")
+                return None
+        
+        start_time = time.time()
+        result = self._fetch_with_timeout(_fetch)
+        latency_ms = (time.time() - start_time) * 1000
+        
+        if result is None:
+            print(f"YFinance fetch for {symbol} timed out or failed ({latency_ms:.0f}ms)")
+        
+        return result
     
     async def fetch_data_async(self, session, symbol: str, modules: str = None):
         """
         Async version of fetch_data using yfinance
         Returns: (symbol, data) tuple
+        With timeout protection
         """
-        try:
-            import yfinance as yf
+        import yfinance as yf
+        
+        def _fetch():
             ticker = yf.Ticker(symbol)
-            info = ticker.info
-
-            # Debug: log what we received
+            return ticker.info
+        
+        # Use thread pool for sync yfinance in async context
+        loop = asyncio.get_event_loop()
+        try:
+            start_time = time.time()
+            info = await loop.run_in_executor(None, _fetch)
+            latency_ms = (time.time() - start_time) * 1000
+            
             if info:
                 has_price = 'currentPrice' in info or 'regularMarketPrice' in info
-                print(f"YFinance async: {symbol} - info keys: {len(info)}, has price key: {has_price}")
+                print(f"YFinance async: {symbol} - info keys: {len(info)}, has price key: {has_price} ({latency_ms:.0f}ms)")
                 return (symbol, info)
             else:
-                print(f"YFinance async: {symbol} - info is empty or None")
+                print(f"YFinance async: {symbol} - info is empty or None ({latency_ms:.0f}ms)")
                 return (symbol, None)
+        except asyncio.TimeoutError:
+            print(f"YFinance async: {symbol} - timeout after {self.timeout}s")
+            return (symbol, None)
         except Exception as e:
             print(f"YFinance async error for {symbol}: {str(e)}")
             return (symbol, None)

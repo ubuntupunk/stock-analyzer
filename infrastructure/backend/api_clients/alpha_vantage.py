@@ -5,7 +5,13 @@ Fallback data source - FREE but RATE LIMITED (5 calls/minute on free tier)
 
 import os
 import requests
+import time
 from typing import Dict, List, Optional
+
+
+# Rate limit configuration
+RATE_LIMIT_CALLS = 5
+RATE_LIMIT_PERIOD = 60  # seconds
 
 
 class AlphaVantageClient:
@@ -14,112 +20,155 @@ class AlphaVantageClient:
     def __init__(self):
         self.api_key = os.environ.get('FINANCIAL_API_KEY', 'demo')
         self.base_url = "https://www.alphavantage.co/query"
+        self.timeout = 10  # seconds
+        
+        # Rate limiting tracking
+        self._rate_limit_calls = []
+        self._rate_limit_hits = 0
+    
+    def _check_rate_limit(self) -> bool:
+        """
+        Check if we're within rate limits
+        Returns True if within limits, False if limit exceeded
+        """
+        now = time.time()
+        # Remove calls older than rate limit period
+        self._rate_limit_calls = [t for t in self._rate_limit_calls if now - t < RATE_LIMIT_PERIOD]
+        
+        if len(self._rate_limit_calls) >= RATE_LIMIT_CALLS:
+            self._rate_limit_hits += 1
+            print(f"Alpha Vantage rate limit hit! ({self._rate_limit_hits} total hits)")
+            return False
+        
+        return True
+    
+    def _record_api_call(self):
+        """Record an API call for rate limiting"""
+        self._rate_limit_calls.append(time.time())
+    
+    def _should_retry_after(self, response) -> Optional[int]:
+        """
+        Check if response indicates rate limiting with Retry-After header
+        Returns seconds to wait, or None
+        """
+        if response.status_code == 429:
+            retry_after = response.headers.get('Retry-After')
+            if retry_after:
+                try:
+                    return int(retry_after)
+                except ValueError:
+                    pass
+            # Default wait time for rate limit
+            return 60
+        return None
+    
+    def _fetch_with_retry(self, url: str, params: Dict, max_retries: int = 3) -> Optional[Dict]:
+        """
+        Fetch data with rate limit handling and retries
+        """
+        for attempt in range(max_retries):
+            # Check rate limit before making call
+            if not self._check_rate_limit():
+                # Wait for rate limit to reset
+                wait_time = RATE_LIMIT_PERIOD - (time.time() - self._rate_limit_calls[0]) if self._rate_limit_calls else RATE_LIMIT_PERIOD
+                print(f"Alpha Vantage rate limited, waiting {wait_time:.0f}s...")
+                time.sleep(max(wait_time, 1))
+                continue
+            
+            try:
+                response = requests.get(url, params=params, timeout=self.timeout)
+                self._record_api_call()
+                
+                # Check for rate limiting
+                retry_after = self._should_retry_after(response)
+                if retry_after is not None:
+                    print(f"Alpha Vantage rate limited, waiting {retry_after}s...")
+                    time.sleep(retry_after)
+                    continue
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    # Check for API limit message
+                    if 'Note' in data and 'API rate limit' in data.get('Note', ''):
+                        print("Alpha Vantage API limit message received")
+                        self._rate_limit_hits += 1
+                        if attempt < max_retries - 1:
+                            time.sleep(RATE_LIMIT_PERIOD)
+                            continue
+                        return None
+                    return data
+                else:
+                    print(f"Alpha Vantage HTTP {response.status_code}")
+                    
+            except requests.Timeout:
+                print(f"Alpha Vantage timeout (attempt {attempt + 1}/{max_retries})")
+            except Exception as e:
+                print(f"Alpha Vantage error: {str(e)}")
+        
+        return None
     
     def fetch_overview(self, symbol: str) -> Optional[Dict]:
         """Fetch company overview from Alpha Vantage"""
-        try:
-            params = {
-                'function': 'OVERVIEW',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            
-            response = requests.get(self.base_url, params=params, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data and 'Symbol' in data:
-                    return data
-            return None
-        except Exception as e:
-            print(f"Alpha Vantage error for {symbol}: {str(e)}")
-            return None
+        params = {
+            'function': 'OVERVIEW',
+            'symbol': symbol,
+            'apikey': self.api_key
+        }
+        
+        result = self._fetch_with_retry(self.base_url, params)
+        if result and 'Symbol' in result:
+            return result
+        return None
     
     def fetch_quote(self, symbol: str) -> Optional[Dict]:
         """Fetch real-time quote from Alpha Vantage"""
-        try:
-            params = {
-                'function': 'GLOBAL_QUOTE',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            
-            response = requests.get(self.base_url, params=params, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                return data.get('Global Quote', {})
-            return None
-        except Exception as e:
-            print(f"Alpha Vantage quote error for {symbol}: {str(e)}")
-            return None
+        params = {
+            'function': 'GLOBAL_QUOTE',
+            'symbol': symbol,
+            'apikey': self.api_key
+        }
+        
+        result = self._fetch_with_retry(self.base_url, params)
+        if result:
+            return result.get('Global Quote', {})
+        return None
     
     def fetch_earnings(self, symbol: str) -> Optional[Dict]:
         """Fetch earnings data from Alpha Vantage"""
-        try:
-            params = {
-                'function': 'EARNINGS',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            
-            response = requests.get(self.base_url, params=params, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                return data
-            return None
-        except Exception as e:
-            print(f"Alpha Vantage earnings error for {symbol}: {str(e)}")
-            return None
+        params = {
+            'function': 'EARNINGS',
+            'symbol': symbol,
+            'apikey': self.api_key
+        }
+        
+        return self._fetch_with_retry(self.base_url, params)
     
     def fetch_income_statement(self, symbol: str) -> Optional[Dict]:
         """Fetch income statement from Alpha Vantage"""
-        try:
-            params = {
-                'function': 'INCOME_STATEMENT',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            response = requests.get(self.base_url, params=params, timeout=10)
-            if response.status_code == 200:
-                return response.json()
-            return None
-        except Exception as e:
-            print(f"Alpha Vantage income statement error: {str(e)}")
-            return None
+        params = {
+            'function': 'INCOME_STATEMENT',
+            'symbol': symbol,
+            'apikey': self.api_key
+        }
+        return self._fetch_with_retry(self.base_url, params)
     
     def fetch_balance_sheet(self, symbol: str) -> Optional[Dict]:
         """Fetch balance sheet from Alpha Vantage"""
-        try:
-            params = {
-                'function': 'BALANCE_SHEET',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            response = requests.get(self.base_url, params=params, timeout=10)
-            if response.status_code == 200:
-                return response.json()
-            return None
-        except Exception as e:
-            print(f"Alpha Vantage balance sheet error: {str(e)}")
-            return None
+        params = {
+            'function': 'BALANCE_SHEET',
+            'symbol': symbol,
+            'apikey': self.api_key
+        }
+        return self._fetch_with_retry(self.base_url, params)
     
     def fetch_cash_flow(self, symbol: str) -> Optional[Dict]:
         """Fetch cash flow from Alpha Vantage"""
-        try:
-            params = {
-                'function': 'CASH_FLOW',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            response = requests.get(self.base_url, params=params, timeout=10)
-            if response.status_code == 200:
-                return response.json()
-            return None
-        except Exception as e:
-            print(f"Alpha Vantage cash flow error: {str(e)}")
-            return None
+        params = {
+            'function': 'CASH_FLOW',
+            'symbol': symbol,
+            'apikey': self.api_key
+        }
+        return self._fetch_with_retry(self.base_url, params)
     
     def parse_metrics(self, data: Dict) -> Dict:
         """Parse Alpha Vantage data into standard metrics format"""
