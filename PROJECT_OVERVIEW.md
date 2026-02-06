@@ -47,6 +47,15 @@ A full-stack stock analysis application that runs on AWS serverless infrastructu
 - Cash flow statements
 - Multi-year comparison
 
+### 7. API Resilience & Circuit Breaker
+- **Multi-source Fallback Strategy**: Automatically switches between data sources when one fails
+- **Circuit Breaker Pattern**: Prevents cascading failures when external APIs are unavailable
+- **Real-time Metrics**: Tracks API performance, latency, success rates, and error types
+- **Configurable Priorities**: Customize the order of API sources based on your needs
+- **Automatic Recovery**: Circuits automatically transition to half-open state to test recovery
+
+---
+
 ## Architecture
 
 ```
@@ -75,22 +84,264 @@ A full-stack stock analysis application that runs on AWS serverless infrastructu
 │ Stock API   │  │ Screener API │  │ Watchlist    │
 └──────┬──────┘  └──────┬───────┘  └──────┬───────┘
        │                │                 │
-       │                └────────┬────────┘
-       │                         │
-       │                         ▼
-       │              ┌──────────────────────┐
-       │              │  Amazon DynamoDB     │
-       │              │  - Factors Table     │
-       │              │  - Watchlist Table   │
-       │              └──────────────────────┘
-       │
-       ▼
-┌──────────────────────┐
-│  External Financial  │
-│     Data API         │
-│  (Alpha Vantage)     │
-└──────────────────────┘
+       │    ┌────────────┴────────────┐
+       │    │                         │
+       │    ▼                         ▼
+       │ ┌──────────────────────┐ ┌──────────────────────┐
+       │ │  Circuit Breaker    │ │   API Metrics       │
+       │ │  - State Tracking   │ │   - Performance      │
+       │ │  - Fallback Logic   │ │   - Error Logging   │
+       │ └──────────────────────┘ └──────────────────────┘
+       │    │                         │
+       └────┼─────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Multi-Source Data Provider Layer               │
+├─────────────┬─────────────┬──────────────┬─────────────────┤
+│   Yahoo     │   Alpaca    │   Polygon    │  Alpha Vantage  │
+│   Finance   │             │    .io       │                 │
+│  (Default)  │ (Realtime)  │  (Historical)│  (Fundamental)  │
+└─────────────┴─────────────┴──────────────┴─────────────────┘
+       │                │                │                  │
+       └────────────────┴────────────────┴──────────────────┘
+                            │
+                            ▼
+                 ┌──────────────────────┐
+                 │  Amazon DynamoDB     │
+                 │  - Factors Table     │
+                 │  - Watchlist Table  │
+                 └──────────────────────┘
 ```
+
+---
+
+## Circuit Breaker & API Resilience
+
+### Overview
+
+The Stock Analyzer implements a **Circuit Breaker pattern** to ensure reliable data retrieval even when external APIs experience issues. This prevents cascading failures and provides graceful degradation.
+
+### How It Works
+
+```
+                    ┌─────────────────────────────────────────────┐
+                    │           Normal Operation                 │
+                    │  (Circuit CLOSED - Requests flow normally)  │
+                    └────────────────────┬────────────────────────┘
+                                         │
+                    ┌────────────────────▼────────────────────────┐
+                    │         API Failure Detected               │
+                    │  (Failure count reaches threshold)          │
+                    └────────────────────┬────────────────────────┘
+                                         │
+                                         ▼
+                    ┌─────────────────────────────────────────────┐
+                    │         Circuit OPENS                      │
+                    │  - Fail-fast for failing API               │
+                    │  - Requests skip to next source            │
+                    │  - Timeout timer starts                     │
+                    └────────────────────┬────────────────────────┘
+                                         │
+                    ┌────────────────────▼────────────────────────┐
+                    │         Timeout Expires                    │
+                    │  (Default: 30 seconds)                     │
+                    └────────────────────┬────────────────────────┘
+                                         │
+                                         ▼
+                    ┌─────────────────────────────────────────────┐
+                    │       Circuit HALF-OPEN                   │
+                    │  - Allows limited test requests           │
+                    │  - Tests if API recovered                 │
+                    └────────────────────┬────────────────────────┘
+                                         │
+                         ┌───────────────┴───────────────┐
+                         │                               │
+                         ▼                               ▼
+                ┌─────────────────┐              ┌─────────────────┐
+                │   Success!     │              │    Failure!     │
+                │  Circuit CLOSES│              │  Circuit REOPENS│
+                └─────────────────┘              └─────────────────┘
+```
+
+### API Sources & Priority
+
+The system supports multiple data sources with configurable priorities:
+
+| Priority | Source | Type | Rate Limits | Best For |
+|----------|--------|------|-------------|----------|
+| 1 | Yahoo Finance | Free | None | Primary - Fast, comprehensive |
+| 2 | Alpaca | Freemium | 200 req/min | Real-time quotes |
+| 3 | Polygon.io | Freemium | 5 req/min | Historical data |
+| 4 | Alpha Vantage | Free | 5 req/min | Fundamentals |
+
+### Default Priority Configuration
+
+```python
+DEFAULT_PRIORITIES = [
+    ('yahoo_finance', 1),      # First choice - free, no rate limits
+    ('alpaca', 2),              # Second - good for real-time
+    ('polygon', 3),             # Third - excellent historical data
+    ('alpha_vantage', 4)        # Fourth - slow, use as last resort
+]
+```
+
+### Configuration Options
+
+#### Environment Variables
+
+```bash
+# API Key Configuration
+ALPACA_API_KEY=your_alpaca_key
+POLYGON_API_KEY=your_polygon_key
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
+
+# Circuit Breaker Configuration (Optional)
+CIRCUIT_FAILURE_THRESHOLD=5       # Failures before opening (default: 5)
+CIRCUIT_TIMEOUT_SECONDS=30.0      # Time in open state (default: 30)
+CIRCUIT_SUCCESS_THRESHOLD=2       # Successes to close from half_open (default: 2)
+```
+
+#### Programmatic Configuration
+
+```python
+from stock_api import StockDataAPI
+from circuit_breaker import CircuitBreakerConfig
+
+# Custom circuit breaker configuration
+cb_config = CircuitBreakerConfig(
+    failure_threshold=10,     # More failures before opening
+    success_threshold=3,      # More successes needed to close
+    timeout_seconds=60.0      # Longer timeout
+)
+
+# Custom priorities
+api = StockDataAPI(config={
+    'timeout': 15,
+    'cache_timeout': 300,
+    'priorities': [
+        ('yahoo_finance', 1),
+        ('alpaca', 2),
+        ('polygon', 3),
+        ('alpha_vantage', 4)
+    ]
+})
+```
+
+### API Metrics & Monitoring
+
+The system tracks comprehensive metrics for each data source:
+
+#### Metrics Tracked
+
+| Metric | Description |
+|--------|-------------|
+| Total Requests | Number of API calls made |
+| Success/Failed | Call outcomes |
+| Average Latency | Response time in milliseconds |
+| Rate Limits | 429 errors encountered |
+| Timeouts | Request timeout count |
+| Error Types | Breakdown of error categories |
+
+#### Accessing Metrics
+
+```python
+from stock_api import StockDataAPI
+
+api = StockDataAPI()
+
+# Get all metrics
+metrics = api.metrics.get_metrics()
+print(f"Success Rate: {metrics['success_rate']}")
+print(f"Total Requests: {metrics['requests']['total']}")
+print(f"Average Latency: {metrics['latency']['avg_ms']}ms")
+
+# Get source-specific stats
+source_stats = api.metrics.get_source_stats('yahoo_finance')
+print(f"Yahoo Finance Calls: {source_stats['calls']}")
+print(f"Success Rate: {source_stats['success_rate']}")
+
+# Get circuit breaker states
+cb_states = api.cb.get_all_states()
+print(f"Open Circuits: {[k for k,v in cb_states.items() if v['state'] == 'open']}")
+```
+
+#### Health Report
+
+```python
+health = api.cb.get_health_report()
+
+print(f"Health Score: {health['health_score']:.1%}")
+print(f"Healthy APIs: {len(health['healthy'])}")
+print(f"Degraded APIs: {len(health['degraded'])}")
+print(f"Unhealthy APIs: {len(health['unhealthy'])}")
+```
+
+### Fallback Behavior
+
+#### Parallel Fallback Strategy
+
+When fetching stock data, the system attempts multiple sources in parallel:
+
+```
+Request: get_stock_price("AAPL")
+    │
+    ▼
+┌───────────────────────────────────────────────┐
+│  Check circuit state for each source         │
+│  Skip sources with OPEN circuits             │
+└────────────────────┬────────────────────────┘
+                     │
+        ┌────────────┼────────────┐
+        │            │            │
+        ▼            ▼            ▼
+   ┌─────────┐  ┌─────────┐  ┌─────────┐
+   │  Yahoo  │  │  Alpaca │  │ Polygon │
+   │ (并行)   │  │ (并行)   │  │ (并行)   │
+   └────┬────┘  └────┬────┘  └────┬────┘
+        │            │            │
+        └────────────┬────────────┘
+                     │
+              First successful response
+                     │
+                     ▼
+              Return result (cache if configured)
+```
+
+#### Caching Strategy
+
+- **Cache TTL**: 5 minutes (300 seconds) by default
+- **Cache Keys**: Prefix-based (`price:{period}:{symbol}`, `metrics:{symbol}`, etc.)
+- **Cache Bypass**: Cache can be bypassed by setting `cache_timeout=0`
+
+```python
+api = StockDataAPI(config={
+    'cache_timeout': 300  # 5 minutes
+})
+
+# Clear cache manually
+api.cache.clear()
+```
+
+### Manual Circuit Control
+
+For maintenance or testing, circuits can be controlled manually:
+
+```python
+# Force a circuit open (skip this source)
+api.cb.force_open('alpha_vantage')
+
+# Force a circuit closed (use normally)
+api.cb.force_close('alpha_vantage')
+
+# Reset a specific circuit
+api.cb.reset('alpha_vantage')
+
+# Reset all circuits
+api.cb.reset()
+```
+
+---
 
 ## Tech Stack
 
@@ -124,16 +375,34 @@ stock-analyzer/
 ├── README.md              # Comprehensive documentation
 ├── QUICKSTART.md          # Quick deployment guide
 ├── package.json           # NPM scripts (optional)
+├── PROJECT_OVERVIEW.md    # This file
 ├── .gitignore            # Git ignore rules
 │
 ├── deploy.sh             # Automated deployment script
 ├── test.sh               # API testing script
 │
+├── tests/                # Test suite
+│   ├── unit/             # Unit tests
+│   │   ├── __init__.py
+│   │   ├── test_circuit_breaker.py   # Circuit breaker tests
+│   │   └── test_stock_api.py          # Stock API tests
+│   └── integration/      # Integration tests
+│       ├── package.json
+│       ├── jest.config.js
+│       └── *.test.js
+│
 ├── backend/              # Lambda functions
-│   ├── stock_api.py      # Stock data retrieval
+│   ├── stock_api.py      # Stock data retrieval with circuit breaker
 │   ├── screener_api.py   # Screening & DCF analysis
 │   ├── watchlist_api.py  # Watchlist management
-│   └── requirements.txt  # Python dependencies
+│   ├── circuit_breaker.py # Circuit breaker implementation
+│   ├── requirements.txt  # Python dependencies
+│   └── api_clients/      # Individual API client modules
+│       ├── __init__.py
+│       ├── yahoo_finance.py
+│       ├── alpha_vantage.py
+│       ├── polygon.py
+│       └── alpaca.py
 │
 ├── frontend/             # Static website files
 │   ├── index.html        # Main HTML
@@ -145,6 +414,62 @@ stock-analyzer/
 └── infrastructure/       # AWS infrastructure
     └── template.yaml     # SAM template
 ```
+
+## Testing
+
+### Unit Tests
+
+Run unit tests with pytest:
+
+```bash
+# Install test dependencies
+cd infrastructure/backend
+pip install pytest pytest-asyncio pytest-cov
+
+# Run all unit tests
+cd ../../tests/unit
+python -m pytest -v
+
+# Run specific test file
+python -m pytest test_circuit_breaker.py -v
+python -m pytest test_stock_api.py -v
+
+# Run with coverage
+python -m pytest --cov=backend --cov-report=html
+```
+
+### Test Coverage
+
+| Module | Tests | Description |
+|--------|-------|-------------|
+| circuit_breaker.py | 30+ | Circuit states, transitions, metrics |
+| stock_api.py | 20+ | Cache, metrics, priorities, API methods |
+
+### Integration Tests
+
+Run integration tests with Jest:
+
+```bash
+cd tests/integration
+npm install
+npm test
+```
+
+---
+
+## API Resilience Features
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Circuit Breaker | ✅ Implemented | Prevents cascading failures |
+| Multi-source Fallback | ✅ Implemented | Parallel fallback strategy |
+| API Metrics | ✅ Implemented | Performance tracking |
+| Configurable Priorities | ✅ Implemented | Customizable source order |
+| Automatic Recovery | ✅ Implemented | Half-open state testing |
+| Rate Limit Handling | ✅ Implemented | Per-client timeout & retry |
+| Request Caching | ✅ Implemented | 5-minute cache TTL |
+
+---
 
 ## API Endpoints Reference
 
