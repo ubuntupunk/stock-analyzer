@@ -116,4 +116,6 @@ __pycache__/
 # Local Development
 videos/
 infrastructure/frontend/styles.css.map
+voicetree-5-2/
+.mcp.json
 
