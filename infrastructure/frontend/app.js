@@ -81,6 +81,9 @@ class StockAnalyzer {
      * Initialize all modules
      */
     async initializeModules() {
+        // Error boundary must be initialized first
+        this.modules.errorBoundary = new ErrorBoundary(eventBus);
+
         // Core modules
         this.modules.dataManager = new DataManager(eventBus);
         this.modules.uiManager = new UIManager(eventBus);

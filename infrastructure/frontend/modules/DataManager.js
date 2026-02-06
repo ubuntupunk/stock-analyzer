@@ -412,9 +412,10 @@ class DataManager {
         this.retryAttempts = 3;
         this.retryDelay = 1000;
         this.pendingRequests = new Map();
+        this.pruneInterval = null;
 
-        // Periodic cleanup
-        setInterval(() => this.cache.prune(), 60000); // Prune expired cache every minute
+        // Periodic cleanup (store interval ID for cleanup method)
+        this.pruneInterval = setInterval(() => this.cache.prune(), 60000); // Prune expired cache every minute
     }
 
     /**
@@ -989,6 +990,29 @@ class DataManager {
             offline: this.offlineQueue.getStats(),
             metrics: this.getMetrics()
         };
+    }
+
+    /**
+     * Clean up resources (call on page unload)
+     */
+    cleanup() {
+        // Clear cache pruning interval to prevent memory leaks
+        if (this.pruneInterval) {
+            clearInterval(this.pruneInterval);
+            this.pruneInterval = null;
+        }
+
+        // Clear pending requests
+        this.pendingRequests.clear();
+
+        // Clear queues
+        this.requestQueue.clear();
+        this.offlineQueue.clear();
+
+        // Clear cache
+        this.cache.clear();
+
+        console.log('DataManager: Cleanup complete');
     }
 
     /**
