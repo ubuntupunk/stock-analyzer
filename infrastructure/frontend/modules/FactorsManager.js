@@ -319,7 +319,7 @@ class FactorsManager {
             return;
         }
 
-        container.innerHTML = '<h3>Active Screening Factors:</h3>';
+        container.innerHTML = '';
         const list = document.createElement('div');
         list.className = 'active-factors-grid';
         list.id = 'activeFactorsGrid';
