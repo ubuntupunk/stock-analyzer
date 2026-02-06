@@ -559,6 +559,62 @@ class StockDataAPI:
         
         return data
 
+    def get_batch_prices(self, symbols: List[str]) -> Dict:
+        """Get prices for multiple symbols concurrently"""
+        results = {}
+        for symbol in symbols:
+            try:
+                price = self.get_stock_price(symbol)
+                if price:
+                    results[symbol] = price
+                else:
+                    results[symbol] = {'symbol': symbol, 'error': 'No data'}
+            except Exception as e:
+                results[symbol] = {'symbol': symbol, 'error': str(e)}
+        return results
+
+    def get_batch_metrics(self, symbols: List[str]) -> Dict:
+        """Get metrics for multiple symbols concurrently"""
+        results = {}
+        for symbol in symbols:
+            try:
+                metrics = self.get_stock_metrics(symbol)
+                if metrics:
+                    results[symbol] = metrics
+                else:
+                    results[symbol] = {'symbol': symbol, 'error': 'No data'}
+            except Exception as e:
+                results[symbol] = {'symbol': symbol, 'error': str(e)}
+        return results
+
+    def get_batch_estimates(self, symbols: List[str]) -> Dict:
+        """Get analyst estimates for multiple symbols concurrently"""
+        results = {}
+        for symbol in symbols:
+            try:
+                estimates = self.get_analyst_estimates(symbol)
+                if estimates:
+                    results[symbol] = estimates
+                else:
+                    results[symbol] = {'symbol': symbol, 'error': 'No data'}
+            except Exception as e:
+                results[symbol] = {'symbol': symbol, 'error': str(e)}
+        return results
+
+    def get_batch_financials(self, symbols: List[str]) -> Dict:
+        """Get financials for multiple symbols concurrently"""
+        results = {}
+        for symbol in symbols:
+            try:
+                financials = self.get_financial_statements(symbol)
+                if financials:
+                    results[symbol] = financials
+                else:
+                    results[symbol] = {'symbol': symbol, 'error': 'No data'}
+            except Exception as e:
+                results[symbol] = {'symbol': symbol, 'error': str(e)}
+        return results
+
 
 def lambda_handler(event, context):
     """
@@ -612,7 +668,39 @@ def lambda_handler(event, context):
                     'metrics': api.metrics.get_metrics()
                 }
                 return {'statusCode': 200, 'body': json.dumps(result)}
-            
+
+            elif '/batch/prices' in path:
+                symbols = params.get('symbols')
+                if not symbols:
+                    return {'statusCode': 400, 'body': json.dumps({'error': 'symbols required'})}
+                symbol_list = symbols.split(',')
+                result = api.get_batch_prices(symbol_list)
+                return {'statusCode': 200, 'body': json.dumps(result, default=decimal_default)}
+
+            elif '/batch/metrics' in path:
+                symbols = params.get('symbols')
+                if not symbols:
+                    return {'statusCode': 400, 'body': json.dumps({'error': 'symbols required'})}
+                symbol_list = symbols.split(',')
+                result = api.get_batch_metrics(symbol_list)
+                return {'statusCode': 200, 'body': json.dumps(result, default=decimal_default)}
+
+            elif '/batch/estimates' in path:
+                symbols = params.get('symbols')
+                if not symbols:
+                    return {'statusCode': 400, 'body': json.dumps({'error': 'symbols required'})}
+                symbol_list = symbols.split(',')
+                result = api.get_batch_estimates(symbol_list)
+                return {'statusCode': 200, 'body': json.dumps(result, default=decimal_default)}
+
+            elif '/batch/financials' in path:
+                symbols = params.get('symbols')
+                if not symbols:
+                    return {'statusCode': 400, 'body': json.dumps({'error': 'symbols required'})}
+                symbol_list = symbols.split(',')
+                result = api.get_batch_financials(symbol_list)
+                return {'statusCode': 200, 'body': json.dumps(result, default=decimal_default)}
+
             else:
                 return {'statusCode': 404, 'body': json.dumps({'error': 'not found'})}
         

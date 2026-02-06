@@ -115,7 +115,8 @@ class APIService {
                 }
 
                 // Don't retry client errors (except 429 and 401 which are handled above)
-                if (response && response.status >= 400 && response.status < 500 && response.status !== 429 && response.status !== 401) {
+                // Only check response if it was defined (network errors won't have response)
+                if (typeof response !== 'undefined' && response.status >= 400 && response.status < 500 && response.status !== 429 && response.status !== 401) {
                     throw error;
                 }
 
