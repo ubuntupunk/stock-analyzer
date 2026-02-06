@@ -23,8 +23,10 @@ class MetricsManager {
         // Listen for data loaded events
         this.eventBus.on('data:loaded', ({ type, data, symbol }) => {
             if (type === 'metrics') {
-                console.log('MetricsManager: Metrics data loaded, updating company info');
+                console.log('MetricsManager: Metrics data loaded, updating display');
                 this.updateCompanyInfo(symbol, data);
+                this.updateMetricsDisplay(data);
+                this.updatePriceIndicators(data);
             }
         });
 
@@ -228,27 +230,48 @@ class MetricsManager {
 
     /**
      * Update all metrics from data object
-     * @param {object} metricsData - Metrics data object
+     * @param {object} data - Metrics data object (may contain nested metrics)
      */
-    updateAllMetrics(metricsData) {
+    updateMetricsDisplay(data) {
+        const metrics = data.metrics || data;
+        
         const metricMappings = {
-            'peRatio': this.formatValue(metricsData.peRatio, 'ratio'),
-            'marketCap': this.formatValue(metricsData.marketCap, 'currency'),
-            'priceToBook': this.formatValue(metricsData.priceToBook, 'ratio'),
-            'roe': this.formatValue(metricsData.roe, 'percentage'),
-            'debtToEquity': this.formatValue(metricsData.debtToEquity, 'ratio'),
-            'currentRatio': this.formatValue(metricsData.currentRatio, 'ratio'),
-            'revenueGrowth': this.formatValue(metricsData.revenueGrowth, 'percentage'),
-            'earningsGrowth': this.formatValue(metricsData.earningsGrowth, 'percentage'),
-            'epsGrowth': this.formatValue(metricsData.epsGrowth, 'percentage'),
-            'profitMargin': this.formatValue(metricsData.profitMargin, 'percentage'),
-            'operatingMargin': this.formatValue(metricsData.operatingMargin, 'percentage'),
-            'netMargin': this.formatValue(metricsData.netMargin, 'percentage')
+            'peRatio': this.formatValue(metrics.peRatio, 'ratio'),
+            'marketCap': this.formatValue(metrics.marketCap, 'currency'),
+            'priceToBook': this.formatValue(metrics.priceToBook, 'ratio'),
+            'roe': this.formatValue(metrics.roe, 'percentage'),
+            'debtToEquity': this.formatValue(metrics.debtToEquity, 'ratio'),
+            'currentRatio': this.formatValue(metrics.currentRatio, 'ratio'),
+            'revenueGrowth': this.formatValue(metrics.revenueGrowth, 'percentage'),
+            'earningsGrowth': this.formatValue(metrics.earningsGrowth, 'percentage'),
+            'epsGrowth': this.formatValue(metrics.epsGrowth, 'percentage'),
+            'profitMargin': this.formatValue(metrics.profitMargin, 'percentage'),
+            'operatingMargin': this.formatValue(metrics.operatingMargin, 'percentage'),
+            'netMargin': this.formatValue(metrics.netMargin, 'percentage')
         };
 
         Object.entries(metricMappings).forEach(([metricId, formattedValue]) => {
             this.updateMetric(metricId, formattedValue);
         });
+    }
+
+    /**
+     * Update price indicators
+     * @param {object} data - Data containing price information
+     */
+    updatePriceIndicators(data) {
+        if (data.currentPrice !== undefined) {
+            const element = document.getElementById('atClosePrice');
+            if (element) {
+                element.textContent = this.formatValue(data.currentPrice, 'currency');
+            }
+        }
+        if (data.afterHoursPrice) {
+            const element = document.getElementById('afterHoursPrice');
+            if (element) {
+                element.textContent = this.formatValue(data.afterHoursPrice, 'currency');
+            }
+        }
     }
 
     /**
