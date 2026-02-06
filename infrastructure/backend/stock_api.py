@@ -508,6 +508,128 @@ class StockDataAPI:
         self._set_cache(cache_key, financials)
         return financials
 
+    def get_stock_news(self, symbol: str) -> Dict:
+        """
+        Get stock news articles
+
+        Uses Yahoo Finance news API
+
+        Returns:
+            Dict with news articles list
+        """
+        cache_key = self._get_cache_key('news', symbol)
+        cached = self._get_from_cache(cache_key)
+        if cached:
+            return cached
+
+        news_data = {
+            'symbol': symbol,
+            'timestamp': datetime.now().isoformat(),
+            'articles': [],
+            'source': 'unknown'
+        }
+
+        # Try Yahoo Finance
+        try:
+            start = time.time()
+            articles = self.yahoo.fetch_news(symbol)
+            latency_ms = (time.time() - start) * 1000
+
+            if articles:
+                news_data['articles'] = articles
+                news_data['source'] = 'yahoo_finance'
+                self.metrics.record_request('yahoo_finance', True, latency_ms)
+            else:
+                self.metrics.record_request('yahoo_finance', False, latency_ms)
+        except Exception as e:
+            self.metrics.record_request('yahoo_finance', False, 0)
+            print(f"Yahoo news error for {symbol}: {str(e)}")
+
+        self._set_cache(cache_key, news_data)
+        return news_data
+
+    def get_stock_factors(self, symbol: str) -> Dict:
+        """
+        Get stock factors for screening (value, growth, momentum, quality metrics)
+
+        Returns:
+            Dict with computed factor values
+        """
+        cache_key = self._get_cache_key('factors', symbol)
+        cached = self._get_from_cache(cache_key)
+        if cached:
+            return cached
+
+        factors = {
+            'symbol': symbol,
+            'timestamp': datetime.now().isoformat(),
+            'source': 'computed',
+            'value_factors': {},
+            'growth_factors': {},
+            'momentum_factors': {},
+            'quality_factors': {}
+        }
+
+        # Get metrics first
+        try:
+            metrics = self.get_stock_metrics(symbol)
+            if metrics:
+                # Value factors
+                factors['value_factors'] = {
+                    'pe_ratio': metrics.get('pe_ratio', 0),
+                    'forward_pe': metrics.get('forward_pe', 0),
+                    'peg_ratio': metrics.get('peg_ratio', 0),
+                    'price_to_book': metrics.get('price_to_book', 0),
+                    'dividend_yield': metrics.get('dividend_yield', 0)
+                }
+
+                # Growth factors
+                factors['growth_factors'] = {
+                    'revenue_growth': metrics.get('revenue_growth', 0),
+                    'earnings_growth': metrics.get('earnings_growth', 0),
+                    'eps_growth_5y': 0,  # Would need historical data
+                    'revenue_growth_5y': 0  # Would need historical data
+                }
+
+                # Quality factors
+                factors['quality_factors'] = {
+                    'roe': metrics.get('roe', 0),
+                    'roa': metrics.get('roa', 0),
+                    'profit_margin': metrics.get('profit_margin', 0),
+                    'operating_margin': metrics.get('operating_margin', 0),
+                    'debt_to_equity': metrics.get('debt_to_equity', 0),
+                    'current_ratio': metrics.get('current_ratio', 0)
+                }
+
+        except Exception as e:
+            print(f"Error computing factors for {symbol}: {str(e)}")
+
+        # Momentum factors require historical price data
+        try:
+            price_data = self.get_stock_price(symbol, period='1y')
+            if price_data and 'historicalData' in price_data:
+                hist_data = price_data['historicalData']
+                if hist_data:
+                    dates = sorted(hist_data.keys())
+                    if len(dates) >= 2:
+                        # Get first and last prices for momentum calculation
+                        first_price = hist_data[dates[0]].get('4. close', 0) if isinstance(hist_data[dates[0]], dict) else 0
+                        last_price = hist_data[dates[-1]].get('4. close', 0) if isinstance(hist_data[dates[-1]], dict) else 0
+
+                        if first_price and first_price > 0:
+                            # 52-week return (or available period)
+                            period_return = ((last_price - first_price) / first_price) * 100
+                            factors['momentum_factors'] = {
+                                '52_week_return': period_return,
+                                'near_52_week_high': 0,  # Would need more data
+                                'near_52_week_low': 0  # Would need more data
+                            }
+        except Exception as e:
+            print(f"Error computing momentum factors for {symbol}: {str(e)}")
+
+        self._set_cache(cache_key, factors)
+        return factors
+
     def get_all_data(self, symbol: str) -> Dict:
         """
         Get all available stock data from multiple sources
