@@ -77,11 +77,26 @@ class StockAnalyserManager {
     async populateStockData(symbol) {
         try {
             console.log('StockAnalyserManager: Loading data for', symbol);
-            const data = await this.api.getStockAnalyserData(symbol);
-            this.currentData = data;
-            await this.populateHistoricalData(data);
+
+            // Use DataManager to load data (handles caching, throttling, error handling)
+            // Expecting 'stock-analyser' type which returns { price, metrics, historicalData, combined: true }
+            if (this.dataManager && this.dataManager.loadStockData) {
+                const data = await this.dataManager.loadStockData(symbol, 'stock-analyser');
+                this.currentData = data;
+                await this.populateHistoricalData(data);
+            } else {
+                console.error('StockAnalyserManager: DataManager not available or loadStockData missing');
+                throw new Error('DataManager not available');
+            }
         } catch (error) {
             console.error('StockAnalyserManager: Failed to load stock data:', error);
+            // Show error in UI
+            const container = document.querySelector('#stock-analyser .analyser-content');
+            if (container) {
+                if (window.app && window.app.showNotification) {
+                    window.app.showNotification(`Failed to load data for ${symbol}: ${error.message}`, 'error');
+                }
+            }
         }
     }
 
@@ -92,7 +107,7 @@ class StockAnalyserManager {
      */
     async populateHistoricalData(data, retryCount = 0) {
         const MAX_RETRIES = 10; // Max 10 retries = 1 second total
-        
+
         // Only log on first attempt or every 5th retry to reduce console spam
         if (retryCount === 0 || retryCount % 5 === 0) {
             console.log(`StockAnalyserManager: Populating historical data (attempt ${retryCount + 1})`);
@@ -133,7 +148,7 @@ class StockAnalyserManager {
         // Update current price display
         const priceDisplay = document.getElementById('currentPrice');
         const priceChangeEl = document.getElementById('priceChange');
-        
+
         if (priceDisplay) {
             priceDisplay.textContent = this.formatCurrency(currentPrice);
         }
@@ -146,19 +161,19 @@ class StockAnalyserManager {
         // Extract market data from metrics (backend uses snake_case)
         // Note: Yahoo Finance returns market_cap, shares_outstanding, revenue
         const marketCap = metrics?.market_cap || 0;
-        const sharesOutstanding = metrics?.shares_outstanding || 
-                                   metrics?.impliedSharesOutstanding ||
-                                   (currentPrice > 0 ? Math.round(marketCap / currentPrice) : 0);
+        const sharesOutstanding = metrics?.shares_outstanding ||
+            metrics?.impliedSharesOutstanding ||
+            (currentPrice > 0 ? Math.round(marketCap / currentPrice) : 0);
         const revenue = metrics?.revenue || metrics?.totalRevenue || 0;
-        
+
         this.marketData = {
             marketCap: marketCap,
             revenue: revenue,
             sharesOutstanding: sharesOutstanding
         };
-        
+
         console.log('StockAnalyserManager: marketData:', this.marketData);
-        
+
         // Update market data display
         this.updateMarketInfoDisplay();
 
@@ -224,7 +239,7 @@ class StockAnalyserManager {
 
         // Store current price for analysis
         this.currentPrice = currentPrice;
-        
+
         // Update market info display
         this.updateMarketInfoDisplay();
 
@@ -239,22 +254,22 @@ class StockAnalyserManager {
         const marketCapEl = document.getElementById('marketCap');
         const sharesOutstandingEl = document.getElementById('sharesOutstanding');
         const baseRevenueEl = document.getElementById('baseRevenue');
-        
+
         // Update company name in market data section
         const metrics = this.currentData?.metrics || this.currentData || {};
         const companyName = metrics?.company_name || this.currentSymbol;
         if (companyNameEl) {
             companyNameEl.textContent = companyName || 'Market Data';
         }
-        
+
         if (marketCapEl && this.marketData?.marketCap) {
             marketCapEl.textContent = this.formatLargeNumber(this.marketData.marketCap);
         }
-        
+
         if (sharesOutstandingEl && this.marketData?.sharesOutstanding) {
             sharesOutstandingEl.textContent = this.formatLargeNumber(this.marketData.sharesOutstanding) + ' shares';
         }
-        
+
         if (baseRevenueEl && this.marketData?.revenue) {
             baseRevenueEl.textContent = this.formatLargeNumber(this.marketData.revenue);
         }
@@ -267,7 +282,7 @@ class StockAnalyserManager {
      */
     formatLargeNumber(value) {
         if (!value || isNaN(value)) return '—';
-        
+
         if (value >= 1.0e+12) {
             return '$' + (value / 1.0e+12).toFixed(2) + 'T';
         } else if (value >= 1.0e+9) {
@@ -345,11 +360,11 @@ class StockAnalyserManager {
      * Run DCF analysis
      */
     async runAnalysis() {
-        console.log('StockAnalyserManager: runAnalysis called', { 
-            currentSymbol: this.currentSymbol, 
-            currentPrice: this.currentPrice 
+        console.log('StockAnalyserManager: runAnalysis called', {
+            currentSymbol: this.currentSymbol,
+            currentPrice: this.currentPrice
         });
-        
+
         if (!this.currentSymbol || !this.currentPrice) {
             console.error('StockAnalyserManager: No stock selected or price available');
             // Try to get price from display
@@ -397,7 +412,7 @@ class StockAnalyserManager {
         } catch (error) {
             console.error('StockAnalyserManager: DCF calculation failed:', error);
             this.eventBus.emit('dcf:error', { error: error.message });
-            
+
             // Fallback to local calculation
             console.log('StockAnalyserManager: Falling back to local calculation');
             const localResults = this.calculateDCFLocal(requestData);
@@ -412,7 +427,7 @@ class StockAnalyserManager {
      */
     calculateDCFLocal(params) {
         const { currentPrice, assumptions, yearsToProject } = params;
-        
+
         // Estimate shares outstanding from current market cap (approximation)
         // This is a simplification - in production you'd have actual shares data
         const sharesOutstanding = 1000; // Mock value in millions
@@ -429,7 +444,7 @@ class StockAnalyserManager {
             // Project cash flows
             const projectedFCF = [];
             const baseRevenue = 100; // Mock base revenue in millions
-            
+
             for (let year = 1; year <= yearsToProject; year++) {
                 const revenue = baseRevenue * Math.pow(1 + revGrowthRate, year);
                 const netIncome = revenue * profitMargin;
@@ -487,7 +502,7 @@ class StockAnalyserManager {
         const moeHigh = document.getElementById('moeValueHigh');
 
         console.log('StockAnalyserManager: moeLow element:', moeLow, 'results.low:', results.low);
-        
+
         if (moeLow) moeLow.textContent = this.formatCurrency(results.low?.intrinsicValue || 0);
         if (moeMid) moeMid.textContent = this.formatCurrency(results.mid?.intrinsicValue || 0);
         if (moeHigh) moeHigh.textContent = this.formatCurrency(results.high?.intrinsicValue || 0);
@@ -570,7 +585,7 @@ window.stockAnalyserManager = null;
 /**
  * Run DCF analysis (called from Analyze button)
  */
-window.runDCFAnalysis = function() {
+window.runDCFAnalysis = function () {
     if (window.stockAnalyserManager) {
         window.stockAnalyserManager.runAnalysis();
     } else {
@@ -581,13 +596,13 @@ window.runDCFAnalysis = function() {
 /**
  * Load stock by symbol input (called from symbol input in stock-analyser tab)
  */
-window.loadAnalyserSymbol = function() {
+window.loadAnalyserSymbol = function () {
     const input = document.getElementById('analyserSymbolInput');
     if (!input) {
         console.error('StockAnalyserManager: analyserSymbolInput not found');
         return;
     }
-    
+
     const symbol = input.value.trim().toUpperCase();
     if (!symbol) {
         // Show error notification
@@ -598,9 +613,9 @@ window.loadAnalyserSymbol = function() {
         }
         return;
     }
-    
+
     console.log('StockAnalyserManager: Loading symbol from input:', symbol);
-    
+
     // Use stockManager to select the stock and switch to stock-analyser tab
     if (window.stockManager) {
         window.stockManager.selectStock(symbol, 'stock-analyser');
@@ -612,7 +627,7 @@ window.loadAnalyserSymbol = function() {
 /**
  * Handle Enter key in symbol input
  */
-window.handleAnalyserSymbolKeydown = function(event) {
+window.handleAnalyserSymbolKeydown = function (event) {
     if (event.key === 'Enter') {
         window.loadAnalyserSymbol();
     }
@@ -622,9 +637,9 @@ window.handleAnalyserSymbolKeydown = function(event) {
  * Extrapolate assumptions from historical data
  * Reads historical values and auto-fills Low/Mid/High assumptions
  */
-window.extrapolateFromHistorical = function() {
+window.extrapolateFromHistorical = function () {
     console.log('StockAnalyserManager: Extrapolating from historical data');
-    
+
     // Helper to get cell value
     const getCellValue = (id) => {
         const cell = document.getElementById(id);
@@ -636,7 +651,7 @@ window.extrapolateFromHistorical = function() {
         const val = parseFloat(text);
         return isNaN(val) ? null : val / 100; // Convert percentage to decimal
     };
-    
+
     // Helper to set input value
     const setInputValue = (id, value) => {
         const input = document.getElementById(id);
@@ -644,7 +659,7 @@ window.extrapolateFromHistorical = function() {
             input.value = (value * 100).toFixed(1);
         }
     };
-    
+
     // Get historical values (use 1y as base)
     const histRevGrowth = getCellValue('rev-growth-1y');
     const histProfitMargin = getCellValue('profit-margin-1y');
@@ -652,7 +667,7 @@ window.extrapolateFromHistorical = function() {
     const histROIC = getCellValue('roic-1y');
     const histPE = getCellValue('pe-1y');
     const histPFCF = getCellValue('pfcf-1y');
-    
+
     console.log('StockAnalyserManager: Historical values:', {
         revGrowth: histRevGrowth,
         profitMargin: histProfitMargin,
@@ -661,7 +676,7 @@ window.extrapolateFromHistorical = function() {
         pe: histPE,
         pfcf: histPFCF
     });
-    
+
     // Helper to calculate low/mid/high from a base value
     const calcRange = (base, type) => {
         if (base === null) {
@@ -670,7 +685,7 @@ window.extrapolateFromHistorical = function() {
             if (type === 'margin') return { low: 0.08, mid: 0.10, high: 0.12 };
             return { low: 0.08, mid: 0.10, high: 0.12 };
         }
-        
+
         if (type === 'growth') {
             // For growth rates: low = 70%, mid = 100%, high = 130% of historical
             return {
@@ -687,44 +702,44 @@ window.extrapolateFromHistorical = function() {
             };
         }
     };
-    
+
     // Set Revenue Growth assumptions
     const revGrowthRange = calcRange(histRevGrowth, 'growth');
     setInputValue('assumption-rev-growth-low', revGrowthRange.low);
     setInputValue('assumption-rev-growth-mid', revGrowthRange.mid);
     setInputValue('assumption-rev-growth-high', revGrowthRange.high);
-    
+
     // Set Profit Margin assumptions
     const profitMarginRange = calcRange(histProfitMargin, 'margin');
     setInputValue('assumption-profit-margin-low', profitMarginRange.low);
     setInputValue('assumption-profit-margin-mid', profitMarginRange.mid);
     setInputValue('assumption-profit-margin-high', profitMarginRange.high);
-    
+
     // Set FCF Margin assumptions
     const fcfMarginRange = calcRange(histFCFMargin, 'margin');
     setInputValue('assumption-fcf-margin-low', fcfMarginRange.low);
     setInputValue('assumption-fcf-margin-mid', fcfMarginRange.mid);
     setInputValue('assumption-fcf-margin-high', fcfMarginRange.high);
-    
+
     // Set Discount Rate (default: low=8%, mid=10%, high=12%)
     setInputValue('assumption-discount-rate-low', 0.08);
     setInputValue('assumption-discount-rate-mid', 0.10);
     setInputValue('assumption-discount-rate-high', 0.12);
-    
+
     // Set Terminal Growth (default: low=2%, mid=3%, high=4%)
     setInputValue('assumption-terminal-growth-low', 0.02);
     setInputValue('assumption-terminal-growth-mid', 0.03);
     setInputValue('assumption-terminal-growth-high', 0.04);
-    
+
     // Set Desired Return (default: low=8%, mid=10%, high=12%)
     setInputValue('assumption-desired-return-low', 0.08);
     setInputValue('assumption-desired-return-mid', 0.10);
     setInputValue('assumption-desired-return-high', 0.12);
-    
+
     // Show notification
     if (window.app && window.app.showNotification) {
         window.app.showNotification('Assumptions auto-filled from historical data', 'success');
     }
-    
+
     console.log('StockAnalyserManager: Extrapolation complete');
 };

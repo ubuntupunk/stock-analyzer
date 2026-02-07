@@ -98,73 +98,82 @@ class LRUCache {
 }
 
 class RequestQueue {
-    constructor() {
+    constructor(concurrency = 3) {
         this.queue = [];
         this.processing = new Set();
-        this.batchWindow = 100; // ms to wait for batching
+        this.concurrency = concurrency;
     }
 
     /**
      * Add request to queue
+     * @param {Function} fn - Function to execute
+     * @param {number} priority - Priority level (1=High, 4=Low)
+     * @param {string} key - Unique key for deduplication
+     * @returns {Promise} - Resolves when request completes
      */
     enqueue(fn, priority = PRIORITY.NORMAL, key = null) {
-        const item = {
-            fn,
-            priority,
-            key,
-            timestamp: Date.now(),
-            attempts: 0
-        };
+        return new Promise((resolve, reject) => {
+            const item = {
+                fn,
+                priority,
+                key,
+                timestamp: Date.now(),
+                attempts: 0,
+                resolve,
+                reject
+            };
 
-        // Insert based on priority
-        const index = this.queue.findIndex(item => item.priority > priority);
-        if (index === -1) {
-            this.queue.push(item);
-        } else {
-            this.queue.splice(index, 0, item);
-        }
+            // Insert based on priority (lower number = higher priority)
+            const index = this.queue.findIndex(i => i.priority > priority);
+            if (index === -1) {
+                this.queue.push(item);
+            } else {
+                this.queue.splice(index, 0, item);
+            }
 
-        console.log(`RequestQueue: Enqueued ${key || 'anonymous'} (priority: ${priority})`);
+            console.log(`RequestQueue: Enqueued ${key || 'anonymous'} (priority: ${priority}, queue size: ${this.queue.length})`);
+            this.process();
+        });
     }
 
     /**
-     * Process next item from queue
+     * Process queue
      */
-    async dequeue() {
-        if (this.queue.length === 0) return null;
+    async process() {
+        // Check concurrency limit
+        if (this.processing.size >= this.concurrency) {
+            return;
+        }
 
+        // Get next item
         const item = this.queue.shift();
-        const itemKey = item.key || item.fn?.name || 'anonymous';
+        if (!item) return;
+
+        const itemKey = item.key || `req-${Date.now()}-${Math.random()}`;
         this.processing.add(itemKey);
-        return item;
-    }
 
-    /**
-     * Complete processing
-     */
-    complete(key) {
-        this.processing.delete(key);
-    }
+        console.log(`RequestQueue: Processing ${item.key || 'anonymous'} (active: ${this.processing.size})`);
 
-    /**
-     * Retry failed item
-     */
-    retry(item) {
-        item.attempts++;
-        const fnName = item.fn?.name || 'anonymous';
-        if (item.attempts < 3) {
-            this.enqueue(item.fn, item.priority, item.key);
-            console.log(`RequestQueue: Retrying ${item.key || fnName} (attempt ${item.attempts})`);
-        } else {
-            console.warn(`RequestQueue: Max retries reached for ${item.key || fnName}`);
+        try {
+            const result = await item.fn();
+            item.resolve(result);
+        } catch (error) {
+            item.reject(error);
+        } finally {
+            this.processing.delete(itemKey);
+            // Process next
+            this.process();
         }
     }
 
+    /**
+     * Get queue stats
+     */
     getStats() {
         return {
             pending: this.queue.length,
             processing: this.processing.size,
-            processingKeys: Array.from(this.processing)
+            concurrency: this.concurrency
         };
     }
 }
@@ -405,24 +414,30 @@ class DataManager {
             successThreshold: 2,
             timeout: 30000
         });
-        this.requestQueue = new RequestQueue();
+        // Initialize RequestQueue with concurrency limit of 3
+        this.requestQueue = new RequestQueue(3);
+
         this.metrics = new APIMetrics();
         this.offlineQueue = new OfflineQueue();
 
         // Configuration
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
-        this.retryAttempts = 3;
-        this.retryDelay = 1000;
         this.pendingRequests = new Map();
-        this.pruneInterval = null;
 
-        // Periodic cleanup (store interval ID for cleanup method)
-        this.pruneInterval = setInterval(() => this.cache.prune(), 60000); // Prune expired cache every minute
+        // Periodic cleanup
+        this.pruneInterval = setInterval(() => this.cache.prune(), 60000);
     }
 
     /**
      * Load stock data for a specific tab/type
      * SIMPLIFIED: Direct async/await execution (no queue)
+     * @param {string} symbol - Stock symbol
+     * @param {string} type - Data type (metrics, financials, etc.)
+     * @returns {Promise} Data promise
+     */
+    /**
+     * Load stock data for a specific tab/type
+     * Uses RequestQueue to throttle concurrent requests
      * @param {string} symbol - Stock symbol
      * @param {string} type - Data type (metrics, financials, etc.)
      * @returns {Promise} Data promise
@@ -440,26 +455,26 @@ class DataManager {
         }
         this.metrics.recordCache(false);
 
-        // Check circuit breaker state
-        const cbState = this.circuitBreaker.getState(`/api/stock/${type}`);
-        if (cbState.state === 'OPEN') {
-            console.warn(`DataManager: Circuit breaker OPEN for ${type}, using fallback`);
-            this.metrics.recordCircuitBreakerState('open');
-            throw new Error(`Service unavailable for ${type}`);
-        }
-        this.metrics.recordCircuitBreakerState(cbState.state);
-
         // Check for pending request - deduplicate in-flight requests
         if (this.pendingRequests.has(cacheKey)) {
             console.log(`DataManager: Reusing pending request for ${cacheKey}`);
             return this.pendingRequests.get(cacheKey);
         }
 
-        // Execute request DIRECTLY (no queue)
-        const promise = (async () => {
+        // Determine priority
+        const priority = PRIORITY_MAP[type] || PRIORITY.NORMAL;
+
+        // Create the task to be queued
+        const task = async () => {
             const startTime = Date.now();
             try {
                 this.eventBus.emit('data:loading', { symbol, type });
+
+                // Check circuit breaker before making request
+                const cbState = this.circuitBreaker.getState(`/api/stock/${type}`);
+                if (cbState.state === 'OPEN') {
+                    throw new Error(`Service unavailable for ${type} (Circuit Breaker)`);
+                }
 
                 let data;
                 switch (type) {
@@ -471,12 +486,10 @@ class DataManager {
                             const cachedMetrics = this.cache.get(metricsCacheKey);
 
                             if (cachedMetrics && !cachedMetrics.hasHistoricalData) {
-                                console.log(`DataManager: Updating metrics cache with historicalData for ${symbol}`);
                                 cachedMetrics.hasHistoricalData = true;
                                 cachedMetrics.historicalData = data.historicalData;
                                 this.cache.set(metricsCacheKey, cachedMetrics, this.cacheTimeout);
                             } else if (!cachedMetrics) {
-                                console.log(`DataManager: Creating metrics cache with historicalData for ${symbol}`);
                                 const metricsData = {
                                     ...data,
                                     hasHistoricalData: true,
@@ -489,10 +502,12 @@ class DataManager {
                         }
                         break;
                     case 'metrics':
-                        const [priceData, metricsData] = await Promise.all([
-                            this.executeWithCircuitBreaker(() => api.getStockPrice(symbol), type),
-                            this.executeWithCircuitBreaker(() => api.getStockMetrics(symbol), type)
-                        ]);
+                        // Prioritize price data for immediate UI feedback
+                        const priceData = await this.executeWithCircuitBreaker(() => api.getStockPrice(symbol), type);
+
+                        // Then get metrics
+                        const metricsData = await this.executeWithCircuitBreaker(() => api.getStockMetrics(symbol), type);
+
                         const transformedMetrics = this.transformMetricsData(metricsData);
                         data = {
                             ...priceData,
@@ -500,11 +515,6 @@ class DataManager {
                             metrics: transformedMetrics,
                             hasHistoricalData: !!priceData?.historicalData
                         };
-                        // Ensure historicalData is preserved for chart creation
-                        if (priceData?.historicalData && !data.hasHistoricalData) {
-                            console.log(`DataManager: Ensuring historicalData is preserved in metrics cache for ${symbol}`);
-                            data.hasHistoricalData = true;
-                        }
                         break;
                     case 'financials':
                         data = await this.executeWithCircuitBreaker(() => api.getFinancialStatements(symbol), type);
@@ -547,14 +557,19 @@ class DataManager {
                 console.error(`DataManager: Failed to load ${type} for ${symbol}:`, error);
                 this.eventBus.emit('data:error', { symbol, type, error: error.message });
                 throw error;
-            } finally {
-                // Always clean up pending request
-                this.pendingRequests.delete(cacheKey);
             }
-        })();
+        };
 
-        // Store promise to prevent duplicate requests
+        // Queue the request
+        const promise = this.requestQueue.enqueue(task, priority, cacheKey);
+
+        // Store promise to deduplicate
         this.pendingRequests.set(cacheKey, promise);
+
+        // Cleanup pending map when done
+        promise.finally(() => {
+            this.pendingRequests.delete(cacheKey);
+        });
 
         return promise;
     }
@@ -576,26 +591,7 @@ class DataManager {
         });
     }
 
-    /**
-     * Process request queue
-     */
-    async processQueue() {
-        const item = this.requestQueue.dequeue();
-        if (!item) return;
 
-        try {
-            await item.fn();
-        } catch (error) {
-            this.requestQueue.retry(item);
-        } finally {
-            this.requestQueue.complete(item.key);
-        }
-
-        // Process next item immediately
-        if (this.requestQueue.getStats().pending > 0) {
-            setTimeout(() => this.processQueue(), 0);
-        }
-    }
 
     /**
      * Load stock analyser data (combines multiple API calls)
@@ -606,8 +602,8 @@ class DataManager {
         console.log('DataManager: loadStockAnalyserData called for:', symbol);
         try {
             const [priceData, metricsData] = await Promise.all([
-                this.loadWithRetry(() => api.getStockPrice(symbol)),
-                this.loadWithRetry(() => api.getStockMetrics(symbol))
+                this.executeWithCircuitBreaker(() => api.getStockPrice(symbol), 'price'),
+                this.executeWithCircuitBreaker(() => api.getStockMetrics(symbol), 'metrics')
             ]);
 
             console.log('DataManager: priceData:', priceData);
@@ -648,7 +644,7 @@ class DataManager {
             }
             this.metrics.recordCache(false);
 
-            const results = await this.loadWithRetry(() => api.searchStocks(query, limit));
+            const results = await this.executeWithCircuitBreaker(() => api.searchStocks(query, limit), 'search');
 
             this.cache.set(cacheKey, results, this.cacheTimeout);
             this.eventBus.emit('search:loaded', { query, results });
@@ -679,7 +675,7 @@ class DataManager {
             }
             this.metrics.recordCache(false);
 
-            const stocks = await this.loadWithRetry(() => api.getPopularStocks(limit));
+            const stocks = await this.executeWithCircuitBreaker(() => api.getPopularStocks(limit), 'popular-stocks');
 
             this.cache.set(cacheKey, stocks, this.cacheTimeout);
             this.eventBus.emit('popularStocks:loaded', { stocks });
@@ -709,7 +705,7 @@ class DataManager {
             }
             this.metrics.recordCache(false);
 
-            const watchlist = await this.loadWithRetry(() => api.getWatchlist());
+            const watchlist = await this.executeWithCircuitBreaker(() => api.getWatchlist(), 'watchlist');
 
             this.cache.set(cacheKey, watchlist, this.cacheTimeout);
             this.eventBus.emit('watchlist:loaded', { watchlist });
@@ -821,7 +817,7 @@ class DataManager {
 
             this.eventBus.emit('watchlist:adding', { stockData });
 
-            const result = await this.loadWithRetry(() => api.addToWatchlist(stockData));
+            const result = await this.executeWithCircuitBreaker(() => api.addToWatchlist(stockData), 'watchlist-add');
 
             // Clear watchlist cache
             this.cache.delete('watchlist');
@@ -864,7 +860,7 @@ class DataManager {
         try {
             this.eventBus.emit('watchlist:removing', { symbol });
 
-            const result = await this.loadWithRetry(() => api.removeFromWatchlist(symbol));
+            const result = await this.executeWithCircuitBreaker(() => api.removeFromWatchlist(symbol), 'watchlist-remove');
 
             // Clear watchlist cache
             this.cache.delete('watchlist');
@@ -899,7 +895,7 @@ class DataManager {
 
             this.eventBus.emit('dcf:analyzing', { assumptions });
 
-            const results = await this.loadWithRetry(() => api.runDCF(assumptions));
+            const results = await this.executeWithCircuitBreaker(() => api.runDCF(assumptions), 'dcf');
 
             this.eventBus.emit('dcf:analyzed', { assumptions, results });
             return results;
@@ -907,25 +903,6 @@ class DataManager {
         } catch (error) {
             console.error('DCF analysis failed:', error);
             this.eventBus.emit('dcf:error', { error: error.message });
-            throw error;
-        }
-    }
-
-    /**
-     * Load data with retry logic
-     * @param {function} dataLoader - Function that loads data
-     * @param {number} attempts - Current attempt number
-     * @returns {Promise} Data promise
-     */
-    async loadWithRetry(dataLoader, attempts = 0) {
-        try {
-            return await dataLoader();
-        } catch (error) {
-            if (attempts < this.retryAttempts) {
-                console.warn(`Retry attempt ${attempts + 1} for ${dataLoader.name || 'data loading'}`);
-                await this.delay(this.retryDelay * Math.pow(2, attempts));
-                return this.loadWithRetry(dataLoader, attempts + 1);
-            }
             throw error;
         }
     }

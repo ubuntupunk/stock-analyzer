@@ -42,7 +42,7 @@ class APIService {
 
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
-        
+
         // Get auth token if available
         let authToken = null;
         if (window.authManager) {
@@ -57,7 +57,7 @@ class APIService {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        
+
         // Add Authorization header if token exists
         if (authToken) {
             headers['Authorization'] = `Bearer ${authToken}`;
@@ -126,7 +126,7 @@ class APIService {
             }
         }
 
-        console.error('APIService: All retry attempts exhausted:', lastError);
+        console.error(`APIService: All retry attempts exhausted for ${url}:`, lastError);
         throw lastError;
     }
 
@@ -178,7 +178,7 @@ class APIService {
         console.log('=== API: getFinancialStatements START ===');
         console.log('API: Requesting financials for symbol:', symbol);
         console.log('API: Request URL:', `${this.baseURL}/api/stock/financials?symbol=${symbol}`);
-        
+
         try {
             const data = await this.request(`/api/stock/financials?symbol=${symbol}`);
             console.log('API: Financials response received:', {
@@ -318,7 +318,7 @@ class APIService {
         if (filters.minCap) params.append('minCap', filters.minCap);
         if (filters.maxCap) params.append('maxCap', filters.maxCap);
         if (filters.marketCapBucket) params.append('marketCapBucket', filters.marketCapBucket);
-        
+
         const queryString = params.toString();
         return this.request(`/api/stocks/filter${queryString ? '?' + queryString : ''}`);
     }

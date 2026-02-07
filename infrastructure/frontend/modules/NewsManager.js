@@ -54,7 +54,7 @@ class NewsManager {
      */
     setupSymbolInputHandlers() {
         console.log('NewsManager: Setting up symbol input handlers');
-        
+
         // Make the loadNewsSymbol function globally available
         window.loadNewsSymbol = () => {
             const input = document.getElementById('newsSymbolInput');
@@ -70,14 +70,14 @@ class NewsManager {
                 }
             }
         };
-        
+
         // Make the keydown handler globally available
         window.handleNewsSymbolKeydown = (event) => {
             if (event.key === 'Enter') {
                 loadNewsSymbol();
             }
         };
-        
+
         console.log('NewsManager: Symbol input handlers set up');
     }
 
@@ -88,15 +88,15 @@ class NewsManager {
     updateCompanyInfo(symbol) {
         const symbolElement = document.getElementById('newsSymbol');
         const nameElement = document.getElementById('newsCompanyName');
-        
+
         if (symbolElement) {
             symbolElement.textContent = symbol ? `(${symbol})` : '-';
         }
-        
+
         if (nameElement) {
             // Try to get company name from various sources
             let companyName = '-';
-            
+
             // 1. Try to find in popular stocks
             if (window.stockManager && window.stockManager.popularStocks) {
                 const stock = window.stockManager.popularStocks.find(s => s.symbol === symbol);
@@ -104,7 +104,7 @@ class NewsManager {
                     companyName = stock.name;
                 }
             }
-            
+
             // 2. Try to get from metrics cache
             if (companyName === '-' && window.dataManager && window.dataManager.getCachedData) {
                 try {
@@ -125,13 +125,13 @@ class NewsManager {
                     console.warn('NewsManager: Error getting metrics cache:', e);
                 }
             }
-            
+
             // 3. Try from other UI elements
             if (companyName === '-') {
                 try {
                     const analyserNameElement = document.querySelector('#stockAnalyserSection #companyName');
-                    if (analyserNameElement && analyserNameElement.textContent && 
-                        analyserNameElement.textContent !== 'Market Data' && 
+                    if (analyserNameElement && analyserNameElement.textContent &&
+                        analyserNameElement.textContent !== 'Market Data' &&
                         analyserNameElement.textContent !== '-') {
                         companyName = analyserNameElement.textContent;
                     }
@@ -139,13 +139,13 @@ class NewsManager {
                     // Ignore errors
                 }
             }
-            
+
             // 4. Try from MetricsManager if available
             if (companyName === '-' && window.metricsManager) {
                 try {
                     const metricsCompanyNameElement = document.getElementById('companyName');
-                    if (metricsCompanyNameElement && metricsCompanyNameElement.textContent && 
-                        metricsCompanyNameElement.textContent !== 'Market Data' && 
+                    if (metricsCompanyNameElement && metricsCompanyNameElement.textContent &&
+                        metricsCompanyNameElement.textContent !== 'Market Data' &&
                         metricsCompanyNameElement.textContent !== '-') {
                         companyName = metricsCompanyNameElement.textContent;
                     }
@@ -153,11 +153,15 @@ class NewsManager {
                     // Ignore errors
                 }
             }
-            
+
             nameElement.textContent = companyName;
         }
     }
 
+    /**
+     * Load news for a given symbol
+     * @param {string} symbol - Stock symbol
+     */
     /**
      * Load news for a given symbol
      * @param {string} symbol - Stock symbol
@@ -167,14 +171,27 @@ class NewsManager {
             console.warn('NewsManager: No symbol provided for loading news');
             return;
         }
-        
+
+        this.currentSymbol = symbol;
+
+        // Lazy Loading: Only load if we are on the news tab OR if the container exists
+        // (The container usually only exists when the tab is loaded)
+        const container = document.getElementById('newsContainer');
+        const isNewsTabActive = document.querySelector('.tab-btn[data-tab="news"]')?.classList.contains('active');
+
+        if (!container && !isNewsTabActive) {
+            console.log('NewsManager: News tab not active, deferring load for:', symbol);
+            this.pendingSymbol = symbol;
+            return;
+        }
+
         console.log('NewsManager: Loading news for:', symbol, 'Period:', this.currentPeriod);
-        
+        this.pendingSymbol = null; // Clear pending since we're loading now
+
         // Emit loading event
         this.eventBus.emit('data:loading', { symbol, type: 'news' });
-        
+
         // Show loading state in container
-        const container = document.getElementById('newsContainer');
         if (container) {
             container.innerHTML = `
                 <div class="news-loading">
@@ -183,36 +200,54 @@ class NewsManager {
                 </div>
             `;
         }
-        
+
         // Use api to get news if available
-        if (window.api && typeof window.api.getStockNews === 'function') {
+        if (window.app?.modules?.dataManager) {
+            window.app.modules.dataManager.loadStockData(symbol, 'news')
+                .catch(error => {
+                    console.error('NewsManager: Error loading news via DataManager:', error);
+                    this.updateErrorState(error.message);
+                });
+        } else if (window.api && typeof window.api.getStockNews === 'function') {
+            // Fallback if dataManager not accessible
             window.api.getStockNews(symbol, this.currentPeriod)
                 .then(newsData => {
-                    console.log('NewsManager: Received news data:', newsData);
-                    this.eventBus.emit('data:loaded', { 
-                        type: 'news', 
-                        data: newsData, 
-                        symbol 
+                    this.eventBus.emit('data:loaded', {
+                        type: 'news',
+                        data: newsData,
+                        symbol
                     });
                 })
                 .catch(error => {
                     console.error('NewsManager: Error loading news:', error);
-                    this.eventBus.emit('data:error', { 
-                        type: 'news', 
-                        error: error.message, 
-                        symbol 
-                    });
+                    this.updateErrorState(error.message);
                 });
         } else {
             // Fallback: emit empty data after a delay
             console.warn('NewsManager: API not available, using fallback');
             setTimeout(() => {
-                this.eventBus.emit('data:loaded', { 
-                    type: 'news', 
-                    data: [], 
-                    symbol 
+                this.eventBus.emit('data:loaded', {
+                    type: 'news',
+                    data: [],
+                    symbol
                 });
             }, 500);
+        }
+    }
+
+    /**
+     * Update error state
+     */
+    updateErrorState(message) {
+        const container = document.getElementById('newsContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="news-error">
+                    <p>Failed to load news</p>
+                    <small>${message}</small>
+                    <button class="btn btn-small" onclick="newsManager.loadNews('${this.currentSymbol}')">Retry</button>
+                </div>
+            `;
         }
     }
 
@@ -223,13 +258,13 @@ class NewsManager {
      */
     updateNewsDisplay(symbol, data) {
         console.log('NewsManager: updateNewsDisplay called with:', { symbol, hasData: !!data, dataType: typeof data });
-        
+
         const container = document.getElementById('newsContainer');
         if (!container) {
             console.error('NewsManager: newsContainer element not found');
             return;
         }
-        
+
         // Handle data that may be wrapped in an object (API response format)
         let newsArray = data;
         if (data && typeof data === 'object') {
@@ -249,21 +284,21 @@ class NewsManager {
                 }
             }
         }
-        
+
         console.log('NewsManager: Extracted news array:', { newsLength: newsArray?.length });
-        
+
         // Update source and timestamp
         const sourceElement = document.getElementById('newsSource');
         const updatedElement = document.getElementById('newsUpdated');
-        
+
         if (sourceElement) {
             sourceElement.innerHTML = '<a href="https://finance.yahoo.com" target="_blank" rel="noopener">Yahoo Finance</a>';
         }
-        
+
         if (updatedElement) {
             updatedElement.textContent = new Date().toLocaleString();
         }
-        
+
         if (!newsArray || newsArray.length === 0) {
             console.log('NewsManager: No news data available');
             container.innerHTML = `
@@ -274,9 +309,9 @@ class NewsManager {
             `;
             return;
         }
-        
+
         console.log('NewsManager: Rendering', newsArray.length, 'news articles');
-        
+
         let html = '';
         newsArray.forEach(article => {
             const publishedAt = article.publishedAt || article.pubDate || article.datetime;
@@ -286,7 +321,7 @@ class NewsManager {
             const summary = article.summary || article.description || '';
             const url = article.url || '#';
             const imageUrl = article.imageUrl || article.thumbnail || article.bannerImage || '';
-            
+
             html += `
                 <div class="news-item">
                     ${imageUrl ? `<div class="news-image"><img src="${imageUrl}" alt="${title}" onerror="this.parentElement.style.display='none'"></div>` : ''}
@@ -301,7 +336,7 @@ class NewsManager {
                 </div>
             `;
         });
-        
+
         container.innerHTML = html;
         console.log('NewsManager: News display updated successfully');
     }
@@ -313,22 +348,22 @@ class NewsManager {
      */
     getTimeAgo(date) {
         if (!date) return 'Unknown';
-        
+
         const timestamp = typeof date === 'string' ? new Date(date).getTime() : date;
         if (isNaN(timestamp)) return 'Unknown';
-        
+
         const now = Date.now();
         const diff = now - timestamp;
-        
+
         const minutes = Math.floor(diff / 60000);
         const hours = Math.floor(diff / 3600000);
         const days = Math.floor(diff / 86400000);
-        
+
         if (minutes < 1) return 'Just now';
         if (minutes < 60) return `${minutes}m ago`;
         if (hours < 24) return `${hours}h ago`;
         if (days < 7) return `${days}d ago`;
-        
+
         return new Date(timestamp).toLocaleDateString();
     }
 
@@ -337,7 +372,19 @@ class NewsManager {
      */
     setupNewsUI() {
         console.log('=== NewsManager: setupNewsUI START ===');
-        
+
+        // Check if we have a pending load
+        if (this.pendingSymbol) {
+            console.log('NewsManager: Found pending symbol, loading now:', this.pendingSymbol);
+            this.loadNews(this.pendingSymbol);
+        } else if (this.currentSymbol) {
+            // Refresh even if not pending, to ensure UI is in sync if it was wiped
+            const container = document.getElementById('newsContainer');
+            if (container && !container.hasChildNodes()) {
+                this.loadNews(this.currentSymbol);
+            }
+        }
+
         // Setup period selector
         const periodSelector = document.getElementById('newsPeriod');
         if (periodSelector) {
@@ -345,16 +392,19 @@ class NewsManager {
             // Remove existing listeners
             const newSelector = periodSelector.cloneNode(true);
             periodSelector.parentNode.replaceChild(newSelector, periodSelector);
-            
+
+            // Restore previous value if needed
+            newSelector.value = this.currentPeriod === '24h' ? '1' :
+                (this.currentPeriod === 'Week' ? '7' : '30');
+
             newSelector.addEventListener('change', (e) => {
                 const period = e.target.value;
                 console.log('NewsManager: Period changed to:', period);
-                this.currentPeriod = period;
-                
+
                 // Update period display
                 const periodLabels = { '1': '24h', '7': 'Week', '30': 'Month' };
                 this.currentPeriod = periodLabels[period] || '24h';
-                
+
                 // Reload news if symbol is selected
                 if (this.currentSymbol) {
                     this.loadNews(this.currentSymbol);
@@ -363,35 +413,22 @@ class NewsManager {
         } else {
             console.warn('NewsManager: Period selector not found');
         }
-        
+
         // Setup refresh button
         const refreshButton = document.getElementById('refreshNews');
         if (refreshButton) {
             console.log('NewsManager: Refresh button found, setting up event listener');
             const newButton = refreshButton.cloneNode(true);
             refreshButton.parentNode.replaceChild(newButton, refreshButton);
-            
+
             newButton.addEventListener('click', () => {
                 console.log('NewsManager: Refresh button clicked');
-                if (this.currentSymbol) {
-                    this.loadNews(this.currentSymbol);
-                } else {
-                    // Show hint if no stock selected
-                    const container = document.getElementById('newsContainer');
-                    if (container) {
-                        container.innerHTML = `
-                            <div class="news-empty">
-                                <p>Select a stock to view news</p>
-                                <p class="news-hint">Enter a symbol above or select from Popular Stocks</p>
-                            </div>
-                        `;
-                    }
-                }
+                this.loadNews(this.currentSymbol);
             });
         } else {
             console.warn('NewsManager: Refresh button not found');
         }
-        
+
         console.log('=== NewsManager: setupNewsUI END ===');
     }
 

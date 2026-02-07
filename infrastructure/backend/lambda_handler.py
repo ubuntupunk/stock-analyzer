@@ -4,7 +4,23 @@ Handles HTTP routing and CORS for all stock data endpoints
 """
 
 import json
+import math
 from stock_api import StockDataAPI, decimal_default
+
+
+def clean_float_values(obj):
+    """
+    Recursively replace NaN, Infinity, and -Infinity with None
+    to ensure valid JSON serialization.
+    """
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+    elif isinstance(obj, dict):
+        return {k: clean_float_values(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_float_values(v) for v in obj]
+    return obj
 
 
 def lambda_handler(event, context):
@@ -130,13 +146,16 @@ def lambda_handler(event, context):
             else:
                 result = {'error': 'Invalid endpoint'}
         
+        # Clean result of NaN/Infinity values before serialization
+        cleaned_result = clean_float_values(result)
+        
         return {
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Content-Type': 'application/json'
             },
-            'body': json.dumps(result, default=decimal_default)
+            'body': json.dumps(cleaned_result, default=decimal_default)
         }
     
     except Exception as e:

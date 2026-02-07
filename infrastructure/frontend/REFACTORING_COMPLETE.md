@@ -20,7 +20,7 @@ Total: 1,627 lines (better organization + more features!)
 ### **📁 File Structure:**
 ```
 frontend/
-├── app-new.js (477 lines) ⬇️ from 1,337!
+├── app.js (477 lines) ⬇️ from 1,337!
 ├── modules/
 │   ├── StockManager.js (200 lines) ✅
 │   ├── DataManager.js (200 lines) ✅
@@ -39,7 +39,7 @@ frontend/
 ## ✅ **All Requirements Met:**
 
 ### **📏 Line Limit Compliance:**
-- ✅ **app-new.js**: 477 lines (under 500!)
+- ✅ **app.js**: 477 lines (under 500!)
 - ✅ **All modules**: Under 500 lines each
 - ✅ **Maximum module size**: 200 lines
 
