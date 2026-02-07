@@ -34,7 +34,7 @@ class LRUCache {
 
     get(key) {
         if (!this.cache.has(key)) return null;
-        
+
         const value = this.cache.get(key);
         // Move to end (most recently used)
         this.cache.delete(key);
@@ -49,7 +49,7 @@ class LRUCache {
             this.cache.delete(firstKey);
             console.log(`LRUCache: Evicted ${firstKey} (capacity reached)`);
         }
-        
+
         this.cache.set(key, {
             data,
             timestamp: Date.now(),
@@ -63,7 +63,7 @@ class LRUCache {
 
     has(key) {
         if (!this.cache.has(key)) return false;
-        
+
         const entry = this.cache.get(key);
         // Check TTL
         if (Date.now() - entry.timestamp > entry.ttl) {
@@ -115,7 +115,7 @@ class RequestQueue {
             timestamp: Date.now(),
             attempts: 0
         };
-        
+
         // Insert based on priority
         const index = this.queue.findIndex(item => item.priority > priority);
         if (index === -1) {
@@ -214,7 +214,7 @@ class APIMetrics {
         this.metrics.latency.count++;
         this.metrics.latency.avg = Math.round(this.metrics.latency.total / this.metrics.latency.count);
         this.latencyHistory.push(latencyMs);
-        
+
         // Keep only last 1000 latency samples
         if (this.latencyHistory.length > 1000) {
             this.latencyHistory.shift();
@@ -293,14 +293,14 @@ class OfflineQueue {
         this.storageKey = storageKey;
         this.queue = this.loadFromStorage();
         this.isOnline = navigator.onLine;
-        
+
         // Listen for online/offline events
         window.addEventListener('online', () => {
             this.isOnline = true;
             console.log('OfflineQueue: Back online, processing queue');
             this.processQueue();
         });
-        
+
         window.addEventListener('offline', () => {
             this.isOnline = false;
             console.log('OfflineQueue: Gone offline');
@@ -355,7 +355,7 @@ class OfflineQueue {
 
         // Process in order
         const toRemove = [];
-        
+
         for (const item of this.queue) {
             try {
                 await item.request.fn();
@@ -397,7 +397,7 @@ class OfflineQueue {
 class DataManager {
     constructor(eventBus) {
         this.eventBus = eventBus;
-        
+
         // Core components
         this.cache = new LRUCache(100); // 100 items max
         this.circuitBreaker = new CircuitBreaker({
@@ -408,7 +408,7 @@ class DataManager {
         this.requestQueue = new RequestQueue();
         this.metrics = new APIMetrics();
         this.offlineQueue = new OfflineQueue();
-        
+
         // Configuration
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
         this.retryAttempts = 3;
@@ -422,19 +422,20 @@ class DataManager {
 
     /**
      * Load stock data for a specific tab/type
+     * SIMPLIFIED: Direct async/await execution (no queue)
      * @param {string} symbol - Stock symbol
      * @param {string} type - Data type (metrics, financials, etc.)
      * @returns {Promise} Data promise
      */
     async loadStockData(symbol, type) {
         const cacheKey = `${symbol}:${type}`;
-        const priority = PRIORITY_MAP[type] || PRIORITY.NORMAL;
 
         // Check cache first
         const cachedData = this.cache.get(cacheKey);
         if (cachedData) {
             this.metrics.recordCache(true);
             this.eventBus.emit('data:cached', { symbol, type, data: cachedData });
+            this.eventBus.emit('data:loaded', { symbol, type, data: cachedData });
             return cachedData;
         }
         this.metrics.recordCache(false);
@@ -444,7 +445,6 @@ class DataManager {
         if (cbState.state === 'OPEN') {
             console.warn(`DataManager: Circuit breaker OPEN for ${type}, using fallback`);
             this.metrics.recordCircuitBreakerState('open');
-            // Return fallback or throw
             throw new Error(`Service unavailable for ${type}`);
         }
         this.metrics.recordCircuitBreakerState(cbState.state);
@@ -455,14 +455,38 @@ class DataManager {
             return this.pendingRequests.get(cacheKey);
         }
 
-        // Create the data loader function
-        const dataLoader = async () => {
+        // Execute request DIRECTLY (no queue)
+        const promise = (async () => {
             const startTime = Date.now();
             try {
+                this.eventBus.emit('data:loading', { symbol, type });
+
                 let data;
                 switch (type) {
                     case 'price':
                         data = await this.executeWithCircuitBreaker(() => api.getStockPrice(symbol), type);
+                        // If we got historical data, update the metrics cache so chart can be created
+                        if (data?.historicalData) {
+                            const metricsCacheKey = `${symbol}:metrics`;
+                            const cachedMetrics = this.cache.get(metricsCacheKey);
+
+                            if (cachedMetrics && !cachedMetrics.hasHistoricalData) {
+                                console.log(`DataManager: Updating metrics cache with historicalData for ${symbol}`);
+                                cachedMetrics.hasHistoricalData = true;
+                                cachedMetrics.historicalData = data.historicalData;
+                                this.cache.set(metricsCacheKey, cachedMetrics, this.cacheTimeout);
+                            } else if (!cachedMetrics) {
+                                console.log(`DataManager: Creating metrics cache with historicalData for ${symbol}`);
+                                const metricsData = {
+                                    ...data,
+                                    hasHistoricalData: true,
+                                    historicalData: data.historicalData,
+                                    metrics: {},
+                                    symbol: symbol
+                                };
+                                this.cache.set(metricsCacheKey, metricsData, this.cacheTimeout);
+                            }
+                        }
                         break;
                     case 'metrics':
                         const [priceData, metricsData] = await Promise.all([
@@ -476,12 +500,19 @@ class DataManager {
                             metrics: transformedMetrics,
                             hasHistoricalData: !!priceData?.historicalData
                         };
+                        // Ensure historicalData is preserved for chart creation
+                        if (priceData?.historicalData && !data.hasHistoricalData) {
+                            console.log(`DataManager: Ensuring historicalData is preserved in metrics cache for ${symbol}`);
+                            data.hasHistoricalData = true;
+                        }
                         break;
                     case 'financials':
                         data = await this.executeWithCircuitBreaker(() => api.getFinancialStatements(symbol), type);
+                        data = this.transformFinancialsData(data);
                         break;
                     case 'analyst-estimates':
                         data = await this.executeWithCircuitBreaker(() => api.getAnalystEstimates(symbol), type);
+                        data = this.transformEstimatesData(data);
                         break;
                     case 'stock-analyser':
                         data = await this.loadStockAnalyserData(symbol);
@@ -496,61 +527,35 @@ class DataManager {
                         throw new Error(`Unknown data type: ${type}`);
                 }
 
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
                 // Record success metrics
                 this.metrics.recordRequest(type, true, Date.now() - startTime);
+
+                // Cache the successful response
+                this.cache.set(cacheKey, data, this.cacheTimeout);
+
+                // Emit data:loaded event
+                this.eventBus.emit('data:loaded', { symbol, type, data });
 
                 return data;
             } catch (error) {
                 this.metrics.recordRequest(type, false, Date.now() - startTime);
                 this.metrics.recordError(error.message);
+                console.error(`DataManager: Failed to load ${type} for ${symbol}:`, error);
+                this.eventBus.emit('data:error', { symbol, type, error: error.message });
                 throw error;
+            } finally {
+                // Always clean up pending request
+                this.pendingRequests.delete(cacheKey);
             }
-        };
+        })();
 
-        // Enqueue request based on priority
-        const promise = new Promise((resolve, reject) => {
-            this.requestQueue.enqueue(
-                async () => {
-                    try {
-                        this.eventBus.emit('data:loading', { symbol, type });
-                        
-                        const data = await dataLoader();
-                        
-                        if (data.error) {
-                            throw new Error(data.error);
-                        }
-
-                        // Transform data if needed (skip metrics - already transformed in dataLoader)
-                        if (type === 'financials' && data) {
-                            data = this.transformFinancialsData(data);
-                        } else if (type === 'analyst-estimates' && data) {
-                            data = this.transformEstimatesData(data);
-                        }
-
-                        // Cache the successful response
-                        this.cache.set(cacheKey, data, this.cacheTimeout);
-                        
-                        this.pendingRequests.delete(cacheKey);
-                        this.eventBus.emit('data:loaded', { symbol, type, data });
-                        resolve(data);
-                    } catch (error) {
-                        this.pendingRequests.delete(cacheKey);
-                        console.error(`Failed to load ${type} for ${symbol}:`, error);
-                        this.eventBus.emit('data:error', { symbol, type, error: error.message });
-                        reject(error);
-                    }
-                },
-                priority,
-                cacheKey
-            );
-
-            // Process queue
-            this.processQueue();
-        });
-        
         // Store promise to prevent duplicate requests
         this.pendingRequests.set(cacheKey, promise);
-        
+
         return promise;
     }
 
@@ -586,9 +591,9 @@ class DataManager {
             this.requestQueue.complete(item.key);
         }
 
-        // Process next item
+        // Process next item immediately
         if (this.requestQueue.getStats().pending > 0) {
-            setTimeout(() => this.processQueue(), 10);
+            setTimeout(() => this.processQueue(), 0);
         }
     }
 
@@ -611,9 +616,11 @@ class DataManager {
             const result = {
                 price: priceData,
                 metrics: metricsData,
+                hasHistoricalData: !!priceData?.historicalData,
+                historicalData: priceData?.historicalData,
                 combined: true
             };
-            
+
             console.log('DataManager: Returning combined result:', result);
             return result;
         } catch (error) {
@@ -631,7 +638,7 @@ class DataManager {
     async searchStocks(query, limit = 10) {
         try {
             this.eventBus.emit('search:loading', { query });
-            
+
             const cacheKey = `search:${query}:${limit}`;
             const cachedData = this.cache.get(cacheKey);
             if (cachedData) {
@@ -642,7 +649,7 @@ class DataManager {
             this.metrics.recordCache(false);
 
             const results = await this.loadWithRetry(() => api.searchStocks(query, limit));
-            
+
             this.cache.set(cacheKey, results, this.cacheTimeout);
             this.eventBus.emit('search:loaded', { query, results });
             return results;
@@ -662,7 +669,7 @@ class DataManager {
     async getPopularStocks(limit = 12) {
         try {
             this.eventBus.emit('popularStocks:loading');
-            
+
             const cacheKey = `popular:${limit}`;
             const cachedData = this.cache.get(cacheKey);
             if (cachedData) {
@@ -673,7 +680,7 @@ class DataManager {
             this.metrics.recordCache(false);
 
             const stocks = await this.loadWithRetry(() => api.getPopularStocks(limit));
-            
+
             this.cache.set(cacheKey, stocks, this.cacheTimeout);
             this.eventBus.emit('popularStocks:loaded', { stocks });
             return stocks;
@@ -692,7 +699,7 @@ class DataManager {
     async loadWatchlist() {
         try {
             this.eventBus.emit('watchlist:loading');
-            
+
             const cacheKey = 'watchlist';
             const cachedData = this.cache.get(cacheKey);
             if (cachedData) {
@@ -703,14 +710,14 @@ class DataManager {
             this.metrics.recordCache(false);
 
             const watchlist = await this.loadWithRetry(() => api.getWatchlist());
-            
+
             this.cache.set(cacheKey, watchlist, this.cacheTimeout);
             this.eventBus.emit('watchlist:loaded', { watchlist });
             return watchlist;
 
         } catch (error) {
             console.warn('Failed to load watchlist from API, falling back to localStorage:', error);
-            
+
             // Fallback to localStorage
             const localWatchlist = this.loadWatchlistFromLocalStorage();
             this.eventBus.emit('watchlist:loaded', { watchlist: localWatchlist });
@@ -728,7 +735,7 @@ class DataManager {
             if (data) {
                 return JSON.parse(data);
             }
-            
+
             // If no data exists, seed with sample watchlist
             const sampleWatchlist = this.getSampleWatchlistData();
             this.saveWatchlistToLocalStorage(sampleWatchlist);
@@ -813,21 +820,21 @@ class DataManager {
             }
 
             this.eventBus.emit('watchlist:adding', { stockData });
-            
+
             const result = await this.loadWithRetry(() => api.addToWatchlist(stockData));
-            
+
             // Clear watchlist cache
             this.cache.delete('watchlist');
-            
+
             this.eventBus.emit('watchlist:added', { stockData, result });
             return result;
 
         } catch (error) {
             console.warn('Failed to add to watchlist via API, saving to localStorage:', error);
-            
+
             // Fallback to localStorage
             const watchlist = this.loadWatchlistFromLocalStorage();
-            
+
             // Check if already exists
             const exists = watchlist.some(item => item.symbol === stockData.symbol);
             if (!exists) {
@@ -842,7 +849,7 @@ class DataManager {
                 watchlist.push(watchlistItem);
                 this.saveWatchlistToLocalStorage(watchlist);
             }
-            
+
             this.eventBus.emit('watchlist:added', { stockData, result: { success: true, local: true } });
             return { success: true, local: true };
         }
@@ -856,23 +863,23 @@ class DataManager {
     async removeFromWatchlist(symbol) {
         try {
             this.eventBus.emit('watchlist:removing', { symbol });
-            
+
             const result = await this.loadWithRetry(() => api.removeFromWatchlist(symbol));
-            
+
             // Clear watchlist cache
             this.cache.delete('watchlist');
-            
+
             this.eventBus.emit('watchlist:removed', { symbol, result });
             return result;
 
         } catch (error) {
             console.warn('Failed to remove from watchlist via API, removing from localStorage:', error);
-            
+
             // Fallback to localStorage
             let watchlist = this.loadWatchlistFromLocalStorage();
             watchlist = watchlist.filter(item => item.symbol !== symbol);
             this.saveWatchlistToLocalStorage(watchlist);
-            
+
             this.eventBus.emit('watchlist:removed', { symbol, result: { success: true, local: true } });
             return { success: true, local: true };
         }
@@ -891,9 +898,9 @@ class DataManager {
             }
 
             this.eventBus.emit('dcf:analyzing', { assumptions });
-            
+
             const results = await this.loadWithRetry(() => api.runDCF(assumptions));
-            
+
             this.eventBus.emit('dcf:analyzed', { assumptions, results });
             return results;
 
@@ -1047,7 +1054,7 @@ class DataManager {
     transformMetricsData(data) {
         // Convert snake_case to camelCase
         const camelData = this.snakeToCamel(data);
-        
+
         return {
             ...camelData,
             formattedMarketCap: Formatters.formatCurrency(camelData.marketCap),
@@ -1065,9 +1072,9 @@ class DataManager {
      */
     snakeToCamel(obj) {
         if (!obj || typeof obj !== 'object') return obj;
-        
+
         const result = {};
-        
+
         for (const key in obj) {
             if (Object.prototype.hasOwnProperty.call(obj, key)) {
                 // Convert snake_case to camelCase
@@ -1075,7 +1082,7 @@ class DataManager {
                 result[camelKey] = obj[key];
             }
         }
-        
+
         return result;
     }
 

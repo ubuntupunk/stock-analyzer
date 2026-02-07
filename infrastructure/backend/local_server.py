@@ -11,8 +11,26 @@ from flask import Flask, jsonify, request, send_from_directory, render_template
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from stock_api import StockDataAPI
+import math
+import json
+
+# Custom JSON encoder to handle NaN and Infinity values
+class SafeJSONEncoder(json.JSONEncoder):
+    def encode(self, o):
+        if isinstance(o, float):
+            if math.isnan(o) or math.isinf(o):
+                return 'null'
+        return super().encode(o)
+    
+    def iterencode(self, o, _one_shot=False):
+        """Encode the given object and yield each string representation as available."""
+        for chunk in super().iterencode(o, _one_shot):
+            # Replace NaN and Infinity in the output
+            chunk = chunk.replace('NaN', 'null').replace('Infinity', 'null').replace('-Infinity', 'null')
+            yield chunk
 
 app = Flask(__name__, template_folder='../frontend')
+app.json_encoder = SafeJSONEncoder
 
 # Initialize the Stock Data API
 stock_api = StockDataAPI()

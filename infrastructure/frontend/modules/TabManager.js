@@ -892,6 +892,30 @@ class TabManager {
                 return;
             }
             
+            // Check if we have price data with historicalData in cache (for chart)
+            const priceCacheKey = `${currentSymbol}:price`;
+            const priceData = this.dataManager.cache.get(priceCacheKey);
+            
+            // If we have price data with historicalData, we can create the chart
+            if (priceData?.historicalData) {
+                console.log('TabManager: Found historical data in cache, creating chart');
+                const canvas = document.getElementById('priceChart');
+                if (canvas && window.chartManager) {
+                    console.log('TabManager: Creating chart from cached price data');
+                    window.chartManager.createPriceChart('priceChart', priceData, currentSymbol);
+                    
+                    // Setup timeframe handlers after chart is created
+                    setTimeout(() => {
+                        if (window.chartManager.setupTimeframeHandlers) {
+                            window.chartManager.setupTimeframeHandlers();
+                        }
+                        if (window.chartManager.setupCustomRangeHandlers) {
+                            window.chartManager.setupCustomRangeHandlers();
+                        }
+                    }, 100);
+                }
+            }
+            
             const data = await this.dataManager.loadStockData(currentSymbol, 'metrics');
                 
             // If data was cached and chart wasn't created, create it now
@@ -902,6 +926,16 @@ class TabManager {
                     if (!existingChart) {
                         console.log('TabManager: Creating chart from cached data');
                         window.chartManager.createPriceChart('priceChart', data, currentSymbol);
+                        
+                        // Setup timeframe handlers after chart is created
+                        setTimeout(() => {
+                            if (window.chartManager.setupTimeframeHandlers) {
+                                window.chartManager.setupTimeframeHandlers();
+                            }
+                            if (window.chartManager.setupCustomRangeHandlers) {
+                                window.chartManager.setupCustomRangeHandlers();
+                            }
+                        }, 100);
                     }
                 }
             }

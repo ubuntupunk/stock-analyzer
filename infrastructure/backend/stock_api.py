@@ -188,16 +188,16 @@ class StockDataAPI:
         Returns first successful result
         """
         start_time = time.time()
-        
+
         # Build tasks for enabled sources
         tasks = []
         sources_to_try = []
-        
+
         for source_name, priority in self.priorities:
             if not self.cb.can_call(source_name):
                 print(f"Circuit OPEN for {source_name}, skipping")
                 continue
-            
+
             if source_name == 'yahoo_finance':
                 tasks.append(self._fetch_yahoo_price(symbol))
                 sources_to_try.append('yahoo_finance')
@@ -210,23 +210,16 @@ class StockDataAPI:
             elif source_name == 'alpha_vantage':
                 tasks.append(self._fetch_alpha_price(symbol))
                 sources_to_try.append('alpha_vantage')
-        
+
         if not tasks:
             print(f"All circuits OPEN for {symbol}")
             return None
-        
-        # Wait for first successful result using asyncio.wait with FIRST_COMPLETED
+
+        # Wait for first successful result using asyncio.as_completed
         try:
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            
-            # Cancel pending tasks
-            for task in pending:
-                task.cancel()
-            
-            # Check completed task
-            for task in done:
+            for coro in asyncio.as_completed(tasks):
                 try:
-                    result = task.result()
+                    result = await coro
                     if result:
                         latency_ms = (time.time() - start_time) * 1000
                         print(f"Parallel fetch succeeded in {latency_ms:.0f}ms")
@@ -234,23 +227,9 @@ class StockDataAPI:
                 except Exception as e:
                     print(f"Task failed: {e}")
                     continue
-            
-            # If first task failed, try remaining tasks
-            if pending:
-                done, _ = await asyncio.wait(pending)
-                for task in done:
-                    try:
-                        result = task.result()
-                        if result:
-                            latency_ms = (time.time() - start_time) * 1000
-                            print(f"Parallel fetch succeeded (fallback) in {latency_ms:.0f}ms")
-                            return result
-                    except Exception as e:
-                        continue
-                        
         except Exception as e:
             print(f"Parallel fetch error: {e}")
-        
+
         # All failed
         return None
     
@@ -341,48 +320,64 @@ class StockDataAPI:
     def get_stock_price(self, symbol: str, period: str = '1mo', startDate: str = None, endDate: str = None) -> Dict:
         """
         Get current stock price and basic quote information
-        
-        Uses parallel fallback strategy - tries multiple APIs concurrently
-        for faster response times.
+        Includes both price data and metrics for comprehensive view
         """
         # Check cache first
         cache_key = self._get_cache_key(f'price:{period}:{startDate or "default"}', symbol)
         cached = self._get_from_cache(cache_key)
         if cached:
             return cached
-        
+
         price_data = {
             'symbol': symbol,
             'timestamp': datetime.now().isoformat(),
             'source': 'unknown'
         }
-        
+
+        # Get price data from Yahoo Finance FIRST (fastest, most complete)
         try:
-            # Run parallel fallback
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                result = loop.run_until_complete(self._fetch_parallel(symbol, 'price'))
-                
-                if result:
-                    price_data.update(result)
-                    price_data['source'] = 'parallel_fallback'
-                    
-                    # Also fetch historical data from Yahoo
-                    if startDate and endDate:
-                        history = self.yahoo.fetch_history_range(symbol, startDate, endDate)
-                    else:
-                        history = self.yahoo.fetch_history(symbol, period)
-                    
-                    if history:
-                        price_data['historicalData'] = history
-                        
-            finally:
-                loop.close()
-                
+            start = time.time()
+            yf_data = self.yahoo.fetch_data(symbol)
+            latency_ms = (time.time() - start) * 1000
+
+            if yf_data:
+                # Parse both price and metrics data from Yahoo Finance
+                price_data.update(self.yahoo.parse_price(yf_data))
+                price_data.update(self.yahoo.parse_metrics(yf_data))  # Add metrics data
+                price_data['source'] = 'yahoo_finance'
+                self.metrics.record_request('yahoo_finance', True, latency_ms)
+            else:
+                self.metrics.record_request('yahoo_finance', False, latency_ms)
+
         except Exception as e:
-            print(f"Error in parallel fallback for {symbol}: {str(e)}")
-        
+            self.metrics.record_request('yahoo_finance', False, 0)
+            print(f"Yahoo price/metrics error for {symbol}: {str(e)}")
+
+        # Fallback to other sources if needed
+        if price_data['source'] == 'unknown':
+            # Try Alpha Vantage
+            try:
+                start = time.time()
+                av_data = self.alpha_vantage.fetch_quote(symbol)
+                latency_ms = (time.time() - start) * 1000
+
+                if av_data and '05. price' in av_data:
+                    price_data.update(self.alpha_vantage.parse_price(av_data))
+                    price_data['source'] = 'alpha_vantage'
+                    self.metrics.record_request('alpha_vantage', True, latency_ms)
+                else:
+                    self.metrics.record_request('alpha_vantage', False, latency_ms)
+            except Exception as e:
+                self.metrics.record_request('alpha_vantage', False, 0)
+
+        # Also fetch historical data for charting (support custom date range)
+        if startDate and endDate:
+            history = self.yahoo.fetch_history_range(symbol, startDate, endDate)
+        else:
+            history = self.yahoo.fetch_history(symbol, period)
+        if history:
+            price_data['historicalData'] = history
+
         self._set_cache(cache_key, price_data)
         return price_data
     
