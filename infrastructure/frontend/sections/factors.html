@@ -3,11 +3,6 @@
     <div class="factor-header">
         <h2>MY FOUNDATION</h2>
         <div class="factor-header-controls">
-            <div class="stock-selector">
-                <label for="factorStockInput">Stock Symbol:</label>
-                <input type="text" id="factorStockInput" placeholder="e.g., AAPL" class="stock-input">
-                <span class="current-stock-badge" id="currentStockDisplay">No stock selected</span>
-            </div>
             <button class="add-custom-factor-btn" id="addFactorBtn" title="Add Custom Factor">
                 <i class="fas fa-plus-circle"></i> Add Custom Factor
             </button>
@@ -83,11 +78,13 @@
             </div>
             <div class="form-group">
                 <label for="customFactorDesc">Description:</label>
-                <input type="text" id="customFactorDesc" class="form-control" placeholder="Brief description of this factor">
+                <input type="text" id="customFactorDesc" class="form-control"
+                    placeholder="Brief description of this factor">
             </div>
             <div class="form-group">
                 <label for="customFactorCriteria">Criteria/Formula:</label>
-                <textarea id="customFactorCriteria" class="form-control" rows="3" placeholder="e.g., Revenue Growth > 20% AND Debt/Equity < 0.5"></textarea>
+                <textarea id="customFactorCriteria" class="form-control" rows="3"
+                    placeholder="e.g., Revenue Growth > 20% AND Debt/Equity < 0.5"></textarea>
             </div>
         </div>
         <div class="modal-footer">

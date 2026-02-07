@@ -746,6 +746,49 @@ class StockDataAPI:
                 results[symbol] = {'symbol': symbol, 'error': str(e)}
         return results
 
+    def run_dcf(self, assumptions: Dict) -> Dict:
+        """
+        Perform a Discounted Cash Flow (DCF) analysis.
+        This is a placeholder and will return dummy data.
+        """
+        print(f"Performing DCF analysis with assumptions: {assumptions}")
+        
+        # Simulate DCF calculation
+        symbol = assumptions.get('symbol', 'UNKNOWN')
+        current_price = assumptions.get('current_price', 100.0)
+        growth_rate = assumptions.get('growth_rate', 0.05)
+        terminal_growth_rate = assumptions.get('terminal_growth_rate', 0.02)
+        discount_rate = assumptions.get('discount_rate', 0.10)
+        years = assumptions.get('years', 5)
+
+        # Dummy Free Cash Flow projection (simplistic)
+        fcf_projections = [current_price * (1 + growth_rate)**i * 0.1 for i in range(1, years + 1)] # 10% of price as FCF
+
+        # Dummy Terminal Value (simplistic)
+        terminal_value = fcf_projections[-1] * (1 + terminal_growth_rate) / (discount_rate - terminal_growth_rate)
+
+        # Dummy Present Value of FCFs
+        pv_fcf = sum([fcf / (1 + discount_rate)**i for i, fcf in enumerate(fcf_projections, 1)])
+
+        # Dummy Present Value of Terminal Value
+        pv_terminal_value = terminal_value / (1 + discount_rate)**years
+
+        # Dummy Intrinsic Value (simplistic)
+        intrinsic_value = pv_fcf + pv_terminal_value
+        
+        return {
+            'symbol': symbol,
+            'intrinsic_value': round(intrinsic_value, 2),
+            'current_price': current_price,
+            'upside_potential': round((intrinsic_value - current_price) / current_price * 100, 2),
+            'assumptions_used': assumptions,
+            'fcf_projections': [round(f, 2) for f in fcf_projections],
+            'terminal_value': round(terminal_value, 2),
+            'pv_fcf': round(pv_fcf, 2),
+            'pv_terminal_value': round(pv_terminal_value, 2),
+            'model_date': datetime.now().isoformat()
+        }
+
 
 def lambda_handler(event, context):
     """

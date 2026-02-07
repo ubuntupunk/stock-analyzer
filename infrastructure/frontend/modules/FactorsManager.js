@@ -19,7 +19,7 @@ class FactorsManager {
         ];
         this.operators = ['>', '<', '>=', '<=', '=', '!='];
         this.screenResults = [];
-        
+
         // Default values for quick add - sensible defaults for each factor type
         this.factorDefaults = {
             'pe_ratio': { operator: '>', value: 15 },
@@ -29,13 +29,17 @@ class FactorsManager {
             'current_ratio': { operator: '>', value: 1.5 },
             'price_to_fcf': { operator: '>', value: 15 }
         };
-        
+
         this.init();
     }
 
     init() {
         console.log('FactorsManager initialized');
-        // Delay initialization to ensure DOM is ready
+
+        // IMMEDIATE: Setup bus listeners to catch early events (like initial stock selection)
+        this.setupBusListeners();
+
+        // DEFERRED: Setup DOM interaction
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 this.initAfterDOMReady();
@@ -47,21 +51,20 @@ class FactorsManager {
     }
 
     initAfterDOMReady() {
-        console.log('FactorsManager: DOM ready, initializing...');
+        console.log('FactorsManager: DOM ready, initializing UI components...');
         this.loadCustomFactorsFromBackend();
-        this.setupEventListeners();
+        this.setupDOMListeners();
         this.setupActiveListDropZone();
         this.renderFactorBlocks();
         this.renderActiveFactors();
     }
 
-    setupEventListeners() {
-        // Stock input
-        const stockInput = document.getElementById('factorStockInput');
-        if (stockInput) {
-            stockInput.addEventListener('change', (e) => this.handleStockChange(e.target.value));
-        }
+    setupBusListeners() {
+        console.log('FactorsManager: Setting up bus listeners');
+        // No specific bus listeners needed for screener at this moment
+    }
 
+    setupDOMListeners() {
         // Add custom factor button
         const addFactorBtn = document.getElementById('addFactorBtn');
         if (addFactorBtn) {
@@ -112,20 +115,16 @@ class FactorsManager {
                 }
             });
         }
-
-        // Listen for stock changes from other modules
-        this.eventBus.on('stock:selected', (data) => {
-            this.handleStockChange(data.symbol);
-        });
     }
 
-    handleStockChange(symbol) {
-        this.currentStock = symbol ? symbol.toUpperCase() : null;
-        const stockDisplay = document.getElementById('currentStockDisplay');
-        if (stockDisplay) {
-            stockDisplay.textContent = this.currentStock || 'No stock selected';
-        }
-        console.log('Current stock for factors:', this.currentStock);
+    /**
+     * Called by TabManager when the Factors tab is activated
+     * Ensures UI is in sync with current state
+     */
+    onTabActivated() {
+        console.log('FactorsManager: Tab activated, syncing UI');
+        this.renderFactorBlocks();
+        this.renderActiveFactors();
     }
 
     renderFactorBlocks() {
@@ -220,10 +219,10 @@ class FactorsManager {
         // We need to find the block that was clicked - use event target
         const addBtn = event.target.closest('.factor-add-btn');
         if (!addBtn) return;
-        
+
         const blockEl = addBtn.closest('.factor-block');
         if (!blockEl) return;
-        
+
         const operator = blockEl.querySelector('.factor-operator').value;
         const value = parseFloat(blockEl.querySelector('.factor-value').value);
 
@@ -252,7 +251,7 @@ class FactorsManager {
 
         this.factors.push(screenFactor);
         this.renderActiveFactors();
-        
+
         console.log('Factor added to screen:', screenFactor);
     }
 
@@ -303,10 +302,10 @@ class FactorsManager {
 
         this.factors.push(screenFactor);
         this.renderActiveFactors();
-        
+
         // Clear the inputs
         valueInput.value = '';
-        
+
         console.log('Factor added to screen:', screenFactor);
     }
 
@@ -329,7 +328,7 @@ class FactorsManager {
             item.className = 'active-factor-item';
             item.draggable = true;
             item.dataset.index = index;
-            
+
             // Get category color for this factor
             const categoryColors = {
                 valuation: '#3b82f6',
@@ -338,7 +337,7 @@ class FactorsManager {
                 financial_health: '#f59e0b'
             };
             const borderColor = categoryColors[factor.category] || '#6b7280';
-            
+
             item.style.borderLeftColor = borderColor;
             item.style.background = `linear-gradient(135deg, ${borderColor}15, ${borderColor}05)`;
 
@@ -411,7 +410,7 @@ class FactorsManager {
 
         try {
             const data = JSON.parse(e.dataTransfer.getData('application/json'));
-            
+
             if (data.type === 'active-factor') {
                 // Reordering active factors - only handle on individual items
                 const dragIndex = data.index;
@@ -498,7 +497,7 @@ class FactorsManager {
                 const key = factor.id;
                 const operator = factor.operator;
                 const value = factor.value;
-                
+
                 // Convert operator to min/max format expected by backend
                 if (operator === '>' || operator === '>=') {
                     criteria[key] = { min: value };
@@ -539,7 +538,7 @@ class FactorsManager {
     renderResults() {
         const container = document.getElementById('screenResults');
         const exportBtn = document.getElementById('exportResultsBtn');
-        
+
         if (!container) return;
 
         if (this.screenResults.length === 0) {
@@ -611,7 +610,7 @@ class FactorsManager {
     clearResults() {
         const container = document.getElementById('screenResults');
         const exportBtn = document.getElementById('exportResultsBtn');
-        
+
         if (container) {
             container.innerHTML = '';
         }
@@ -662,10 +661,10 @@ class FactorsManager {
         };
 
         this.customFactors.push(customFactor);
-        
+
         // Save to backend
         await this.saveCustomFactorToBackend(customFactor);
-        
+
         this.renderFactorBlocks();
         this.hideCustomFactorModal();
 
@@ -685,7 +684,7 @@ class FactorsManager {
             }
 
             const userId = window.userManager.currentUser.userId;
-            
+
             const response = await fetch(`${API_BASE_URL}/factors`, {
                 method: 'POST',
                 headers: {
@@ -722,7 +721,7 @@ class FactorsManager {
             }
 
             const userId = window.userManager.currentUser.userId;
-            
+
             const response = await fetch(`${API_BASE_URL}/factors`, {
                 method: 'GET',
                 headers: {
@@ -758,7 +757,7 @@ class FactorsManager {
         }
 
         this.customFactors = this.customFactors.filter(f => f.id !== id);
-        
+
         // Delete from backend
         try {
             if (window.userManager && window.userManager.currentUser) {
@@ -805,12 +804,12 @@ class FactorsManager {
         }
 
         // Define CSV headers
-        const headers = ['Symbol', 'Name', 'P/E Ratio', 'ROIC (%)', 'Revenue Growth (%)', 
-                        'Debt/Equity', 'Current Ratio', 'Price/FCF'];
-        
+        const headers = ['Symbol', 'Name', 'P/E Ratio', 'ROIC (%)', 'Revenue Growth (%)',
+            'Debt/Equity', 'Current Ratio', 'Price/FCF'];
+
         // Build CSV content
         let csvContent = headers.join(',') + '\n';
-        
+
         this.screenResults.forEach(stock => {
             const row = [
                 stock.symbol || '',
@@ -829,15 +828,15 @@ class FactorsManager {
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
-        
+
         link.setAttribute('href', url);
-        link.setAttribute('download', `stock_screen_results_${new Date().toISOString().slice(0,10)}.csv`);
+        link.setAttribute('download', `stock_screen_results_${new Date().toISOString().slice(0, 10)}.csv`);
         link.style.visibility = 'hidden';
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         console.log('Exported', this.screenResults.length, 'results to CSV');
     }
 

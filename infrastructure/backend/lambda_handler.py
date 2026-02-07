@@ -6,6 +6,7 @@ Handles HTTP routing and CORS for all stock data endpoints
 import json
 import math
 from stock_api import StockDataAPI, decimal_default
+from screener_api import StockScreener
 
 
 def clean_float_values(obj):
@@ -111,6 +112,32 @@ def lambda_handler(event, context):
                 result = api.get_batch_financials(symbols)
             else:
                 result = {'error': 'Invalid batch endpoint'}
+
+        elif '/screener/' in path:
+            screener = StockScreener()
+            if method == 'POST':
+                try:
+                    body = json.loads(event.get('body', '{}'))
+                    criteria = body.get('criteria', {})
+                    result = screener.screen_stocks(criteria)
+                except Exception as e:
+                    return {
+                        'statusCode': 400,
+                        'headers': {
+                            'Access-Control-Allow-Origin': '*',
+                            'Content-Type': 'application/json'
+                        },
+                        'body': json.dumps({'error': str(e)})
+                    }
+            else:
+                return {
+                    'statusCode': 405,
+                    'headers': {
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Type': 'application/json'
+                    },
+                    'body': json.dumps({'error': 'Method not allowed'})
+                }
         
         else:
             # Single stock endpoints - require 'symbol' parameter

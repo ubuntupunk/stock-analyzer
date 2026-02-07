@@ -232,6 +232,16 @@ def get_batch_financials():
     result = stock_api.get_batch_financials([s.upper() for s in symbols if s])
     return jsonify(result)
 
+@app.route('/api/dcf', methods=['POST'])
+def run_dcf_analysis():
+    """Run Discounted Cash Flow (DCF) analysis"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Assumptions required for DCF analysis'}), 400
+    
+    result = stock_api.run_dcf(data)
+    return jsonify(result)
+
 # ============================================
 # Watchlist Endpoints (Local storage fallback)
 # ============================================
@@ -366,5 +376,6 @@ if __name__ == '__main__':
     print("  - GET /api/stock/news?symbol=AAPL")
     print("  - GET /api/stocks/search?q=apple")
     print("  - GET /api/stocks/popular?limit=10")
+    print("  - POST /api/dcf")
     print()
     app.run(host='0.0.0.0', port=5000, debug=True)
