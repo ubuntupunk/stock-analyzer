@@ -119,3 +119,9 @@ infrastructure/frontend/styles.css.map
 voicetree-5-2/
 .mcp.json
 
+# Ignore IDE-specific directory
+.grok/
+
+# Ignore backup files
+*.backup
+
