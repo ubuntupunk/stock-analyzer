@@ -644,7 +644,17 @@ class DataManager {
             }
             this.metrics.recordCache(false);
 
-            const results = await this.executeWithCircuitBreaker(() => api.searchStocks(query, limit), 'search');
+            // Perform search - treat 404 as empty results, not failure
+            let results;
+            try {
+                results = await this.executeWithCircuitBreaker(() => api.searchStocks(query, limit), 'search');
+            } catch (err) {
+                if (err.message.includes('404')) {
+                    results = [];
+                } else {
+                    throw err;
+                }
+            }
 
             this.cache.set(cacheKey, results, this.cacheTimeout);
             this.eventBus.emit('search:loaded', { query, results });

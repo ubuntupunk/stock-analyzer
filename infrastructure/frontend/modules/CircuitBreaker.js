@@ -50,7 +50,12 @@ class CircuitBreaker {
             this.recordSuccess(endpoint);
             return result;
         } catch (error) {
-            this.recordFailure(endpoint);
+            // Don't trip on 404s (Not Found) or 400s (Bad Request)
+            const isFunctionalError = error.message && (error.message.includes('404') || error.message.includes('400'));
+
+            if (!isFunctionalError) {
+                this.recordFailure(endpoint);
+            }
             throw error;
         }
     }

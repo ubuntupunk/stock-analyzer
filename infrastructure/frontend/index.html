@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,13 +8,14 @@
     <link rel="stylesheet" href="styles.css?v=5">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
     <!-- Header will be loaded dynamically -->
     <div id="header-container"></div>
 
     <!-- Components will be loaded dynamically -->
     <div id="sidebar-container"></div>
-    
+
     <!-- Main Content Area -->
     <div class="main-content">
         <!-- Breadcrumbs -->
@@ -44,17 +46,17 @@
     <!-- Scripts -->
     <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    
+
     <!-- AWS Amplify for authentication - using different CDN -->
     <script src="https://unpkg.com/@aws-amplify/core@4.5.5/dist/aws-amplify-core.min.js"></script>
     <script src="https://unpkg.com/@aws-amplify/auth@4.5.5/dist/aws-amplify-auth.min.js"></script>
-    
+
     <!-- Core modules -->
     <script src="components/loader.js?v=2"></script>
     <script src="config.js?v=2"></script>
     <script src="api.js?v=4"></script>
     <script src="auth.js?v=2"></script>
-    
+
     <!-- Utilities (must load first) -->
     <script src="utils/Formatters.js?v=2"></script>
     <script src="utils/Validators.js?v=2"></script>
@@ -64,7 +66,8 @@
     <script src="modules/dynamo-service.js?v=1"></script>
 
     <!-- Feature modules -->
-    <script src="modules/CircuitBreaker.js?v=1"></script>
+    <!-- Feature modules -->
+    <script src="modules/CircuitBreaker.js?v=2"></script>
     <script src="modules/ErrorBoundary.js?v=1"></script>
     <script src="modules/HealthManager.js?v=1"></script>
     <script src="modules/StockManager.js?v=2"></script>
@@ -77,12 +80,12 @@
     <script src="modules/NewsManager.js?v=1"></script>
     <script src="modules/EstimatesManager.js?v=1"></script>
     <script src="modules/FactorsManager.js?v=1"></script>
-    <script src="modules/DataManager.js?v=3"></script>
+    <script src="modules/DataManager.js?v=4"></script>
     <script src="modules/UIManager.js?v=2"></script>
     <script src="modules/CalculatorManager.js?v=1"></script>
     <script src="modules/StockAnalyserManager.js?v=2"></script>
     <script src="modules/TabManager.js?v=7"></script>
-    
+
     <!-- Main app (must load last) -->
     <script src="app.js?v=4"></script>
 
@@ -107,7 +110,7 @@
                 console.log('Loading metrics section...');
                 await componentLoader.loadSection('metrics');
                 console.log('Metrics section loaded');
-                
+
                 console.log('Loading popular-stocks section...');
                 await componentLoader.loadSection('popular-stocks');
                 console.log('Popular-stocks section loaded');
@@ -122,4 +125,5 @@
         document.addEventListener('DOMContentLoaded', loadComponents);
     </script>
 </body>
+
 </html>
