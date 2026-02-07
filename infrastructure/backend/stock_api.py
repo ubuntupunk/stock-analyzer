@@ -509,7 +509,7 @@ class StockDataAPI:
             if yf_financials and (yf_financials.get('income_statement') or 
                                    yf_financials.get('balance_sheet') or 
                                    yf_financials.get('cash_flow')):
-                financials.update(self.yahoo.parse_financials(yf_financials))
+                financials.update(yf_financials)
                 financials['source'] = 'yahoo_finance'
         except Exception as e:
             print(f"Yahoo financials error for {symbol}: {str(e)}")

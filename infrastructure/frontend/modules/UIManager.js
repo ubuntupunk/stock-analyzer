@@ -7,7 +7,7 @@ class UIManager {
         this.loadingStates = new Map();
         this.errorStates = new Map();
         this.charts = new Map();
-        
+
         // Subscribe to data events
         this.setupEventListeners();
     }
@@ -107,7 +107,7 @@ class UIManager {
      */
     showLoading(section, message = 'Loading...') {
         this.loadingStates.set(section, true);
-        
+
         const loadingElement = document.getElementById(`${section}-loading`);
         if (loadingElement) {
             loadingElement.style.display = 'block';
@@ -127,7 +127,7 @@ class UIManager {
      */
     hideLoading(section) {
         this.loadingStates.delete(section);
-        
+
         const loadingElement = document.getElementById(`${section}-loading`);
         if (loadingElement) {
             loadingElement.style.display = 'none';
@@ -146,7 +146,7 @@ class UIManager {
      */
     showError(section, message) {
         this.errorStates.set(section, message);
-        
+
         const errorElement = document.getElementById(`${section}-error`);
         if (errorElement) {
             errorElement.textContent = message;
@@ -163,7 +163,7 @@ class UIManager {
      */
     hideError(section) {
         this.errorStates.delete(section);
-        
+
         const errorElement = document.getElementById(`${section}-error`);
         if (errorElement) {
             errorElement.style.display = 'none';
@@ -259,17 +259,17 @@ class UIManager {
         // Update financial statements tables
         console.log('UIManager: Updating income statement table');
         this.updateFinancialsTable('incomeData', financials.income_statement || []);
-        
+
         console.log('UIManager: Updating balance sheet table');
         this.updateFinancialsTable('balanceData', financials.balance_sheet || []);
-        
+
         console.log('UIManager: Updating cash flow table');
         this.updateFinancialsTable('cashflowData', financials.cash_flow || []);
 
         // Update source and timestamp
         console.log('UIManager: Updating source and timestamp');
         this.updateElement('financialsUpdated', financials.timestamp || new Date().toLocaleString());
-        
+
         // Update source with link
         const sourceElement = document.getElementById('financialsSource');
         if (sourceElement) {
@@ -281,7 +281,7 @@ class UIManager {
                 sourceElement.textContent = source;
             }
         }
-        
+
         console.log('=== UIManager: updateFinancialsDisplay END ===');
     }
 
@@ -304,14 +304,14 @@ class UIManager {
         const tbody = document.getElementById(tableId);
         if (!tbody) {
             console.error(`UIManager: Table body element NOT FOUND: ${tableId}`);
-            console.log('UIManager: Available elements with IDs:', 
+            console.log('UIManager: Available elements with IDs:',
                 Array.from(document.querySelectorAll('[id]')).map(el => el.id)
             );
             return;
         }
-        
+
         console.log(`UIManager: Table body element FOUND for ${tableId}`);
-        
+
         if (!data || data.length === 0) {
             console.warn(`UIManager: No data for table: ${tableId}`);
             tbody.innerHTML = '<tr><td colspan="5" class="loading">No financial data available</td></tr>';
@@ -327,9 +327,9 @@ class UIManager {
             const date = d.fiscal_date || d.fiscalDateEnding || '';
             return date.substring(0, 4); // Extract year from YYYY-MM format
         });
-        
+
         console.log(`UIManager: Extracted years for ${tableId}:`, years);
-        
+
         // Update table header with actual years
         const tableElement = tbody.closest('table');
         if (tableElement && years.length > 0) {
@@ -363,7 +363,7 @@ class UIManager {
                 html += `<tr><td>${item.label}</td>`;
                 data.slice(0, 4).forEach(period => {
                     const value = period[item.key] || 0;
-                    html += `<td>${value > 0 ? Formatters.formatCurrency(value) : '—'}</td>`;
+                    html += `<td>${Formatters.formatCurrency(value)}</td>`;
                 });
                 html += '</tr>';
             });
@@ -383,7 +383,7 @@ class UIManager {
                 html += `<tr><td>${item.label}</td>`;
                 data.slice(0, 4).forEach(period => {
                     const value = period[item.key] || 0;
-                    html += `<td>${value > 0 ? Formatters.formatCurrency(value) : '—'}</td>`;
+                    html += `<td>${Formatters.formatCurrency(value)}</td>`;
                 });
                 html += '</tr>';
             });
@@ -403,7 +403,7 @@ class UIManager {
                 html += `<tr><td>${item.label}</td>`;
                 data.slice(0, 4).forEach(period => {
                     const value = period[item.key] || 0;
-                    html += `<td>${value !== 0 ? Formatters.formatCurrency(value) : '—'}</td>`;
+                    html += `<td>${Formatters.formatCurrency(value)}</td>`;
                 });
                 html += '</tr>';
             });
@@ -435,14 +435,14 @@ class UIManager {
     updateStockAnalyserDisplay(data, symbol) {
         if (data.price) {
             this.updateElement('currentPrice', Formatters.formatStockPrice(data.price.currentPrice));
-            
+
             // Calculate price change if historical data available
             if (data.price.historicalData && Object.keys(data.price.historicalData).length > 1) {
                 const dates = Object.keys(data.price.historicalData).sort();
                 const latestPrice = data.price.currentPrice;
                 const previousPrice = parseFloat(data.price.historicalData[dates[dates.length - 2]]['4. close']);
                 const priceChange = ((latestPrice - previousPrice) / previousPrice * 100).toFixed(2);
-                
+
                 const priceChangeElement = document.getElementById('priceChange');
                 if (priceChangeElement) {
                     priceChangeElement.textContent = `${priceChange > 0 ? '+' : ''}${priceChange}%`;
@@ -562,7 +562,7 @@ class UIManager {
         }
 
         let html = '';
-        
+
         // Earnings Estimates
         if (data.earnings_estimates?.length > 0) {
             html += '<div class="estimates-section"><h3>Earnings Estimates</h3><table class="estimates-table"><thead><tr><th>Period</th><th>Avg</th><th>Low</th><th>High</th><th>Analysts</th></tr></thead><tbody>';
@@ -592,8 +592,8 @@ class UIManager {
      */
     evaluateFactor(value, type) {
         if (!value || value === 'N/A') return 'unknown';
-        
-        switch(type) {
+
+        switch (type) {
             case 'pe':
                 return value < 15 ? 'good' : value < 25 ? 'warning' : 'poor';
             case 'roic':
@@ -660,11 +660,11 @@ class UIManager {
      */
     updateBreadcrumbs(symbol, searchType) {
         console.log('UIManager: updateBreadcrumbs called with:', { symbol, searchType });
-        
+
         const breadcrumbTab = document.getElementById('breadcrumb-tab');
         const breadcrumbSymbolContainer = document.getElementById('breadcrumb-symbol-container');
         const breadcrumbSymbol = document.getElementById('breadcrumb-symbol');
-        
+
         // Handle the new unified breadcrumb structure (index.html)
         if (breadcrumbTab) {
             if (symbol) {
@@ -690,7 +690,7 @@ class UIManager {
                 console.log('UIManager: Breadcrumb tab updated to:', searchType || 'Popular Stocks');
             }
         }
-        
+
         // Also update legacy breadcrumbPath if it exists (metrics.html)
         const breadcrumbPath = document.getElementById('breadcrumbPath');
         if (breadcrumbPath) {
@@ -708,7 +708,7 @@ class UIManager {
      */
     updatePriceIndicators(priceData) {
         this.updateElement('atClosePrice', Formatters.formatStockPrice(priceData.currentPrice));
-        
+
         if (priceData.afterHoursPrice) {
             this.updateElement('afterHoursPrice', Formatters.formatStockPrice(priceData.afterHoursPrice));
         }

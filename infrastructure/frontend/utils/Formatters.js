@@ -8,18 +8,24 @@ class Formatters {
      * @returns {string} Formatted currency string
      */
     static formatCurrency(value) {
-        if (!value || value === 0) return 'N/A';
+        if (value === undefined || value === null) return 'N/A';
         if (typeof value !== 'number') return value;
-        
-        if (value >= 1e9) {
-            return `$${(value / 1e9).toFixed(1)}B`;
-        } else if (value >= 1e6) {
-            return `$${(value / 1e6).toFixed(1)}M`;
-        } else if (value >= 1e3) {
-            return `$${(value / 1e3).toFixed(1)}K`;
+
+        const isNegative = value < 0;
+        const absValue = Math.abs(value);
+        let formatted = '';
+
+        if (absValue >= 1e9) {
+            formatted = `$${(absValue / 1e9).toFixed(1)}B`;
+        } else if (absValue >= 1e6) {
+            formatted = `$${(absValue / 1e6).toFixed(1)}M`;
+        } else if (absValue >= 1e3) {
+            formatted = `$${(absValue / 1e3).toFixed(1)}K`;
         } else {
-            return `$${value.toFixed(0)}`;
+            formatted = `$${absValue.toFixed(0)}`;
         }
+
+        return isNegative ? `-${formatted}` : formatted;
     }
 
     /**
@@ -31,7 +37,7 @@ class Formatters {
     static formatPercentage(value, isDecimal = true) {
         if (!value || value === 'N/A') return 'N/A';
         if (typeof value !== 'number') return value;
-        
+
         const percentage = isDecimal ? value * 100 : value;
         return `${percentage.toFixed(1)}%`;
     }
@@ -44,18 +50,18 @@ class Formatters {
      */
     static formatDate(date, format = 'short') {
         if (!date) return 'N/A';
-        
+
         const dateObj = new Date(date);
         if (isNaN(dateObj.getTime())) return 'N/A';
-        
+
         switch (format) {
             case 'short':
                 return dateObj.toLocaleDateString();
             case 'long':
-                return dateObj.toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                return dateObj.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                 });
             case 'time':
                 return dateObj.toLocaleString();
@@ -73,7 +79,7 @@ class Formatters {
     static formatNumber(value, decimals = 2) {
         if (!value || value === 'N/A') return 'N/A';
         if (typeof value !== 'number') return value;
-        
+
         return value.toFixed(decimals);
     }
 
@@ -85,7 +91,7 @@ class Formatters {
     static formatLargeNumber(value) {
         if (!value || value === 0) return 'N/A';
         if (typeof value !== 'number') return value;
-        
+
         if (value >= 1e9) {
             return `${(value / 1e9).toFixed(1)}B`;
         } else if (value >= 1e6) {
@@ -105,7 +111,7 @@ class Formatters {
     static formatStockPrice(price) {
         if (!price || price === 'N/A') return 'N/A';
         if (typeof price !== 'number') return price;
-        
+
         if (price >= 1000) {
             return `$${price.toFixed(0)}`;
         } else if (price >= 100) {
@@ -123,7 +129,7 @@ class Formatters {
     static formatRatio(ratio) {
         if (!ratio || ratio === 'N/A') return 'N/A';
         if (typeof ratio !== 'number') return ratio;
-        
+
         return ratio.toFixed(2);
     }
 }
