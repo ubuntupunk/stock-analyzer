@@ -124,4 +124,5 @@ voicetree-5-2/
 
 # Ignore backup files
 *.backup
+*.backup2
 

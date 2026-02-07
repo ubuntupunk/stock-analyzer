@@ -9,7 +9,7 @@ class TabManager {
         this.currentTab = 'popular-stocks';
         this.tabHistory = [];
         this.sectionsLoaded = new Set(); // Track which sections are loaded
-        
+
         // Tab display names for breadcrumbs
         this.tabDisplayNames = {
             'popular-stocks': 'Popular Stocks',
@@ -21,7 +21,7 @@ class TabManager {
             'stock-analyser': 'Stock Analyser',
             'watchlist': 'Watchlist'
         };
-        
+
         // Subscribe to tab events
         this.setupEventListeners();
     }
@@ -40,7 +40,7 @@ class TabManager {
      */
     setupEventListeners() {
         console.log('TabManager: setupEventListeners called');
-        
+
         // Subscribe to tab events
         this.eventBus.on('tab:switch', ({ tabName }) => {
             console.log('TabManager: Received tab:switch event for:', tabName);
@@ -78,10 +78,10 @@ class TabManager {
      * Switch to a specific tab
      * @param {string} tabName - Tab name to switch to
      */
-    switchTab(tabName) {
+    async switchTab(tabName) {
         console.log('TabManager: switchTab called with:', tabName);
-        
-        // Update tab buttons
+
+        // Update tab buttons immediately for responsive UI
         document.querySelectorAll('.tab-btn').forEach(tab => {
             tab.classList.remove('active');
         });
@@ -93,17 +93,10 @@ class TabManager {
             console.warn('TabManager: Tab element not found for:', tabName);
         }
 
-        // Hide all content sections (but DON'T destroy them)
+        // Hide all content sections immediately
         document.querySelectorAll('.content-section').forEach(section => {
             section.classList.remove('active');
         });
-
-        // Show the target section if it exists
-        const targetSection = document.getElementById(tabName);
-        if (targetSection) {
-            targetSection.classList.add('active');
-            console.log('TabManager: Section activated:', tabName);
-        }
 
         // Track tab history (don't add duplicates)
         if (this.tabHistory[this.tabHistory.length - 1] !== tabName) {
@@ -120,9 +113,18 @@ class TabManager {
             this.uiManager.updateBreadcrumbs(currentSymbol, this.getTabDisplayName(tabName));
         }
 
-        // Load content for the specific tab (only if needed)
+        // Load content for the specific tab (AWAIT this to ensure section exists)
         console.log('TabManager: Loading content for tab:', tabName);
-        this.loadTabContent(tabName);
+        await this.loadTabContent(tabName);
+
+        // NOW show the target section (it should exist after loadTabContent completes)
+        const targetSection = document.getElementById(tabName);
+        if (targetSection) {
+            targetSection.classList.add('active');
+            console.log('TabManager: Section activated:', tabName);
+        } else {
+            console.warn('TabManager: Section not found after loading:', tabName);
+        }
 
         // Emit tab switched event
         this.eventBus.emit('tab:switched', { tabName, previousTab: this.tabHistory[this.tabHistory.length - 2] });
@@ -177,7 +179,7 @@ class TabManager {
 
                     // Emit section loaded event
                     this.eventBus.emit('section:loaded', { sectionName });
-                    
+
                     return section;
                 }
             }
@@ -194,7 +196,7 @@ class TabManager {
      */
     async loadTabContent(tabName) {
         console.log('TabManager: loadTabContent called for:', tabName);
-        
+
         // Helper: wait for section element to exist in DOM
         const waitForSection = async (sectionName, timeoutMs = 5000) => {
             const startTime = Date.now();
@@ -311,7 +313,7 @@ class TabManager {
             }
 
             await componentLoader.loadSection('analyst-estimates');
-            
+
             // Load data if stock is selected
             const currentSymbol = window.stockManager?.getCurrentSymbol();
             if (currentSymbol) {
@@ -330,7 +332,7 @@ class TabManager {
         console.log('TabManager: loadMetricsTab called');
         try {
             await componentLoader.loadSection('metrics');
-            
+
             const currentSymbol = window.stockManager?.getCurrentSymbol();
             if (currentSymbol) {
                 await this.dataManager.loadStockData(currentSymbol, 'metrics');
@@ -347,7 +349,7 @@ class TabManager {
         console.log('TabManager: loadFinancialsTab called');
         try {
             await componentLoader.loadSection('financials');
-            
+
             const currentSymbol = window.stockManager?.getCurrentSymbol();
             if (currentSymbol) {
                 await this.dataManager.loadStockData(currentSymbol, 'financials');
@@ -364,12 +366,12 @@ class TabManager {
         console.log('TabManager: loadFactorsTab called');
         try {
             await componentLoader.loadSection('factors');
-            
+
             // Trigger FactorsManager to render after section loads
             if (window.factorsManager) {
                 window.factorsManager.onTabActivated();
             }
-            
+
             const currentSymbol = window.stockManager?.getCurrentSymbol();
             if (currentSymbol) {
                 await this.dataManager.loadStockData(currentSymbol, 'factors');
@@ -388,7 +390,7 @@ class TabManager {
     async loadStockAnalyserTab() {
         console.log('TabManager: loadStockAnalyserTab called');
         await componentLoader.loadSection('stock-analyser');
-        
+
         const currentSymbol = window.stockManager?.getCurrentSymbol();
         console.log('TabManager: currentSymbol for stock-analyser:', currentSymbol);
         if (currentSymbol) {
@@ -415,14 +417,14 @@ class TabManager {
             console.log('TabManager: Loading popular-stocks section');
             await componentLoader.loadSection('popular-stocks');
             console.log('TabManager: Section loaded, now getting popular stocks data');
-            
+
             // Load popular stocks through the stock manager
             if (window.stockManager) {
                 await window.stockManager.loadPopularStocks();
             } else {
                 await this.dataManager.getPopularStocks();
             }
-            
+
             console.log('TabManager: Popular stocks tab loaded successfully');
         } catch (error) {
             console.error('TabManager: Failed to load popular stocks tab:', error);
@@ -440,7 +442,7 @@ class TabManager {
         }
 
         await componentLoader.loadSection('news');
-        
+
         const currentSymbol = window.stockManager?.getCurrentSymbol();
         if (currentSymbol) {
             await this.dataManager.loadStockData(currentSymbol, 'news');
@@ -498,7 +500,7 @@ class TabManager {
             'model-portfolio',
             'real-estate-calculator'
         ];
-        
+
         return validTabs.includes(tabName);
     }
 
@@ -510,7 +512,7 @@ class TabManager {
         // Don't add duplicate consecutive entries
         if (this.tabHistory[this.tabHistory.length - 1] !== tabName) {
             this.tabHistory.push(tabName);
-            
+
             // Limit history to 20 entries
             if (this.tabHistory.length > 20) {
                 this.tabHistory.shift();
@@ -582,19 +584,19 @@ class TabManager {
      */
     setupTabHandlers() {
         console.log('TabManager: setupTabHandlers called');
-        
+
         // Use a more robust polling approach for DOM readiness
         const checkAndSetup = () => {
             const tabs = document.querySelectorAll('.tab-btn');
             const scrollContainer = document.querySelector('.tabs-scroll-container');
-            
+
             if (tabs.length > 0) {
                 console.log('TabManager: Found', tabs.length, 'tab elements');
-                
+
                 tabs.forEach((tab, index) => {
                     const tabName = tab.getAttribute('data-tab');
                     console.log(`TabManager: Setting up handler for tab ${index}: ${tabName}`);
-                    
+
                     tab.addEventListener('click', (e) => {
                         console.log('TabManager: Tab clicked:', tabName);
                         if (tabName) {
@@ -602,7 +604,7 @@ class TabManager {
                         }
                     });
                 });
-                
+
                 // Setup carousel navigation handlers
                 this.setupCarouselHandlers();
             } else {
@@ -610,11 +612,11 @@ class TabManager {
                 setTimeout(checkAndSetup, 50);
             }
         };
-        
+
         // Start checking
         checkAndSetup();
     }
-    
+
     /**
      * Setup carousel navigation buttons (mobile)
      */
@@ -623,44 +625,44 @@ class TabManager {
         const nextBtn = document.querySelector('.tab-carousel-next');
         const scrollContainer = document.querySelector('.tabs-scroll-container');
         const tabsContainer = document.querySelector('.tabs-container');
-        
+
         if (!prevBtn || !nextBtn || !scrollContainer) {
             console.log('TabManager: Carousel elements not found yet, retrying...');
             setTimeout(() => this.setupCarouselHandlers(), 100);
             return;
         }
-        
+
         // Left arrow - scroll left
         prevBtn.addEventListener('click', (e) => {
             e.preventDefault();
             this.scrollTabsLeft();
         });
-        
+
         // Right arrow - scroll right
         nextBtn.addEventListener('click', (e) => {
             e.preventDefault();
             this.scrollTabsRight();
         });
-        
+
         // Update button visibility based on scroll position
         scrollContainer.addEventListener('scroll', () => {
             this.updateCarouselButtons();
         });
-        
+
         // Update on window resize
         window.addEventListener('resize', () => {
             this.updateCarouselButtons();
         });
-        
+
         // Initial button state
         this.updateCarouselButtons();
-        
+
         // Add touch swipe support for mobile
         this.setupTouchSwipe(scrollContainer);
-        
+
         console.log('TabManager: Carousel handlers setup complete');
     }
-    
+
     /**
      * Scroll tabs container left
      */
@@ -674,7 +676,7 @@ class TabManager {
             });
         }
     }
-    
+
     /**
      * Scroll tabs container right
      */
@@ -688,7 +690,7 @@ class TabManager {
             });
         }
     }
-    
+
     /**
      * Update carousel arrow button visibility based on scroll position
      */
@@ -696,11 +698,11 @@ class TabManager {
         const scrollContainer = document.querySelector('.tabs-scroll-container');
         const prevBtn = document.querySelector('.tab-carousel-prev');
         const nextBtn = document.querySelector('.tab-carousel-next');
-        
+
         if (scrollContainer && prevBtn && nextBtn) {
             const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
             const currentScroll = scrollContainer.scrollLeft;
-            
+
             // Show/hide prev button based on scroll position
             if (currentScroll > 10) {
                 prevBtn.classList.remove('disabled');
@@ -711,7 +713,7 @@ class TabManager {
                 prevBtn.style.opacity = '0.3';
                 prevBtn.style.pointerEvents = 'none';
             }
-            
+
             // Show/hide next button based on scroll position
             if (currentScroll < maxScroll - 10) {
                 nextBtn.classList.remove('disabled');
@@ -724,43 +726,43 @@ class TabManager {
             }
         }
     }
-    
+
     /**
      * Setup touch swipe support for carousel
      * @param {HTMLElement} element - Scroll container element
      */
     setupTouchSwipe(element) {
         if (!element) return;
-        
+
         let touchStartX = 0;
         let touchStartY = 0;
         let touchEndX = 0;
         let touchEndY = 0;
         const minSwipeDistance = 30;
-        
+
         // Get the container for bounds calculation
         const container = element;
-        
+
         const handleTouchStart = (e) => {
             // Store both X and Y to distinguish horizontal from vertical swipes
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
         };
-        
+
         const handleTouchEnd = (e) => {
             touchEndX = e.changedTouches[0].screenX;
             touchEndY = e.changedTouches[0].screenY;
             this.handleSwipe();
         };
-        
+
         const handleSwipe = () => {
             const diffX = touchEndX - touchStartX;
             const diffY = touchEndY - touchStartY;
-            
+
             // Only handle horizontal swipes (ignore vertical scrolling)
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 const swipeDistance = diffX;
-                
+
                 if (Math.abs(swipeDistance) > minSwipeDistance) {
                     if (swipeDistance > 0) {
                         // Swipe right - scroll left (show previous tabs)
@@ -772,11 +774,11 @@ class TabManager {
                 }
             }
         };
-        
+
         // Use passive: false to allow preventDefault() if needed
         element.addEventListener('touchstart', handleTouchStart, { passive: true });
         element.addEventListener('touchend', handleTouchEnd, { passive: true });
-        
+
         console.log('TabManager: Touch swipe support enabled');
     }
 
@@ -891,11 +893,11 @@ class TabManager {
                 console.log('TabManager: No stock selected, skipping metrics load');
                 return;
             }
-            
+
             // Check if we have price data with historicalData in cache (for chart)
             const priceCacheKey = `${currentSymbol}:price`;
             const priceData = this.dataManager.cache.get(priceCacheKey);
-            
+
             // If we have price data with historicalData, we can create the chart
             if (priceData?.historicalData) {
                 console.log('TabManager: Found historical data in cache, creating chart');
@@ -903,7 +905,7 @@ class TabManager {
                 if (canvas && window.chartManager) {
                     console.log('TabManager: Creating chart from cached price data');
                     window.chartManager.createPriceChart('priceChart', priceData, currentSymbol);
-                    
+
                     // Setup timeframe handlers after chart is created
                     setTimeout(() => {
                         if (window.chartManager.setupTimeframeHandlers) {
@@ -915,9 +917,9 @@ class TabManager {
                     }, 100);
                 }
             }
-            
+
             const data = await this.dataManager.loadStockData(currentSymbol, 'metrics');
-                
+
             // If data was cached and chart wasn't created, create it now
             if (data && data.hasHistoricalData) {
                 const canvas = document.getElementById('priceChart');
@@ -926,7 +928,7 @@ class TabManager {
                     if (!existingChart) {
                         console.log('TabManager: Creating chart from cached data');
                         window.chartManager.createPriceChart('priceChart', data, currentSymbol);
-                        
+
                         // Setup timeframe handlers after chart is created
                         setTimeout(() => {
                             if (window.chartManager.setupTimeframeHandlers) {
@@ -939,7 +941,7 @@ class TabManager {
                     }
                 }
             }
-            
+
             // Setup custom range handlers after metrics section is loaded
             if (window.chartManager && window.chartManager.setupCustomRangeHandlers) {
                 setTimeout(() => {
@@ -984,10 +986,10 @@ class TabManager {
                 // No stock selected - just show empty factors or user factors if available
                 console.log('TabManager: No stock selected for factors tab');
                 // Emit event to show empty state
-                this.eventBus.emit('data:loaded', { 
-                    symbol: null, 
-                    type: 'factors', 
-                    data: { message: 'Select a stock to view factors' } 
+                this.eventBus.emit('data:loaded', {
+                    symbol: null,
+                    type: 'factors',
+                    data: { message: 'Select a stock to view factors' }
                 });
             }
         } catch (error) {
@@ -1058,12 +1060,12 @@ class TabManager {
     async waitForSection(sectionId, maxWaitMs = 2500) {
         const maxAttempts = maxWaitMs / 50;
         let attempts = 0;
-        
+
         while (!document.getElementById(sectionId) && attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 50));
             attempts++;
         }
-        
+
         const exists = !!document.getElementById(sectionId);
         console.log(`TabManager: waitForSection(${sectionId}): exists=${exists} after ${attempts * 50}ms`);
         return exists;
