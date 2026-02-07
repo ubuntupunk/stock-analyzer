@@ -14,23 +14,26 @@ from stock_api import StockDataAPI
 import math
 import json
 
-# Custom JSON encoder to handle NaN and Infinity values
-class SafeJSONEncoder(json.JSONEncoder):
-    def encode(self, o):
-        if isinstance(o, float):
-            if math.isnan(o) or math.isinf(o):
-                return 'null'
-        return super().encode(o)
-    
-    def iterencode(self, o, _one_shot=False):
-        """Encode the given object and yield each string representation as available."""
-        for chunk in super().iterencode(o, _one_shot):
-            # Replace NaN and Infinity in the output
-            chunk = chunk.replace('NaN', 'null').replace('Infinity', 'null').replace('-Infinity', 'null')
-            yield chunk
+from flask.json.provider import DefaultJSONProvider
+
+# Custom JSON provider to handle NaN and Infinity values
+class SafeJSONProvider(DefaultJSONProvider):
+    def dumps(self, obj, **kwargs):
+        # Handle NaN/Inf at the object level before dumping
+        def sanitize(o):
+            if isinstance(o, float):
+                if math.isnan(o) or math.isinf(o):
+                    return None
+            elif isinstance(o, dict):
+                return {k: sanitize(v) for k, v in o.items()}
+            elif isinstance(o, list):
+                return [sanitize(v) for v in o]
+            return o
+        
+        return super().dumps(sanitize(obj), **kwargs)
 
 app = Flask(__name__, template_folder='../frontend')
-app.json_encoder = SafeJSONEncoder
+app.json = SafeJSONProvider(app)
 
 # Initialize the Stock Data API
 stock_api = StockDataAPI()
@@ -228,6 +231,59 @@ def get_batch_financials():
         return jsonify({'error': 'Symbols required'}), 400
     result = stock_api.get_batch_financials([s.upper() for s in symbols if s])
     return jsonify(result)
+
+# ============================================
+# Watchlist Endpoints (Local storage fallback)
+# ============================================
+WATCHLIST = []
+
+@app.route('/api/watchlist', methods=['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'])
+def manage_watchlist():
+    """Manage user watchlist items"""
+    global WATCHLIST
+    
+    if request.method == 'OPTIONS':
+        return '', 200
+        
+    if request.method == 'GET':
+        return jsonify(WATCHLIST)
+        
+    elif request.method == 'POST':
+        data = request.get_json()
+        if not data or 'symbol' not in data:
+            return jsonify({'error': 'Symbol required'}), 400
+            
+        symbol = data['symbol'].upper()
+        # Avoid duplicates
+        if not any(item.get('symbol') == symbol for item in WATCHLIST):
+            WATCHLIST.append({
+                'symbol': symbol,
+                'name': data.get('name', ''),
+                'addedAt': data.get('addedAt', '')
+            })
+        return jsonify({'status': 'success', 'watchlist': WATCHLIST})
+        
+    elif request.method == 'PUT':
+        data = request.get_json()
+        if not data or 'symbol' not in data:
+            return jsonify({'error': 'Symbol required'}), 400
+            
+        symbol = data['symbol'].upper()
+        updates = data.get('updates', {})
+        
+        for item in WATCHLIST:
+            if item.get('symbol') == symbol:
+                item.update(updates)
+                break
+        return jsonify({'status': 'success', 'watchlist': WATCHLIST})
+        
+    elif request.method == 'DELETE':
+        symbol = request.args.get('symbol')
+        if not symbol:
+            return jsonify({'error': 'Symbol required'}), 400
+            
+        WATCHLIST = [s for s in WATCHLIST if s.get('symbol') != symbol.upper()]
+        return jsonify({'status': 'success', 'watchlist': WATCHLIST})
 
 # ============================================
 # Screener & Custom Factors Endpoints

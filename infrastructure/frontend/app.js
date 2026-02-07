@@ -5,7 +5,7 @@ class StockAnalyzer {
     constructor() {
         this.modules = {};
         this.isInitialized = false;
-        
+
         // Initialize immediately
         this.init();
     }
@@ -16,7 +16,7 @@ class StockAnalyzer {
     async init() {
         try {
             console.log('Initializing Stock Analyzer...');
-            
+
             // Wait for DOM to be ready
             if (document.readyState === 'loading') {
                 await new Promise(resolve => {
@@ -26,22 +26,22 @@ class StockAnalyzer {
 
             // Initialize modules in dependency order
             await this.initializeModules();
-            
+
             // Setup module communication
             this.setupModuleCommunication();
-            
+
             // Setup global event handlers
             this.setupGlobalHandlers();
-            
+
             // Setup auth dropdown close handler
             this.setupAuthDropdownCloseHandler();
-            
+
             // Load initial data - but wait for popular-stocks section to exist
             await this.waitForSections();
-            
+
             this.isInitialized = true;
             console.log('Stock Analyzer initialized successfully');
-            
+
         } catch (error) {
             console.error('Failed to initialize Stock Analyzer:', error);
             this.showFatalError(error);
@@ -55,12 +55,12 @@ class StockAnalyzer {
         console.log('Waiting for sections to load...');
         let attempts = 0;
         const maxAttempts = 50; // 2.5 seconds max
-        
+
         while (!document.getElementById('popular-stocks') && attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 50));
             attempts++;
         }
-        
+
         if (document.getElementById('popular-stocks')) {
             console.log('Sections ready after', attempts * 50, 'ms');
             await this.loadInitialData();
@@ -88,7 +88,7 @@ class StockAnalyzer {
         this.modules.dataManager = new DataManager(eventBus);
         this.modules.uiManager = new UIManager(eventBus);
         this.modules.tabManager = new TabManager(this.modules.dataManager, eventBus, this.modules.uiManager);
-        
+
         // Auth module (depends on DynamoDBService)
         this.modules.userManager = new UserManager(eventBus);
 
@@ -108,19 +108,19 @@ class StockAnalyzer {
         this.modules.watchlistManager.initialize();
         this.modules.metricsManager.initialize();
         this.modules.tabManager.setupTabHandlers();
-        
+
         // News Manager
         this.modules.newsManager = new NewsManager(eventBus);
         window.newsManager = this.modules.newsManager;
-        
+
         // Estimates Manager
         this.modules.estimatesManager = new EstimatesManager(eventBus);
         window.estimatesManager = this.modules.estimatesManager;
-        
+
         // Factors Manager
         this.modules.factorsManager = new FactorsManager(eventBus);
         window.factorsManager = this.modules.factorsManager;
-        
+
         // Expose financials manager globally
         window.financialsManager = this.modules.financialsManager;
     }
@@ -137,6 +137,11 @@ class StockAnalyzer {
             this.modules.uiManager.updateBreadcrumbs(symbol, 'metrics');
             // Update URL with symbol and target tab
             this.updateURL(symbol, effectiveTargetTab);
+
+            // Trigger data loading and module selection
+            if (this.modules.stockManager) {
+                this.modules.stockManager.selectStock(symbol, effectiveTargetTab);
+            }
         });
 
         // Tab switching flow
@@ -173,7 +178,7 @@ class StockAnalyzer {
         eventBus.on('data:loaded', ({ symbol, type, data }) => {
             // Create price chart when price data OR metrics data with history is loaded
             const hasHistoricalData = (type === 'price' && data?.historicalData) ||
-                                      (type === 'metrics' && data?.hasHistoricalData);
+                (type === 'metrics' && data?.hasHistoricalData);
             if (hasHistoricalData) {
                 // Only create chart if canvas element exists (metrics tab is loaded)
                 const canvas = document.getElementById('priceChart');
@@ -181,7 +186,7 @@ class StockAnalyzer {
                     console.log('ChartManager: Canvas not ready yet, chart will be created when tab loads');
                     return;
                 }
-                
+
                 const chart = this.modules.chartManager.createPriceChart('priceChart', data, symbol);
                 if (chart) {
                     // Setup timeframe handlers after chart is created
@@ -223,7 +228,7 @@ class StockAnalyzer {
             const urlParams = new URLSearchParams(window.location.search);
             const symbol = urlParams.get('symbol');
             const tab = urlParams.get('tab');
-            
+
             if (symbol) {
                 // Navigate to the stock and tab from URL
                 await this.modules.stockManager.selectStock(symbol, tab || 'metrics');
@@ -256,11 +261,11 @@ class StockAnalyzer {
      */
     setupBurgerMenu() {
         console.log('App: Setting up burger menu...');
-        
+
         // Wait for elements to be available (they load via componentLoader)
         const maxAttempts = 50; // 2.5 seconds max
         let attempts = 0;
-        
+
         const trySetup = () => {
             const menuBtn = document.getElementById('menuBtn');
             const toolsMenu = document.getElementById('toolsMenu');
@@ -284,9 +289,9 @@ class StockAnalyzer {
                     console.log('App: Close menu clicked');
                     toolsMenu.classList.remove('active');
                 });
-                
+
                 this.setupToolMenuItems(toolsMenu);
-                
+
                 console.log('App: Burger menu setup complete');
             } else if (attempts < maxAttempts) {
                 // Try again
@@ -296,10 +301,10 @@ class StockAnalyzer {
                 console.warn('App: Burger menu elements not found after timeout');
             }
         };
-        
+
         trySetup();
     }
-    
+
     /**
      * Setup tool menu item handlers
      */
@@ -307,23 +312,23 @@ class StockAnalyzer {
 
         const toolItems = toolsMenu.querySelectorAll('.tool-item');
         console.log('App: Found tool items:', toolItems.length);
-        
+
         toolItems.forEach(item => {
             const toolName = item.getAttribute('data-tool');
             console.log('App: Setting up handler for tool:', toolName);
-            
+
             item.addEventListener('click', () => {
                 console.log('App: Tool item clicked:', toolName);
-                
+
                 // Close the menu
                 toolsMenu.classList.remove('active');
-                
+
                 // Special mapping for Factor Search → Factors Tab
                 let targetTab = toolName;
                 if (toolName === 'factor-search') {
                     targetTab = 'factors';
                 }
-                
+
                 // Switch to the corresponding tab
                 if (this.modules.tabManager && this.modules.tabManager.isValidTab(targetTab)) {
                     this.modules.tabManager.switchTab(targetTab);
@@ -395,13 +400,13 @@ class StockAnalyzer {
         try {
             // Load popular stocks
             await this.modules.stockManager.loadPopularStocks();
-            
+
             // Load watchlist
             await this.modules.watchlistManager.loadWatchlist();
-            
+
             // Handle initial URL params and hash
             await this.handleInitialURL();
-            
+
         } catch (error) {
             console.error('Failed to load initial data:', error);
         }
@@ -414,12 +419,12 @@ class StockAnalyzer {
     async handleInitialURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const hash = window.location.hash.slice(1);
-        
+
         const symbol = urlParams.get('symbol');
         const tab = urlParams.get('tab') || hash;
-        
+
         console.log('handleInitialURL: symbol=', symbol, 'tab=', tab);
-        
+
         if (symbol) {
             // Load the stock and optionally switch to specified tab
             const targetTab = tab && this.modules.tabManager.isValidTab(tab) ? tab : 'metrics';
@@ -439,29 +444,29 @@ class StockAnalyzer {
      */
     updateURL(symbol = null, tab = null, replace = false) {
         const url = new URL(window.location.href);
-        
+
         if (symbol) {
             url.searchParams.set('symbol', symbol);
         } else {
             url.searchParams.delete('symbol');
         }
-        
+
         const targetTab = tab || this.modules.tabManager.currentTab;
         if (targetTab && targetTab !== 'popular-stocks') {
             url.searchParams.set('tab', targetTab);
         } else {
             url.searchParams.delete('tab');
         }
-        
+
         // Clear hash since we're using query params
         url.hash = '';
-        
+
         if (replace) {
             window.history.replaceState({}, '', url.toString());
         } else {
             window.history.pushState({}, '', url.toString());
         }
-        
+
         console.log('updateURL:', url.toString());
     }
 
@@ -473,7 +478,7 @@ class StockAnalyzer {
             try {
                 const isAuth = await window.authManager.isAuthenticated();
                 this.updateAuthUI(isAuth);
-                
+
                 if (isAuth) {
                     await this.modules.watchlistManager.loadWatchlist();
                 }
@@ -490,7 +495,7 @@ class StockAnalyzer {
     updateAuthUI(isAuthenticated) {
         const authButton = document.getElementById('authButton');
         const userMenu = document.getElementById('userMenu');
-        
+
         if (authButton && userMenu) {
             if (isAuthenticated) {
                 authButton.style.display = 'none';
@@ -546,15 +551,15 @@ class StockAnalyzer {
      */
     async handleSignIn(event) {
         event.preventDefault();
-        
+
         if (!window.authManager) return;
-        
+
         const email = document.getElementById('signInEmail')?.value;
         const password = document.getElementById('signInPassword')?.value;
-        
+
         try {
             const result = await window.authManager.signIn(email, password);
-            
+
             if (result.success) {
                 this.showNotification('Signed in successfully!');
                 this.hideLoginModal();
@@ -578,15 +583,15 @@ class StockAnalyzer {
      */
     async handleSignUp(event) {
         event.preventDefault();
-        
+
         if (!window.authManager) return;
-        
+
         const email = document.getElementById('signUpEmail')?.value;
         const password = document.getElementById('signUpPassword')?.value;
-        
+
         try {
             const result = await window.authManager.signUp(email, password);
-            
+
             if (result.success) {
                 this.showNotification('Sign up successful! Please check your email for verification.');
                 this.showVerifyForm(email);
@@ -607,7 +612,7 @@ class StockAnalyzer {
         const signInForm = document.getElementById('signInForm');
         const signUpForm = document.getElementById('signUpForm');
         const verifyForm = document.getElementById('verifyForm');
-        
+
         if (signInForm) signInForm.style.display = 'none';
         if (signUpForm) signUpForm.style.display = 'none';
         if (verifyForm) verifyForm.style.display = 'block';
@@ -618,7 +623,7 @@ class StockAnalyzer {
      */
     async handleLogout() {
         if (!window.authManager) return;
-        
+
         try {
             await window.authManager.signOut();
             this.updateAuthUI(false);
@@ -637,13 +642,13 @@ class StockAnalyzer {
         // Clear current stock selection
         this.modules.stockManager.currentSymbol = null;
         this.modules.stockManager.updateStockSymbolDisplay();
-        
+
         // Switch to popular-stocks tab
         this.modules.tabManager.switchTab('popular-stocks');
-        
+
         // Update URL
         this.updateURL();
-        
+
         // Clear any search results
         this.modules.stockManager.hideSearchResults();
     }
@@ -655,7 +660,7 @@ class StockAnalyzer {
         const dropdown = document.getElementById('authDropdown');
         if (dropdown) {
             const isVisible = dropdown.classList.contains('show');
-            
+
             // Close dropdown if it's open
             if (isVisible) {
                 dropdown.classList.remove('show');
@@ -664,10 +669,10 @@ class StockAnalyzer {
                 document.querySelectorAll('.auth-dropdown.show').forEach(d => {
                     d.classList.remove('show');
                 });
-                
+
                 // Open this dropdown
                 dropdown.classList.add('show');
-                
+
                 // Focus on the email field
                 setTimeout(() => {
                     const emailInput = document.getElementById('quickSignInEmail');
@@ -685,20 +690,20 @@ class StockAnalyzer {
      */
     async handleQuickSignIn(event) {
         event.preventDefault();
-        
+
         if (!window.authManager) return;
-        
+
         const email = document.getElementById('quickSignInEmail')?.value;
         const password = document.getElementById('quickSignInPassword')?.value;
-        
+
         if (!email || !password) {
             this.showNotification('Please enter email and password', 'error');
             return;
         }
-        
+
         try {
             const result = await window.authManager.signIn(email, password);
-            
+
             if (result.success) {
                 this.showNotification('Signed in successfully!');
                 // Close dropdown
@@ -727,9 +732,9 @@ class StockAnalyzer {
         document.addEventListener('click', (event) => {
             const dropdown = document.getElementById('authDropdown');
             const authButton = document.getElementById('authButton');
-            
-            if (dropdown && authButton && 
-                !dropdown.contains(event.target) && 
+
+            if (dropdown && authButton &&
+                !dropdown.contains(event.target) &&
                 !authButton.contains(event.target)) {
                 dropdown.classList.remove('show');
             }
@@ -813,7 +818,7 @@ let app;
 // The app waits for sections to load via waitForSections() in init()
 document.addEventListener('DOMContentLoaded', () => {
     app = new StockAnalyzer();
-    
+
     // Make app globally available
     window.app = app;
     window.stockManager = app.modules.stockManager;
