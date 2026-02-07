@@ -126,3 +126,7 @@ voicetree-5-2/
 *.backup
 *.backup2
 
+# Untracked archives and lock files
+archive-t6us3w/
+bun.lock
+
