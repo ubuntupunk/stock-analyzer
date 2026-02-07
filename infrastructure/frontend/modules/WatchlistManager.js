@@ -177,13 +177,13 @@ class WatchlistManager {
         console.log('>>> waitForWatchlistSection: Checking if section exists');
         const maxAttempts = 50; // 2.5 seconds max
         let attempts = 0;
-        
+
         while (!document.getElementById('watchlistContainer') && attempts < maxAttempts) {
             console.log('>>> waitForWatchlistSection: Waiting... attempt', attempts + 1);
             await new Promise(resolve => setTimeout(resolve, 50));
             attempts++;
         }
-        
+
         const exists = !!document.getElementById('watchlistContainer');
         console.log('>>> waitForWatchlistSection: Section exists:', exists, 'after', attempts * 50, 'ms');
         return exists;
@@ -202,13 +202,13 @@ class WatchlistManager {
             }
 
             this.eventBus.emit('watchlist:adding', { stockData });
-            
+
             const result = await this.dataManager.addToWatchlist(stockData);
-            
-            if (result.success) {
+
+            if (result.success || result.status === 'success') {
                 // Ensure name is properly set
                 const stockName = stockData.name || this.getStockName(stockData.symbol);
-                
+
                 // Add to local watchlist
                 const watchlistItem = {
                     symbol: stockData.symbol,
@@ -218,11 +218,11 @@ class WatchlistManager {
                     alertPrice: stockData.alertPrice || null,
                     tags: stockData.tags || []
                 };
-                
+
                 this.watchlist.push(watchlistItem);
                 this.renderWatchlist();
                 this.updateStockCardWatchlistButtons(stockData.symbol);
-                
+
                 this.showNotification(`${stockData.symbol} added to watchlist`, 'success');
                 this.eventBus.emit('watchlist:added', { stockData, item: watchlistItem });
             } else {
@@ -242,15 +242,15 @@ class WatchlistManager {
     async removeFromWatchlist(symbol) {
         try {
             this.eventBus.emit('watchlist:removing', { symbol });
-            
+
             const result = await this.dataManager.removeFromWatchlist(symbol);
-            
-            if (result.success) {
+
+            if (result.success || result.status === 'success') {
                 // Remove from local watchlist
                 this.watchlist = this.watchlist.filter(item => item.symbol !== symbol);
                 this.renderWatchlist();
                 this.updateStockCardWatchlistButtons(symbol);
-                
+
                 this.showNotification(`${symbol} removed from watchlist`, 'success');
                 this.eventBus.emit('watchlist:removed', { symbol });
             } else {
@@ -270,16 +270,16 @@ class WatchlistManager {
     async toggleWatchlist(symbol) {
         console.log('WatchlistManager: toggleWatchlist called for:', symbol);
         console.log('WatchlistManager: Current watchlist before toggle:', this.watchlist.map(i => i.symbol));
-        
+
         const isOnWatchlist = this.watchlist.some(item => item.symbol === symbol);
         console.log('WatchlistManager: Is on watchlist?', isOnWatchlist);
-        
+
         if (isOnWatchlist) {
             await this.removeFromWatchlist(symbol);
         } else {
             // Get stock info from popular stocks list
             let stockName = this.getStockName(symbol);
-            
+
             const stockData = {
                 symbol: symbol,
                 name: stockName,
@@ -289,10 +289,10 @@ class WatchlistManager {
             };
             await this.addToWatchlist(stockData);
         }
-        
+
         console.log('WatchlistManager: Watchlist after toggle:', this.watchlist.map(i => i.symbol));
     }
-    
+
     /**
      * Get stock name from various sources
      * @param {string} symbol - Stock symbol
@@ -305,24 +305,24 @@ class WatchlistManager {
         if (stock?.name) {
             return stock.name;
         }
-        
+
         // Try to get name from search results
         const searchResults = window.stockManager?.getSearchResults() || [];
         const searchResult = searchResults.find(s => s.symbol === symbol);
         if (searchResult?.name) {
             return searchResult.name;
         }
-        
+
         // Try to get name from current watchlist (if editing)
         const watchlistItem = this.watchlist.find(item => item.symbol === symbol);
         if (watchlistItem?.name && watchlistItem.name !== symbol) {
             return watchlistItem.name;
         }
-        
+
         // Fallback to symbol - use a more readable format
         return this.formatSymbolAsName(symbol);
     }
-    
+
     /**
      * Format symbol as a readable name
      * @param {string} symbol - Stock symbol
@@ -432,7 +432,7 @@ class WatchlistManager {
             'FDX': 'FedEx Corporation',
             'FDX': 'FedEx Corporation',
         };
-        
+
         return stockNames[symbol] || symbol;
     }
 
@@ -595,14 +595,14 @@ class WatchlistManager {
     updateAllWatchlistButtons() {
         console.log('WatchlistManager: Updating all watchlist buttons');
         const allButtons = document.querySelectorAll('.add-to-watchlist-btn');
-        
+
         allButtons.forEach(button => {
             const card = button.closest('[data-symbol]');
             if (card) {
                 const symbol = card.dataset.symbol;
                 const isOnWatchlist = this.isOnWatchlist(symbol);
                 const icon = button.querySelector('i');
-                
+
                 if (icon) {
                     if (isOnWatchlist) {
                         button.classList.add('added');
@@ -620,7 +620,7 @@ class WatchlistManager {
                 }
             }
         });
-        
+
         console.log(`WatchlistManager: Updated ${allButtons.length} watchlist buttons`);
     }
 
@@ -632,14 +632,14 @@ class WatchlistManager {
         console.log(`WatchlistManager: Updating watchlist buttons for ${symbol}`);
         const stockCards = document.querySelectorAll(`[data-symbol="${symbol}"]`);
         const isOnWatchlist = this.isOnWatchlist(symbol);
-        
+
         console.log(`WatchlistManager: ${symbol} is on watchlist: ${isOnWatchlist}`);
         console.log(`WatchlistManager: Found ${stockCards.length} stock cards for ${symbol}`);
-        
+
         stockCards.forEach(card => {
             const button = card.querySelector('.add-to-watchlist-btn');
             const icon = button?.querySelector('i');
-            
+
             if (button && icon) {
                 if (isOnWatchlist) {
                     button.classList.add('added');
@@ -727,7 +727,7 @@ class WatchlistManager {
             this.showDemoPrices();
         }
     }
-    
+
     /**
      * Show demo prices when API fails
      */
@@ -740,7 +740,7 @@ class WatchlistManager {
             'NVDA': { price: 495.22, change: 12.50, change_percent: 2.59 },
             'ABB': { price: 52.40, change: 0.35, change_percent: 0.67 },
         };
-        
+
         this.watchlist.forEach(item => {
             const demoPrice = demoPrices[item.symbol];
             if (demoPrice) {
@@ -758,15 +758,15 @@ class WatchlistManager {
             }
         });
     }
-    
+
     /**
      * Fallback: Load prices sequentially
      */
     async loadWatchlistPricesSequential() {
-        const pricePromises = this.watchlist.map(item => 
+        const pricePromises = this.watchlist.map(item =>
             this.loadWatchlistPrice(item.symbol)
         );
-        
+
         try {
             await Promise.allSettled(pricePromises);
         } catch (error) {
@@ -781,10 +781,10 @@ class WatchlistManager {
     async loadWatchlistPrice(symbol) {
         try {
             const priceData = await this.dataManager.loadStockData(symbol, 'price');
-            
+
             if (priceData && !priceData.error) {
                 this.updateWatchlistPriceDisplay(symbol, priceData);
-                
+
                 // Check for price alerts
                 this.checkPriceAlert(symbol, priceData);
             }
@@ -833,7 +833,7 @@ class WatchlistManager {
                 const changeSymbol = change >= 0 ? '+' : '';
                 const changeSpan = changeElement.querySelector('span');
                 const changeHtml = `<span class="${changeClass}">${changeSymbol}${Formatters.formatStockPrice(change)} (${changeSymbol}${changePercent.toFixed(2)}%)</span>`;
-                
+
                 if (changeSpan) {
                     changeSpan.className = changeClass;
                     changeSpan.textContent = `${changeSymbol}${Formatters.formatStockPrice(change)} (${changeSymbol}${changePercent.toFixed(2)}%)`;
@@ -877,7 +877,7 @@ class WatchlistManager {
         if (!currentSymbol) return;
 
         const isOnWatchlist = this.watchlist.some(item => item.symbol === currentSymbol);
-        
+
         if (isOnWatchlist) {
             watchlistToggle.innerHTML = '<i class="fas fa-star"></i> ON WATCHLIST';
             watchlistToggle.classList.add('on-watchlist');
@@ -946,7 +946,7 @@ class WatchlistManager {
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             const query = e.target.value.trim().toUpperCase();
-            
+
             if (query.length < 1) {
                 resultsContainer.innerHTML = `
                     <div class="stock-picker-empty">
@@ -983,7 +983,7 @@ class WatchlistManager {
 
         try {
             const popularStocks = await api.getPopularStocks(20);
-            
+
             container.innerHTML = popularStocks.slice(0, 12).map(stock => `
                 <button class="stock-tag" data-symbol="${stock.symbol}" data-name="${stock.name}">
                     ${stock.symbol}
@@ -1017,7 +1017,7 @@ class WatchlistManager {
         try {
             // First search the API
             const searchResults = await api.searchStocks(query, 10);
-            
+
             // If no results, search stock universe directly
             let stocks = searchResults;
             if (!stocks || stocks.length === 0) {
@@ -1065,7 +1065,7 @@ class WatchlistManager {
             const stocks = await api.filterStocks({});
             if (stocks && stocks.length > 0) {
                 // Filter locally by query
-                return stocks.filter(stock => 
+                return stocks.filter(stock =>
                     stock.symbol.toUpperCase().includes(query) ||
                     (stock.name && stock.name.toUpperCase().includes(query))
                 ).slice(0, 10);
@@ -1096,7 +1096,7 @@ class WatchlistManager {
         };
 
         await this.addToWatchlist(stockData);
-        
+
         // Close picker
         const overlay = document.querySelector('.stock-picker-overlay');
         if (overlay) {
@@ -1330,7 +1330,7 @@ class WatchlistManager {
         };
 
         await this.addToWatchlist(stockData);
-        
+
         // Close modal
         const modal = document.querySelector('.modal');
         if (modal) {
@@ -1349,7 +1349,7 @@ class WatchlistManager {
         // Create edit modal with overlay
         const overlay = document.createElement('div');
         overlay.className = 'watchlist-modal-overlay';
-        
+
         // Create the modal card (vertical rectangle)
         const modal = document.createElement('div');
         modal.className = 'watchlist-modal';
@@ -1382,14 +1382,14 @@ class WatchlistManager {
 
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
-        
+
         // Add click handler to close on overlay click
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 overlay.remove();
             }
         });
-        
+
         // Focus on notes field
         setTimeout(() => {
             const notesField = document.getElementById('editNotes');
@@ -1407,24 +1407,24 @@ class WatchlistManager {
         // Get the original item to preserve all data
         const originalItem = this.watchlist.find(item => item.symbol === symbol);
         if (!originalItem) return;
-        
+
         // Update the item directly instead of remove/add (preserves addedAt)
         originalItem.notes = notes;
         originalItem.alertPrice = alertPrice ? parseFloat(alertPrice) : null;
-        
+
         // Save to localStorage
         await this.dataManager.saveWatchlistToLocalStorage(this.watchlist);
-        
+
         // Re-render
         this.renderWatchlist();
         this.updateStockCardWatchlistButtons(symbol);
-        
+
         // Close modal
         const modal = document.querySelector('.watchlist-modal-overlay');
         if (modal) {
             modal.remove();
         }
-        
+
         this.showNotification(`${symbol} updated successfully`, 'success');
     }
 

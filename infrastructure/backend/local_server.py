@@ -40,21 +40,21 @@ stock_api = StockDataAPI()
 
 # Popular stocks fallback for local development (when DynamoDB is unavailable)
 LOCAL_POPULAR_STOCKS = [
-    {'symbol': 'AAPL', 'name': 'Apple Inc.', 'sector': 'Technology', 'marketCap': 2890000000000},
-    {'symbol': 'MSFT', 'name': 'Microsoft Corporation', 'sector': 'Technology', 'marketCap': 2780000000000},
-    {'symbol': 'GOOGL', 'name': 'Alphabet Inc.', 'sector': 'Technology', 'marketCap': 1750000000000},
-    {'symbol': 'AMZN', 'name': 'Amazon.com Inc.', 'sector': 'Consumer Cyclical', 'marketCap': 1580000000000},
-    {'symbol': 'NVDA', 'name': 'NVIDIA Corporation', 'sector': 'Technology', 'marketCap': 1200000000000},
-    {'symbol': 'META', 'name': 'Meta Platforms Inc.', 'sector': 'Technology', 'marketCap': 980000000000},
-    {'symbol': 'TSLA', 'name': 'Tesla Inc.', 'sector': 'Consumer Cyclical', 'marketCap': 780000000000},
-    {'symbol': 'BRK.B', 'name': 'Berkshire Hathaway Inc.', 'sector': 'Financial', 'marketCap': 780000000000},
-    {'symbol': 'LLY', 'name': 'Eli Lilly and Company', 'sector': 'Healthcare', 'marketCap': 560000000000},
-    {'symbol': 'V', 'name': 'Visa Inc.', 'sector': 'Financial', 'marketCap': 520000000000},
-    {'symbol': 'TSM', 'name': 'Taiwan Semiconductor', 'sector': 'Technology', 'marketCap': 510000000000},
-    {'symbol': 'JPM', 'name': 'JPMorgan Chase & Co.', 'sector': 'Financial', 'marketCap': 490000000000},
-    {'symbol': 'WMT', 'name': 'Walmart Inc.', 'sector': 'Consumer Defensive', 'marketCap': 420000000000},
-    {'symbol': 'XOM', 'name': 'Exxon Mobil Corporation', 'sector': 'Energy', 'marketCap': 410000000000},
-    {'symbol': 'MA', 'name': 'Mastercard Inc.', 'sector': 'Financial', 'marketCap': 400000000000},
+    {'symbol': 'AAPL', 'name': 'Apple Inc.', 'sector': 'Technology', 'marketCap': 2890000000000, 'price': 185.92},
+    {'symbol': 'MSFT', 'name': 'Microsoft Corporation', 'sector': 'Technology', 'marketCap': 2780000000000, 'price': 398.67},
+    {'symbol': 'GOOGL', 'name': 'Alphabet Inc.', 'sector': 'Technology', 'marketCap': 1750000000000, 'price': 142.65},
+    {'symbol': 'AMZN', 'name': 'Amazon.com Inc.', 'sector': 'Consumer Cyclical', 'marketCap': 1580000000000, 'price': 171.81},
+    {'symbol': 'NVDA', 'name': 'NVIDIA Corporation', 'sector': 'Technology', 'marketCap': 1200000000000, 'price': 726.13},
+    {'symbol': 'META', 'name': 'Meta Platforms Inc.', 'sector': 'Technology', 'marketCap': 980000000000, 'price': 473.32},
+    {'symbol': 'TSLA', 'name': 'Tesla Inc.', 'sector': 'Consumer Cyclical', 'marketCap': 780000000000, 'price': 188.85},
+    {'symbol': 'BRK.B', 'name': 'Berkshire Hathaway Inc.', 'sector': 'Financial', 'marketCap': 780000000000, 'price': 400.12},
+    {'symbol': 'LLY', 'name': 'Eli Lilly and Company', 'sector': 'Healthcare', 'marketCap': 560000000000, 'price': 740.21},
+    {'symbol': 'V', 'name': 'Visa Inc.', 'sector': 'Financial', 'marketCap': 520000000000, 'price': 275.14},
+    {'symbol': 'TSM', 'name': 'Taiwan Semiconductor', 'sector': 'Technology', 'marketCap': 510000000000, 'price': 129.53},
+    {'symbol': 'JPM', 'name': 'JPMorgan Chase & Co.', 'sector': 'Financial', 'marketCap': 490000000000, 'price': 172.11},
+    {'symbol': 'WMT', 'name': 'Walmart Inc.', 'sector': 'Consumer Defensive', 'marketCap': 420000000000, 'price': 170.36},
+    {'symbol': 'XOM', 'name': 'Exxon Mobil Corporation', 'sector': 'Energy', 'marketCap': 410000000000, 'price': 102.45},
+    {'symbol': 'MA', 'name': 'Mastercard Inc.', 'sector': 'Financial', 'marketCap': 400000000000, 'price': 455.67},
 ]
 
 # Serve static files from frontend directory

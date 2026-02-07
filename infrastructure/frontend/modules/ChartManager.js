@@ -71,7 +71,7 @@ class ChartManager {
         this.destroyChart(canvasId);
 
         const mergedOptions = this.mergeOptions(options);
-        
+
         try {
             const chart = new Chart(canvas, {
                 type: type,
@@ -80,9 +80,9 @@ class ChartManager {
             });
 
             this.charts.set(canvasId, chart);
-            
+
             this.eventBus.emit('chart:created', { canvasId, type, chart });
-            
+
             return chart;
         } catch (error) {
             console.error(`Failed to create chart '${canvasId}':`, error);
@@ -106,13 +106,13 @@ class ChartManager {
 
         try {
             chart.data = data;
-            
+
             if (options) {
                 chart.options = this.mergeOptions(options);
             }
-            
+
             chart.update();
-            
+
             this.eventBus.emit('chart:updated', { canvasId, chart });
         } catch (error) {
             console.error(`Failed to update chart '${canvasId}':`, error);
@@ -158,8 +158,13 @@ class ChartManager {
         }
 
         const dates = Object.keys(priceData.historicalData).sort();
-        const prices = dates.map(date => parseFloat(priceData.historicalData[date]['4. close']));
-        
+        const prices = dates.map(date => {
+            const entry = priceData.historicalData[date];
+            // Handle various field names for close price
+            const close = entry['4. close'] || entry['close'] || entry['Close'] || entry['4. Close'];
+            return parseFloat(close || 0);
+        });
+
         // Take last 30 days for better visualization
         const recentDates = dates.slice(-30);
         const recentPrices = prices.slice(-30);
@@ -205,7 +210,7 @@ class ChartManager {
                 y: {
                     beginAtZero: false,
                     ticks: {
-                        callback: function(value) {
+                        callback: function (value) {
                             return '$' + value.toFixed(2);
                         }
                     }
@@ -382,7 +387,7 @@ class ChartManager {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: function(value) {
+                        callback: function (value) {
                             return value + '%';
                         }
                     }
@@ -452,7 +457,7 @@ class ChartManager {
                 y: {
                     beginAtZero: false,
                     ticks: {
-                        callback: function(value) {
+                        callback: function (value) {
                             return '$' + value.toFixed(2);
                         }
                     }
@@ -480,7 +485,7 @@ class ChartManager {
      */
     deepMerge(target, source) {
         const result = { ...target };
-        
+
         for (const key in source) {
             if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
                 result[key] = this.deepMerge(result[key] || {}, source[key]);
@@ -488,7 +493,7 @@ class ChartManager {
                 result[key] = source[key];
             }
         }
-        
+
         return result;
     }
 
@@ -499,9 +504,9 @@ class ChartManager {
      */
     formatChartDate(dateString) {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric' 
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
         });
     }
 
@@ -512,8 +517,8 @@ class ChartManager {
      */
     formatChartDateWithYear(dateString) {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            month: 'short', 
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
             day: 'numeric',
             year: 'numeric'
         });
@@ -582,7 +587,7 @@ class ChartManager {
      */
     setTheme(theme) {
         const isDark = theme === 'dark';
-        
+
         this.defaultOptions.plugins.legend.labels.color = isDark ? '#ffffff' : '#000000';
         this.defaultOptions.plugins.tooltip.backgroundColor = isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)';
         this.defaultOptions.plugins.tooltip.titleColor = isDark ? '#ffffff' : '#000000';
@@ -725,7 +730,7 @@ class ChartManager {
                 });
             });
         }
-        
+
         console.log("Custom range handlers initialized successfully");
     }
 
@@ -734,7 +739,7 @@ class ChartManager {
      */
     async changeTimeframeCustom(startDate, endDate) {
         const chart = this.charts.get("priceChart");
-        
+
         if (!chart) {
             console.warn("changeTimeframeCustom: No price chart found. Please select a stock first.");
             // Try to get symbol from stockManager as fallback
@@ -748,7 +753,7 @@ class ChartManager {
         }
 
         const symbol = chart.symbol || "Unknown";
-        
+
         // If symbol is "Unknown", try to get it from stockManager
         if (symbol === "Unknown") {
             const currentSymbol = window.stockManager?.getCurrentSymbol();
@@ -760,7 +765,7 @@ class ChartManager {
 
         this.fetchAndUpdateChart(symbol, startDate, endDate);
     }
-    
+
     /**
      * Fetch and update chart with custom range data
      */
@@ -768,7 +773,7 @@ class ChartManager {
         try {
             console.log(`Fetching ${symbol} data from ${startDate} to ${endDate}`);
             const priceData = await window.api.getStockPriceHistoryRange(symbol, startDate, endDate);
-            
+
             if (priceData && priceData.historicalData) {
                 const periodLabel = `${startDate} - ${endDate}`;
                 this.updatePriceChartWithData("priceChart", priceData, symbol, periodLabel);
@@ -782,7 +787,7 @@ class ChartManager {
             this.showChartNotification("Failed to load data for the selected date range", "error");
         }
     }
-    
+
     /**
      * Show notification for chart operations
      */
@@ -800,13 +805,13 @@ class ChartManager {
     async changeTimeframe(period) {
         const chart = this.charts.get("priceChart");
         if (!chart) return;
-        
+
         const symbol = chart.symbol || "Unknown";
         const periodMap = {
             "1W": "5d", "1M": "1mo", "3M": "3mo", "6M": "6mo",
             "YTD": "ytd", "1Y": "1y", "3Y": "3y", "5Y": "5y", "MAX": "max"
         };
-        
+
         try {
             const yfPeriod = periodMap[period] || "3mo";
             // Use window.api (global) to fetch historical data
@@ -824,10 +829,10 @@ class ChartManager {
      */
     updatePriceChartWithData(canvasId, priceData, symbol, period) {
         if (!priceData || !priceData.historicalData) return null;
-        
+
         const dates = Object.keys(priceData.historicalData).sort();
         const prices = dates.map(d => parseFloat(priceData.historicalData[d]["4. close"]));
-        
+
         const chartData = {
             labels: dates.map(d => this.formatChartDate(d)),
             datasets: [{
@@ -863,7 +868,7 @@ class ChartManager {
             },
             scales: {
                 y: {
-                    ticks: { callback: function(v) { return "$" + v.toFixed(2); } }
+                    ticks: { callback: function (v) { return "$" + v.toFixed(2); } }
                 }
             }
         };

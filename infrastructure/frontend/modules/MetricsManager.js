@@ -23,7 +23,7 @@ class MetricsManager {
         // Listen for data loaded events
         this.eventBus.on('data:loaded', ({ type, data, symbol }) => {
             if (type === 'metrics') {
-                console.log('MetricsManager: Metrics data loaded, updating display');
+                console.log('MetricsManager: Metrics data loaded for', symbol, data);
                 this.updateCompanyInfo(symbol, data);
                 this.updateMetricsDisplay(data);
                 this.updatePriceIndicators(data);
@@ -45,15 +45,15 @@ class MetricsManager {
     updateCompanyInfo(symbol, data = null) {
         const symbolElement = document.getElementById('metricsSymbol');
         const nameElement = document.getElementById('metricsCompanyName');
-        
+
         if (symbolElement) {
             symbolElement.textContent = symbol ? `(${symbol})` : '-';
         }
-        
+
         if (nameElement) {
             // Try to get company name from various sources
             let companyName = '-';
-            
+
             // 1. First try from the metrics data directly (if provided)
             if (data) {
                 if (data.company_name) {
@@ -66,7 +66,7 @@ class MetricsManager {
                     companyName = data.meta.companyName;
                 }
             }
-            
+
             // 2. Try to find in popular stocks
             if (companyName === '-' && window.stockManager && window.stockManager.popularStocks) {
                 const stock = window.stockManager.popularStocks.find(s => s.symbol === symbol);
@@ -74,7 +74,7 @@ class MetricsManager {
                     companyName = stock.name;
                 }
             }
-            
+
             // 3. Try to get from cache
             if (companyName === '-' && window.dataManager && window.dataManager.getCachedData) {
                 try {
@@ -95,7 +95,7 @@ class MetricsManager {
                     console.warn('MetricsManager: Error getting metrics cache:', e);
                 }
             }
-            
+
             nameElement.textContent = companyName;
         }
     }
@@ -105,7 +105,7 @@ class MetricsManager {
      */
     setupSymbolInputHandlers() {
         console.log('MetricsManager: Setting up symbol input handlers');
-        
+
         // Make the loadMetricsSymbol function globally available
         window.loadMetricsSymbol = () => {
             const input = document.getElementById('metricsSymbolInput');
@@ -121,14 +121,14 @@ class MetricsManager {
                 }
             }
         };
-        
+
         // Make the keydown handler globally available
         window.handleMetricsSymbolKeydown = (event) => {
             if (event.key === 'Enter') {
                 loadMetricsSymbol();
             }
         };
-        
+
         console.log('MetricsManager: Symbol input handlers set up');
     }
 
@@ -137,10 +137,10 @@ class MetricsManager {
      */
     setupViewToggleHandlers() {
         const viewButtons = document.querySelectorAll('.metrics-view-toggle .view-btn');
-        
+
         viewButtons.forEach(btn => {
             const viewMode = btn.getAttribute('data-view');
-            
+
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.setMetricsView(viewMode);
@@ -155,7 +155,7 @@ class MetricsManager {
     setMetricsView(viewMode) {
         const gridContainer = document.getElementById('metricsGrid');
         const viewButtons = document.querySelectorAll('.metrics-view-toggle .view-btn');
-        
+
         if (!gridContainer) {
             console.warn('MetricsManager: metricsGrid container not found');
             return;
@@ -180,7 +180,7 @@ class MetricsManager {
 
         // Save view preference
         this.currentView = viewMode;
-        
+
         // Store in localStorage for persistence
         try {
             localStorage.setItem('metricsView', viewMode);
@@ -189,7 +189,7 @@ class MetricsManager {
         }
 
         console.log('MetricsManager: View set to', viewMode);
-        
+
         // Emit event
         this.eventBus.emit('metrics:viewChanged', { viewMode });
     }
@@ -233,21 +233,29 @@ class MetricsManager {
      * @param {object} data - Metrics data object (may contain nested metrics)
      */
     updateMetricsDisplay(data) {
-        const metrics = data.metrics || data;
-        
+        // Use metrics if available, otherwise use data directly
+        const rawMetrics = data.metrics || data;
+
+        // Normalize keys (handle both snake_case from API and camelCase from transformations)
+        const metrics = (window.dataManager && window.dataManager.snakeToCamel)
+            ? window.dataManager.snakeToCamel(rawMetrics)
+            : rawMetrics;
+
+        console.log('MetricsManager: Updating display with normalized metrics:', metrics);
+
         const metricMappings = {
-            'peRatio': this.formatValue(metrics.peRatio, 'ratio'),
-            'marketCap': this.formatValue(metrics.marketCap, 'currency'),
-            'priceToBook': this.formatValue(metrics.priceToBook, 'ratio'),
+            'peRatio': this.formatValue(metrics.peRatio || metrics.pe_ratio, 'ratio'),
+            'marketCap': this.formatValue(metrics.marketCap || metrics.market_cap, 'currency'),
+            'priceToBook': this.formatValue(metrics.priceToBook || metrics.price_to_book, 'ratio'),
             'roe': this.formatValue(metrics.roe, 'percentage'),
-            'debtToEquity': this.formatValue(metrics.debtToEquity, 'ratio'),
-            'currentRatio': this.formatValue(metrics.currentRatio, 'ratio'),
-            'revenueGrowth': this.formatValue(metrics.revenueGrowth, 'percentage'),
-            'earningsGrowth': this.formatValue(metrics.earningsGrowth, 'percentage'),
-            'epsGrowth': this.formatValue(metrics.epsGrowth, 'percentage'),
-            'profitMargin': this.formatValue(metrics.profitMargin, 'percentage'),
-            'operatingMargin': this.formatValue(metrics.operatingMargin, 'percentage'),
-            'netMargin': this.formatValue(metrics.netMargin, 'percentage')
+            'debtToEquity': this.formatValue(metrics.debtToEquity || metrics.debt_to_equity, 'ratio'),
+            'currentRatio': this.formatValue(metrics.currentRatio || metrics.current_ratio, 'ratio'),
+            'revenueGrowth': this.formatValue(metrics.revenueGrowth || metrics.revenue_growth, 'percentage'),
+            'earningsGrowth': this.formatValue(metrics.earningsGrowth || metrics.earnings_growth, 'percentage'),
+            'epsGrowth': this.formatValue(metrics.epsGrowth || metrics.eps_growth, 'percentage'),
+            'profitMargin': this.formatValue(metrics.profitMargin || metrics.profit_margin, 'percentage'),
+            'operatingMargin': this.formatValue(metrics.operatingMargin || metrics.operating_margin, 'percentage'),
+            'netMargin': this.formatValue(metrics.netMargin || metrics.net_margin, 'percentage')
         };
 
         Object.entries(metricMappings).forEach(([metricId, formattedValue]) => {
@@ -260,17 +268,55 @@ class MetricsManager {
      * @param {object} data - Data containing price information
      */
     updatePriceIndicators(data) {
-        if (data.currentPrice !== undefined) {
+        // Handle various key names for price and changes (handle both snake_case and camelCase)
+        // Check for price in multiple locations (top level or inside metrics object)
+        const metrics = data.metrics || data;
+
+        const price = data.currentPrice !== undefined ? data.currentPrice :
+            (data.current_price !== undefined ? data.current_price :
+                (metrics.currentPrice !== undefined ? metrics.currentPrice :
+                    (metrics.current_price !== undefined ? metrics.current_price : data.price)));
+
+        const change = data.change !== undefined ? data.change :
+            (data.change_amount !== undefined ? data.change_amount :
+                (metrics.change !== undefined ? metrics.change : metrics.change_amount));
+
+        const changePercent = data.changePercent !== undefined ? data.changePercent :
+            (data.change_percent !== undefined ? data.change_percent :
+                (metrics.changePercent !== undefined ? metrics.changePercent : metrics.change_percent));
+
+        console.log('MetricsManager: Updating price indicators with:', { price, change, changePercent });
+
+        if (price !== undefined && price !== null) {
             const element = document.getElementById('atClosePrice');
             if (element) {
-                element.textContent = this.formatValue(data.currentPrice, 'currency');
+                element.textContent = this.formatValue(price, 'currency');
             }
         }
+
+        if (change !== undefined && changePercent !== undefined) {
+            const changeElement = document.getElementById('metricsChange');
+            if (changeElement) {
+                const sign = change >= 0 ? '+' : '';
+                changeElement.textContent = `${sign}${change.toFixed(2)} (${sign}${changePercent.toFixed(2)}%)`;
+
+                // Set color class
+                changeElement.classList.remove('positive', 'negative');
+                if (change > 0) {
+                    changeElement.classList.add('positive');
+                } else if (change < 0) {
+                    changeElement.classList.add('negative');
+                }
+            }
+        }
+
         if (data.afterHoursPrice) {
             const element = document.getElementById('afterHoursPrice');
             if (element) {
                 element.textContent = this.formatValue(data.afterHoursPrice, 'currency');
             }
+            const afterHoursRow = document.querySelector('.metrics-after-hours');
+            if (afterHoursRow) afterHoursRow.style.display = 'flex';
         }
     }
 
