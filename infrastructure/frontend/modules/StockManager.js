@@ -26,24 +26,29 @@ class StockManager {
 
         const cleanSymbol = validation.symbol;
         console.log('Stock selected:', cleanSymbol, 'targetTab:', targetTab);
-        
+
         this.currentSymbol = cleanSymbol;
-        
+
         // Update stock symbol display
         this.updateStockSymbolDisplay();
-        
-        // Emit stock selection event with target tab
-        this.eventBus.emit('stock:selected', { symbol: cleanSymbol, targetTab });
-        
+
+        // Emit stock selection event with target tab and source to prevent loops
+        this.eventBus.emit('stock:selected', {
+            symbol: cleanSymbol,
+            targetTab,
+            source: 'StockManager'
+        });
+
         // Preload data for all tabs (non-blocking, fires and forgets)
         // This ensures instant navigation when switching tabs later
-        this.preloadStockData(cleanSymbol).catch(err => {
+        // NOW PASSING targetTab to prioritize it!
+        this.preloadStockData(cleanSymbol, targetTab).catch(err => {
             console.warn('Preload failed (non-blocking):', err.message);
         });
-        
+
         // Switch to target tab (default: metrics) - now returns immediately
         this.eventBus.emit('tab:switch', { tabName: targetTab });
-        
+
         // Hide search results
         this.hideSearchResults();
     }
@@ -59,29 +64,69 @@ class StockManager {
 
     /**
      * Preload data for all tabs to ensure instant navigation
+     * Prioritizes the target tab for immediate loading, staggers others
      * @param {string} symbol - Stock symbol to preload data for
+     * @param {string} priorityTab - Tab to load immediately (default: null)
      */
-    async preloadStockData(symbol) {
-        console.log('Preloading data for stock:', symbol);
-        
-        // Preload all stock data in parallel for better UX
-        const dataPromises = [
-            this.dataManager.loadStockData(symbol, 'metrics'),
-            this.dataManager.loadStockData(symbol, 'financials'),
-            this.dataManager.loadStockData(symbol, 'analyst-estimates'),
-            this.dataManager.loadStockData(symbol, 'stock-analyser'),
-            this.dataManager.loadStockData(symbol, 'factors'),
-            this.dataManager.loadStockData(symbol, 'news')
+    async preloadStockData(symbol, priorityTab = null) {
+        console.log(`Preloading data for stock: ${symbol}, priority: ${priorityTab}`);
+
+        // Define all data types needed for tabs
+        const startTypes = [
+            { type: 'metrics', tab: 'metrics' },
+            { type: 'financials', tab: 'financials' },
+            { type: 'analyst-estimates', tab: 'analyst-estimates' },
+            { type: 'stock-analyser', tab: 'stock-analyser', isCritical: true }, // Mark critical
+            { type: 'factors', tab: 'factors' },
+            { type: 'news', tab: 'news' }
         ];
 
-        try {
-            await Promise.allSettled(dataPromises);
-            console.log('All stock data preloaded for:', symbol);
+        // 1. Identify priority load
+        let priorityPromise = Promise.resolve();
+        const remainingTypes = [];
+
+        startTypes.forEach(item => {
+            if (priorityTab && item.tab === priorityTab) {
+                console.log(`StockManager: Prioritizing ${item.type} load`);
+                priorityPromise = this.dataManager.loadStockData(symbol, item.type).catch(e =>
+                    console.warn(`Priority load failed for ${item.type}:`, e)
+                );
+            } else {
+                remainingTypes.push(item);
+            }
+        });
+
+        // 2. Wait for priority to start (or complete if we wanted to await, but providing start gap is usually enough)
+        // We trigger priority immediately
+
+        // 3. Stagger remaining loads to avoid queue saturation
+        // Delay background tasks by 800ms to let the UI settle and priority request get a head start
+        setTimeout(async () => {
+            console.log('StockManager: Starting background preloads...');
+
+            // Process remaining in chunks to be nice to the network
+            const chunkSize = 2; // Process 2 at a time
+
+            for (let i = 0; i < remainingTypes.length; i += chunkSize) {
+                const chunk = remainingTypes.slice(i, i + chunkSize);
+
+                const promises = chunk.map(item =>
+                    this.dataManager.loadStockData(symbol, item.type).catch(e =>
+                        console.debug(`Background preload failed for ${item.type} (non-critical):`, e.message)
+                    )
+                );
+
+                // Wait a bit between chunks too
+                await Promise.allSettled(promises);
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            console.log('StockManager: Background preloads complete');
             this.eventBus.emit('stock:dataPreloaded', { symbol });
-        } catch (error) {
-            console.error('Error preloading stock data:', error);
-            this.eventBus.emit('error', { message: 'Failed to preload stock data', type: 'data' });
-        }
+
+        }, 800);
+
+        return priorityPromise;
     }
 
     /**
@@ -107,7 +152,7 @@ class StockManager {
             this.hideSearchResults();
             return;
         }
-        
+
         try {
             const results = await this.dataManager.searchStocks(validation.query, 10);
             this.searchResults = results;
@@ -124,7 +169,7 @@ class StockManager {
     showSearchResults() {
         const resultsContainer = document.getElementById('searchResults');
         if (!resultsContainer || this.searchResults.length === 0) return;
-        
+
         const resultsHtml = this.searchResults.map(stock => `
             <div class="search-result-item" onclick="window.stockManager.selectStock('${stock.symbol}')">
                 <div class="search-result-symbol">${stock.symbol}</div>
@@ -132,7 +177,7 @@ class StockManager {
                 <div class="search-result-sector">${stock.sector || 'N/A'}</div>
             </div>
         `).join('');
-        
+
         resultsContainer.innerHTML = resultsHtml;
         resultsContainer.style.display = 'block';
     }
@@ -152,13 +197,13 @@ class StockManager {
      */
     async loadPopularStocks() {
         console.log('StockManager: loadPopularStocks called');
-        
+
         // Prevent duplicate loading
         if (this.loadingPopularStocks) {
             console.log('StockManager: Already loading popular stocks, skipping duplicate call');
             return;
         }
-        
+
         // If already loaded, just re-render
         if (this.popularStocks && this.popularStocks.length > 0) {
             console.log('StockManager: Popular stocks already loaded, re-rendering');
@@ -173,9 +218,9 @@ class StockManager {
             }, 100);
             return;
         }
-        
+
         this.loadingPopularStocks = true;
-        
+
         try {
             console.log('StockManager: Calling dataManager.getPopularStocks(12)');
             const stocks = await this.dataManager.getPopularStocks(12);
@@ -186,7 +231,7 @@ class StockManager {
             // Setup sector filter handler after DOM is loaded
             this.setupPopularStocksHandlers();
             this.eventBus.emit('popularStocks:loaded', { stocks });
-            
+
             // Load prices asynchronously for each stock
             this.loadPopularStockPrices();
         } catch (error) {
@@ -226,23 +271,23 @@ class StockManager {
     renderPopularStocks() {
         console.log('StockManager: renderPopularStocks called');
         let container = document.getElementById('popularStocksGrid');
-        
+
         // Retry mechanism for finding container (sections load dynamically)
         let retries = 0;
         const maxRetries = 10;
         const retryDelay = 100;
-        
+
         const tryRender = () => {
             container = document.getElementById('popularStocksGrid');
             console.log('StockManager: container found:', !!container);
-            
+
             if (!container && retries < maxRetries) {
                 retries++;
                 console.log(`StockManager: Retrying to find container (${retries}/${maxRetries})`);
                 setTimeout(tryRender, retryDelay);
                 return;
             }
-            
+
             if (!container) {
                 console.warn('StockManager: popularStocksGrid container not found after retries');
                 return;
@@ -250,7 +295,7 @@ class StockManager {
 
             console.log('StockManager: Rendering popular stocks:', this.popularStocks);
             const currentView = this.currentPopularStocksView || 'grid';
-            
+
             if (this.popularStocks.length === 0) {
                 container.innerHTML = '<p class="empty-message">No popular stocks available.</p>';
                 return;
@@ -319,7 +364,7 @@ class StockManager {
                 this.restorePricesToUI();
             }
         };
-        
+
         tryRender();
     }
 
@@ -328,7 +373,7 @@ class StockManager {
      */
     restorePricesToUI() {
         console.log('StockManager: Restoring prices to UI');
-        
+
         this.popularStocks.forEach(stock => {
             if (stock.price) {
                 this.updateStockPriceInUI(stock.symbol, stock.price, stock.change, stock.changePercent);
@@ -402,11 +447,11 @@ class StockManager {
         const selectedSector = sectorFilter.value;
         console.log('StockManager: Filtering by sector:', selectedSector);
         console.log('StockManager: Available stocks:', this.popularStocks);
-        
+
         // Log unique sectors in the data
         const uniqueSectors = [...new Set(this.popularStocks.map(stock => stock.sector).filter(Boolean))];
         console.log('StockManager: Unique sectors in data:', uniqueSectors);
-        
+
         let filteredStocks = this.popularStocks;
 
         if (selectedSector) {
@@ -414,17 +459,17 @@ class StockManager {
                 // Case-insensitive comparison and handle null/undefined
                 const stockSector = (stock.sector || '').toLowerCase().trim();
                 const filterSector = selectedSector.toLowerCase().trim();
-                
+
                 // Exact match
                 if (stockSector === filterSector) {
                     return true;
                 }
-                
+
                 // Partial match (e.g., "tech" matches "technology")
                 if (stockSector.includes(filterSector) || filterSector.includes(stockSector)) {
                     return true;
                 }
-                
+
                 return false;
             });
         }
@@ -439,7 +484,7 @@ class StockManager {
      */
     renderFilteredStocks(stocks) {
         console.log('StockManager: Rendering filtered stocks:', stocks.length);
-        
+
         const container = document.getElementById('popularStocksGrid');
         if (!container) {
             console.warn('StockManager: popularStocksGrid container not found');
@@ -499,54 +544,54 @@ class StockManager {
     async loadPopularStockPrices() {
         // Check if we have prices already loaded - restore them to UI without API calls
         const hasCachedPrices = this.popularStocks.some(stock => stock.price);
-        
+
         if (hasCachedPrices && this.pricesLoaded) {
             console.log('StockManager: Prices already loaded, restoring to UI');
             this.restorePricesToUI();
             return;
         }
-        
+
         // Prevent duplicate API calls
         if (this.apiPricesLoading) {
             console.log('StockManager: API prices already loading, skipping');
             return;
         }
-        
+
         console.log('StockManager: Loading prices for popular stocks using BATCH API');
         this.apiPricesLoading = true;
         this.pricesLoaded = true;
-        
+
         // Extract all symbols
         const symbols = this.popularStocks.map(stock => stock.symbol);
-        
+
         if (symbols.length === 0) {
             console.log('StockManager: No symbols to load prices for');
             this.apiPricesLoading = false;
             return;
         }
-        
+
         try {
             // Use batch API to fetch all prices concurrently
             console.log(`StockManager: Fetching batch prices for ${symbols.length} stocks:`, symbols);
             const batchPrices = await api.getBatchStockPrices(symbols);
             console.log('StockManager: Batch price data received:', batchPrices);
-            
+
             // Update each stock with its price data
             Object.entries(batchPrices).forEach(([symbol, priceData]) => {
                 // Find the stock in our list
                 const stock = this.popularStocks.find(s => s.symbol === symbol);
-                
+
                 if (stock && priceData && !priceData.error) {
                     const price = priceData.price || priceData.currentPrice;
                     const change = priceData.change;
                     const changePercent = priceData.change_percent;
-                    
+
                     if (price) {
                         // Update the stock object
                         stock.price = price;
                         stock.change = change;
                         stock.changePercent = changePercent;
-                        
+
                         // Update the UI
                         this.updateStockPriceInUI(symbol, price, change, changePercent);
                     }
@@ -554,7 +599,7 @@ class StockManager {
                     console.warn(`Failed to load price for ${symbol}:`, priceData.error);
                 }
             });
-            
+
             console.log('StockManager: Finished loading batch prices');
         } catch (error) {
             console.error('StockManager: Failed to load batch prices:', error);
@@ -565,21 +610,21 @@ class StockManager {
             this.apiPricesLoading = false;
         }
     }
-    
+
     /**
      * Fallback: Load prices sequentially (legacy method)
      */
     async loadPopularStockPricesSequential() {
         console.log('StockManager: Loading prices sequentially');
         const delay = 500; // 500ms delay between requests
-        
+
         for (let i = 0; i < this.popularStocks.length; i++) {
             const stock = this.popularStocks[i];
-            
+
             try {
                 const priceData = await api.getStockPrice(stock.symbol);
                 const price = priceData.price || priceData.currentPrice;
-                
+
                 if (priceData && price) {
                     stock.price = price;
                     stock.change = priceData.change;
@@ -589,13 +634,13 @@ class StockManager {
             } catch (error) {
                 console.warn(`Failed to load price for ${stock.symbol}:`, error);
             }
-            
+
             if (i < this.popularStocks.length - 1) {
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
     }
-    
+
     /**
      * Update stock price in the UI
      * @param {string} symbol - Stock symbol
@@ -607,16 +652,16 @@ class StockManager {
         // Find all price elements for this symbol
         const stockCards = document.querySelectorAll(`[data-symbol="${symbol}"]`);
         console.log(`Updating UI for ${symbol}: found ${stockCards.length} cards, price: ${price}`);
-        
+
         if (stockCards.length === 0) {
             console.warn(`No card found for ${symbol} - it may not be rendered yet`);
         }
-        
+
         stockCards.forEach(card => {
             // Determine if price change is positive or negative
             const isPositive = change >= 0;
             const changeClass = isPositive ? 'positive' : 'negative';
-            
+
             // Update price
             const priceElement = card.querySelector('.stock-price, .stock-list-price');
             if (priceElement) {
@@ -624,7 +669,7 @@ class StockManager {
                 priceElement.classList.add('loaded');
                 priceElement.classList.add(changeClass);
             }
-            
+
             // Update change if available
             if (change !== null && changePercent !== null) {
                 const changeElement = card.querySelector('.stock-change, .stock-list-change');
@@ -668,7 +713,7 @@ class StockManager {
             // Remove existing listener to prevent duplicates
             const newSectorFilter = sectorFilter.cloneNode(true);
             sectorFilter.parentNode.replaceChild(newSectorFilter, sectorFilter);
-            
+
             newSectorFilter.addEventListener('change', () => {
                 console.log('StockManager: Sector filter changed to:', newSectorFilter.value);
                 this.filterPopularStocksBySector();

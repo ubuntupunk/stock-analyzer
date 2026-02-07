@@ -140,7 +140,11 @@ class StockAnalyzer {
 
             // Trigger data loading and module selection
             if (this.modules.stockManager) {
-                this.modules.stockManager.selectStock(symbol, effectiveTargetTab);
+                // Prevent infinite loop: Only call selectStock if the event didn't originate 
+                // from StockManager itself.
+                if (source !== 'StockManager') {
+                    this.modules.stockManager.selectStock(symbol, effectiveTargetTab);
+                }
             }
         });
 
