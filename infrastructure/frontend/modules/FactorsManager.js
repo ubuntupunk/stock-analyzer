@@ -7,6 +7,7 @@ class FactorsManager {
         this.eventBus = eventBus;
         this.factors = [];
         this.customFactors = [];
+        this.activeFactors = [];
         this.currentStock = null;
         this.dropZoneSetup = false; // Guard to prevent duplicate event listeners
         this.availableFactors = [
@@ -53,6 +54,7 @@ class FactorsManager {
     initAfterDOMReady() {
         console.log('FactorsManager: DOM ready, initializing UI components...');
         this.loadCustomFactorsFromBackend();
+        this.loadActiveFactorsFromLocalStorage(); // NEW: Load active factors
         this.setupDOMListeners();
         this.setupActiveListDropZone();
         this.renderFactorBlocks();
@@ -301,6 +303,7 @@ class FactorsManager {
         };
 
         this.factors.push(screenFactor);
+        this.saveActiveFactorsToLocalStorage(); // NEW: Save changes
         this.renderActiveFactors();
 
         // Clear the inputs
@@ -470,11 +473,13 @@ class FactorsManager {
 
     removeFactor(index) {
         this.factors.splice(index, 1);
+        this.saveActiveFactorsToLocalStorage(); // NEW: Save changes
         this.renderActiveFactors();
     }
 
     clearFactors() {
         this.factors = [];
+        this.saveActiveFactorsToLocalStorage(); // NEW: Save changes
         this.renderActiveFactors();
         this.clearResults();
     }
@@ -796,6 +801,18 @@ class FactorsManager {
         }
     }
 
+    loadActiveFactorsFromLocalStorage() {
+        try {
+            const stored = localStorage.getItem('activeFactors');
+            if (stored) {
+                this.activeFactors = JSON.parse(stored);
+                console.log('Loaded active factors from localStorage:', this.activeFactors.length);
+            }
+        } catch (error) {
+            console.error('Error loading active factors from localStorage:', error);
+        }
+    }
+
     // Export results to CSV
     exportToCSV() {
         if (this.screenResults.length === 0) {
@@ -848,7 +865,7 @@ class FactorsManager {
     getResults() {
         return this.screenResults;
     }
-
+    
     // Called when the factors tab is activated
     onTabActivated() {
         console.log('FactorsManager: Tab activated, rendering blocks...');

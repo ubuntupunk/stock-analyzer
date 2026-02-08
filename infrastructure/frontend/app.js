@@ -130,7 +130,7 @@ class StockAnalyzer {
      */
     setupModuleCommunication() {
         // Stock selection flow
-        eventBus.on('stock:selected', ({ symbol, targetTab }) => {
+        eventBus.on('stock:selected', ({ symbol, targetTab, source }) => {
             this.modules.watchlistManager.updateWatchlistButtonState(symbol);
             // Default to 'metrics' tab when no targetTab is specified (e.g., from search)
             const effectiveTargetTab = targetTab || 'metrics';
