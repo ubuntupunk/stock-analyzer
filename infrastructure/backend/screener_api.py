@@ -1,7 +1,7 @@
 import json
 import boto3
 from decimal import Decimal
-from typing import Dict, List
+from typing import Dict, List, Tuple, Optional
 import requests
 import os
 
@@ -9,6 +9,163 @@ def decimal_default(obj):
     if isinstance(obj, Decimal):
         return float(obj)
     raise TypeError
+
+
+class CriteriaValidator:
+    """Validates screening criteria for logical consistency and valid ranges"""
+    
+    # Valid factor names that can be used in screening
+    VALID_FACTORS = {
+        'pe_ratio', 'roic', 'revenue_growth', 'debt_to_equity', 'current_ratio',
+        'price_to_fcf', 'profit_margin', 'fcf_margin', 'market_cap',
+        'shares_outstanding', 'cash_flow_growth', 'net_income_growth', 'ltl_fcf'
+    }
+    
+    # Factor constraints: (min_allowed, max_allowed, is_percentage)
+    FACTOR_CONSTRAINTS = {
+        'pe_ratio': (0, 1000, False),
+        'roic': (0, 100, True),  # Stored as decimal (0.15 = 15%)
+        'revenue_growth': (-100, 1000, True),
+        'debt_to_equity': (0, 100, False),
+        'current_ratio': (0, 50, False),
+        'price_to_fcf': (0, 1000, False),
+        'profit_margin': (-100, 100, True),
+        'fcf_margin': (-100, 100, True),
+        'market_cap': (0, None, False),  # No upper limit
+        'cash_flow_growth': (-100, 1000, True),
+        'net_income_growth': (-100, 1000, True),
+    }
+    
+    @classmethod
+    def validate_criteria(cls, criteria: Dict) -> Tuple[bool, List[str], List[str]]:
+        """
+        Validate screening criteria for logical consistency.
+        
+        Returns:
+            Tuple of (is_valid, errors, warnings)
+            - is_valid: Boolean indicating if criteria can be used
+            - errors: List of error messages (blocking issues)
+            - warnings: List of warning messages (non-blocking suggestions)
+        """
+        errors = []
+        warnings = []
+        
+        if not criteria:
+            errors.append("No screening criteria provided")
+            return False, errors, warnings
+        
+        if not isinstance(criteria, dict):
+            errors.append("Criteria must be a dictionary")
+            return False, errors, warnings
+        
+        # Check each factor in criteria
+        for factor, conditions in criteria.items():
+            # Validate factor name
+            if factor not in cls.VALID_FACTORS:
+                warnings.append(f"Unknown factor '{factor}' - will be ignored if not present in stock data")
+            
+            # Validate conditions structure
+            if not isinstance(conditions, dict):
+                errors.append(f"Conditions for '{factor}' must be a dictionary")
+                continue
+            
+            # Check for valid condition keys
+            valid_keys = {'min', 'max', 'direction', 'period', 'exact'}
+            invalid_keys = set(conditions.keys()) - valid_keys
+            if invalid_keys:
+                warnings.append(f"Factor '{factor}' has unknown condition keys: {', '.join(invalid_keys)}")
+            
+            # Validate min/max values
+            min_val = conditions.get('min')
+            max_val = conditions.get('max')
+            
+            # Check for contradictory ranges
+            if min_val is not None and max_val is not None:
+                if min_val > max_val:
+                    errors.append(f"{factor}: Minimum value ({min_val}) cannot exceed maximum value ({max_val})")
+                if min_val == max_val:
+                    warnings.append(f"{factor}: Minimum and maximum are both {min_val} - consider using 'exact' condition instead")
+            
+            # Validate against factor constraints
+            if factor in cls.FACTOR_CONSTRAINTS:
+                constraint_min, constraint_max, is_pct = cls.FACTOR_CONSTRAINTS[factor]
+                
+                for val, label in [(min_val, 'minimum'), (max_val, 'maximum')]:
+                    if val is not None:
+                        # Check minimum constraint
+                        if constraint_min is not None and val < constraint_min:
+                            pct_label = "%" if is_pct else ""
+                            errors.append(f"{factor}: {label} value ({val}{pct_label}) is below allowed minimum ({constraint_min}{pct_label})")
+                        
+                        # Check maximum constraint
+                        if constraint_max is not None and val > constraint_max:
+                            pct_label = "%" if is_pct else ""
+                            errors.append(f"{factor}: {label} value ({val}{pct_label}) exceeds allowed maximum ({constraint_max}{pct_label})")
+                        
+                        # Warn about extreme values
+                        if is_pct and factor in ['revenue_growth', 'cash_flow_growth', 'net_income_growth']:
+                            if val > 1.0:  # > 100%
+                                warnings.append(f"{factor}: {label} value ({val*100:.0f}%) is very high - results may be limited")
+        
+        # Check for impossible factor combinations
+        cls._check_contradictory_factors(criteria, errors, warnings)
+        
+        return len(errors) == 0, errors, warnings
+    
+    @classmethod
+    def _check_contradictory_factors(cls, criteria: Dict, errors: List[str], warnings: List[str]):
+        """Check for logically contradictory factor combinations"""
+        
+        # Check for P/E and Price/FCF conflict (both measure valuation)
+        pe_ratio = criteria.get('pe_ratio', {})
+        price_to_fcf = criteria.get('price_to_fcf', {})
+        
+        if pe_ratio and price_to_fcf:
+            pe_max = pe_ratio.get('max')
+            pfcf_max = price_to_fcf.get('max')
+            if pe_max and pfcf_max:
+                # Very restrictive valuation criteria might yield no results
+                if pe_max < 10 and pfcf_max < 10:
+                    warnings.append("Very restrictive valuation criteria (P/E < 10 AND Price/FCF < 10) - may yield few results")
+        
+        # Check for growth vs profitability conflict
+        revenue_growth = criteria.get('revenue_growth', {})
+        profit_margin = criteria.get('profit_margin', {})
+        
+        if revenue_growth and profit_margin:
+            growth_min = revenue_growth.get('min')
+            margin_min = profit_margin.get('min')
+            if growth_min and margin_min:
+                if growth_min > 0.20 and margin_min > 0.20:  # >20% growth AND >20% margin
+                    warnings.append("High growth (>20%) AND high profit margin (>20%) criteria - rare combination")
+        
+        # Check for debt and current ratio conflict
+        debt_to_equity = criteria.get('debt_to_equity', {})
+        current_ratio = criteria.get('current_ratio', {})
+        
+        if debt_to_equity and current_ratio:
+            de_max = debt_to_equity.get('max')
+            cr_min = current_ratio.get('min')
+            if de_max and cr_min:
+                if de_max < 0.5 and cr_min > 2.0:
+                    warnings.append("Very conservative financial health criteria - may yield few results")
+    
+    @classmethod
+    def sanitize_criteria(cls, criteria: Dict) -> Dict:
+        """Remove invalid factors and conditions from criteria"""
+        sanitized = {}
+        for factor, conditions in criteria.items():
+            if factor not in cls.VALID_FACTORS:
+                continue
+            if not isinstance(conditions, dict):
+                continue
+            # Only keep valid condition keys
+            sanitized_conditions = {k: v for k, v in conditions.items() 
+                                   if k in {'min', 'max', 'direction', 'period', 'exact'}}
+            if sanitized_conditions:
+                sanitized[factor] = sanitized_conditions
+        return sanitized
+
 
 class StockScreener:
     """Stock screening based on custom factors"""
@@ -20,7 +177,7 @@ class StockScreener:
         self.table = self.dynamodb.Table(table_name)
         self.stock_universe_table = self.dynamodb.Table(os.environ.get('STOCK_UNIVERSE_TABLE', 'stock-universe'))
     
-    def screen_stocks(self, criteria: Dict) -> List[Dict]:
+    def screen_stocks(self, criteria: Dict) -> Dict:
         """
         Screen stocks based on criteria
         Example criteria:
@@ -34,8 +191,34 @@ class StockScreener:
             'ltl_fcf': {'max': 5},
             'price_to_fcf': {'max': 22.5}
         }
+        
+        Returns:
+            Dict with 'stocks', 'validation', 'data_quality', and 'metadata' keys
         """
+        # Validate criteria first
+        is_valid, errors, warnings = CriteriaValidator.validate_criteria(criteria)
+        
+        if not is_valid:
+            return {
+                'stocks': [],
+                'validation': {
+                    'valid': False,
+                    'errors': errors,
+                    'warnings': warnings
+                },
+                'data_quality': {},
+                'metadata': {
+                    'total_stocks_checked': 0,
+                    'criteria_applied': criteria
+                }
+            }
+        
+        # Sanitize criteria to remove unknown factors
+        sanitized_criteria = CriteriaValidator.sanitize_criteria(criteria)
+        
         matching_stocks = []
+        data_quality_issues = []
+        stocks_checked = 0
         
         try:
             # Scan the stock universe table
@@ -69,10 +252,59 @@ class StockScreener:
 
         # Filter stocks based on criteria
         for stock in stocks:
-            if self._matches_criteria(stock, criteria):
-                matching_stocks.append(stock)
+            stocks_checked += 1
+            
+            # Check data quality for this stock
+            missing_fields = []
+            for factor in sanitized_criteria.keys():
+                if stock.get(factor) is None:
+                    missing_fields.append(factor)
+            
+            if missing_fields:
+                data_quality_issues.append({
+                    'symbol': stock.get('symbol', 'UNKNOWN'),
+                    'missing_fields': missing_fields
+                })
+            
+            if self._matches_criteria(stock, sanitized_criteria):
+                # Add data quality indicator to each matching stock
+                stock_with_quality = stock.copy()
+                stock_with_quality['_data_quality'] = {
+                    'complete': len(missing_fields) == 0,
+                    'missing_fields': missing_fields
+                }
+                matching_stocks.append(stock_with_quality)
         
-        return matching_stocks
+        # Build summary of data quality issues
+        data_quality_summary = {}
+        if data_quality_issues:
+            # Count stocks missing each field
+            field_counts = {}
+            for issue in data_quality_issues:
+                for field in issue['missing_fields']:
+                    field_counts[field] = field_counts.get(field, 0) + 1
+            
+            data_quality_summary = {
+                'stocks_with_missing_data': len(data_quality_issues),
+                'total_stocks_checked': stocks_checked,
+                'fields_missing_counts': field_counts,
+                'warning': f"{len(data_quality_issues)} out of {stocks_checked} stocks have incomplete data for screening criteria"
+            }
+        
+        return {
+            'stocks': matching_stocks,
+            'validation': {
+                'valid': True,
+                'errors': errors,
+                'warnings': warnings
+            },
+            'data_quality': data_quality_summary,
+            'metadata': {
+                'total_stocks_checked': stocks_checked,
+                'matching_stocks': len(matching_stocks),
+                'criteria_applied': sanitized_criteria
+            }
+        }
     
     def _matches_criteria(self, stock: Dict, criteria: Dict) -> bool:
         """Check if a stock matches the screening criteria"""
@@ -246,6 +478,17 @@ def lambda_handler(event, context):
                 body = json.loads(event.get('body', '{}'))
                 criteria = body.get('criteria', {})
                 result = screener.screen_stocks(criteria)
+                
+                # If validation failed, return 400 with error details
+                if not result.get('validation', {}).get('valid', True):
+                    return {
+                        'statusCode': 400,
+                        'headers': {
+                            'Access-Control-Allow-Origin': '*',
+                            'Content-Type': 'application/json'
+                        },
+                        'body': json.dumps(result, default=decimal_default)
+                    }
             else:
                 result = {'error': 'Method not allowed'}
         
