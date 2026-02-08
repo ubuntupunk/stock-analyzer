@@ -216,12 +216,6 @@ Resources:
             RestApiId: !Ref StockAnalyzerAPI
             Path: /api/screen
             Method: options
-        OptionsDCF:
-          Type: Api
-          Properties:
-            RestApiId: !Ref StockAnalyzerAPI
-            Path: /api/dcf
-            Method: options
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref FactorsTable

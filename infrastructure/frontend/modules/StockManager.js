@@ -76,57 +76,50 @@ class StockManager {
             { type: 'metrics', tab: 'metrics' },
             { type: 'financials', tab: 'financials' },
             { type: 'analyst-estimates', tab: 'analyst-estimates' },
-            { type: 'stock-analyser', tab: 'stock-analyser', isCritical: true }, // Mark critical
+            { type: 'stock-analyser', tab: 'stock-analyser', isCritical: true },
             { type: 'factors', tab: 'factors' },
             { type: 'news', tab: 'news' }
         ];
 
-        // 1. Identify priority load
-        let priorityPromise = Promise.resolve();
-        const remainingTypes = [];
+        const allPromises = [];
 
-        startTypes.forEach(item => {
-            if (priorityTab && item.tab === priorityTab) {
-                console.log(`StockManager: Prioritizing ${item.type} load`);
-                priorityPromise = this.dataManager.loadStockData(symbol, item.type).catch(e =>
-                    console.warn(`Priority load failed for ${item.type}:`, e)
+        // Add priority tab promise first
+        if (priorityTab) {
+            const priorityItem = startTypes.find(item => item.tab === priorityTab);
+            if (priorityItem) {
+                console.log(`StockManager: Adding priority ${priorityItem.type} load`);
+                allPromises.push(
+                    this.dataManager.loadStockData(symbol, priorityItem.type).catch(e =>
+                        console.warn(`Priority load failed for ${priorityItem.type}:`, e)
+                    )
                 );
-            } else {
-                remainingTypes.push(item);
             }
-        });
+        }
 
-        // 2. Wait for priority to start (or complete if we wanted to await, but providing start gap is usually enough)
-        // We trigger priority immediately
-
-        // 3. Stagger remaining loads to avoid queue saturation
-        // Delay background tasks by 800ms to let the UI settle and priority request get a head start
-        setTimeout(async () => {
-            console.log('StockManager: Starting background preloads...');
-
-            // Process remaining in chunks to be nice to the network
-            const chunkSize = 2; // Process 2 at a time
-
-            for (let i = 0; i < remainingTypes.length; i += chunkSize) {
-                const chunk = remainingTypes.slice(i, i + chunkSize);
-
-                const promises = chunk.map(item =>
+        // Add promises for all other tabs
+        startTypes.forEach(item => {
+            // Avoid duplicating the priority tab if already added
+            if (!priorityTab || item.tab !== priorityTab) {
+                console.log(`StockManager: Adding background ${item.type} load`);
+                allPromises.push(
                     this.dataManager.loadStockData(symbol, item.type).catch(e =>
                         console.debug(`Background preload failed for ${item.type} (non-critical):`, e.message)
                     )
                 );
-
-                // Wait a bit between chunks too
-                await Promise.allSettled(promises);
-                await new Promise(r => setTimeout(r, 200));
             }
+        });
 
-            console.log('StockManager: Background preloads complete');
+        try {
+            // Execute all data loads concurrently and wait for all to settle
+            await Promise.allSettled(allPromises);
+            console.log('StockManager: All stock data preloaded for:', symbol);
+        } catch (error) {
+            console.error('StockManager: Error during preload. This should not happen with allSettled.', error);
+        } finally {
             this.eventBus.emit('stock:dataPreloaded', { symbol });
+        }
 
-        }, 800);
-
-        return priorityPromise;
+        return Promise.resolve(); // Return a dummy promise as actual work is now handled concurrently
     }
 
     /**

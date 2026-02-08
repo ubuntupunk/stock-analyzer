@@ -155,32 +155,32 @@ class APIService {
 
     // Stock Data APIs
     async getStockMetrics(symbol) {
-        return this.request(`/api/stock/metrics?symbol=${symbol}`);
+        return this.request(`/stock/metrics?symbol=${symbol}`);
     }
 
     async getStockPrice(symbol) {
-        return this.request(`/api/stock/price?symbol=${symbol}`);
+        return this.request(`/stock/price?symbol=${symbol}`);
     }
 
     async getStockPriceHistory(symbol, period = "3mo") {
-        return this.request(`/api/stock/price?symbol=${symbol}&period=${period}`);
+        return this.request(`/stock/price?symbol=${symbol}&period=${period}`);
     }
 
     async getStockPriceHistoryRange(symbol, startDate, endDate) {
-        return this.request(`/api/stock/price?symbol=${symbol}&startDate=${startDate}&endDate=${endDate}`);
+        return this.request(`/stock/price?symbol=${symbol}&startDate=${startDate}&endDate=${endDate}`);
     }
 
     async getAnalystEstimates(symbol) {
-        return this.request(`/api/stock/estimates?symbol=${symbol}`);
+        return this.request(`/stock/estimates?symbol=${symbol}`);
     }
 
     async getFinancialStatements(symbol) {
         console.log('=== API: getFinancialStatements START ===');
         console.log('API: Requesting financials for symbol:', symbol);
-        console.log('API: Request URL:', `${this.baseURL}/api/stock/financials?symbol=${symbol}`);
+        console.log('API: Request URL:', `${this.baseURL}/stock/financials?symbol=${symbol}`);
 
         try {
-            const data = await this.request(`/api/stock/financials?symbol=${symbol}`);
+            const data = await this.request(`/stock/financials?symbol=${symbol}`);
             console.log('API: Financials response received:', {
                 hasData: !!data,
                 dataKeys: data ? Object.keys(data) : [],
@@ -206,56 +206,56 @@ class APIService {
     }
 
     async getStockFactors(symbol) {
-        return this.request(`/api/stock/factors?symbol=${symbol}`);
+        return this.request(`/stock/factors?symbol=${symbol}`);
     }
 
     async getStockNews(symbol) {
-        return this.request(`/api/stock/news?symbol=${symbol}`);
+        return this.request(`/stock/news?symbol=${symbol}`);
     }
 
     // Batch Stock Data APIs (NEW - for concurrent fetching)
     async getBatchStockPrices(symbols) {
         const symbolsParam = Array.isArray(symbols) ? symbols.join(',') : symbols;
-        return this.request(`/api/stock/batch/prices?symbols=${symbolsParam}`);
+        return this.request(`/stock/batch/prices?symbols=${symbolsParam}`);
     }
 
     async getBatchStockMetrics(symbols) {
         const symbolsParam = Array.isArray(symbols) ? symbols.join(',') : symbols;
-        return this.request(`/api/stock/batch/metrics?symbols=${symbolsParam}`);
+        return this.request(`/stock/batch/metrics?symbols=${symbolsParam}`);
     }
 
     async getBatchAnalystEstimates(symbols) {
         const symbolsParam = Array.isArray(symbols) ? symbols.join(',') : symbols;
-        return this.request(`/api/stock/batch/estimates?symbols=${symbolsParam}`);
+        return this.request(`/stock/batch/estimates?symbols=${symbolsParam}`);
     }
 
     async getBatchFinancialStatements(symbols) {
         const symbolsParam = Array.isArray(symbols) ? symbols.join(',') : symbols;
-        return this.request(`/api/stock/batch/financials?symbols=${symbolsParam}`);
+        return this.request(`/stock/batch/financials?symbols=${symbolsParam}`);
     }
 
     // Screening APIs
     async screenStocks(criteria) {
-        return this.request('/api/screen', {
+        return this.request(`/screen`, {
             method: 'POST',
             body: JSON.stringify({ criteria })
         });
     }
 
     async saveFactor(factorData) {
-        return this.request('/api/factors', {
+        return this.request(`/factors`, {
             method: 'POST',
             body: JSON.stringify(factorData)
         });
     }
 
     async getUserFactors() {
-        return this.request('/api/factors');
+        return this.request(`/factors`);
     }
 
     // DCF Analysis
     async calculateDCF(params) {
-        return this.request('/api/dcf', {
+        return this.request(`/dcf`, {
             method: 'POST',
             body: JSON.stringify(params)
         });
@@ -276,40 +276,40 @@ class APIService {
 
     // Watchlist APIs
     async getWatchlist() {
-        return this.request('/api/watchlist');
+        return this.request(`/watchlist`);
     }
 
     async addToWatchlist(stockData) {
-        return this.request('/api/watchlist', {
+        return this.request(`/watchlist`, {
             method: 'POST',
             body: JSON.stringify(stockData)
         });
     }
 
     async updateWatchlistItem(symbol, updates) {
-        return this.request('/api/watchlist', {
+        return this.request(`/watchlist`, {
             method: 'PUT',
             body: JSON.stringify({ symbol, updates })
         });
     }
 
     async removeFromWatchlist(symbol) {
-        return this.request(`/api/watchlist?symbol=${symbol}`, {
+        return this.request(`/watchlist?symbol=${symbol}`, {
             method: 'DELETE'
         });
     }
 
     // Stock Universe APIs
     async searchStocks(query, limit = 20) {
-        return this.request(`/api/stocks/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+        return this.request(`/stocks/search?q=${encodeURIComponent(query)}&limit=${limit}`);
     }
 
     async getPopularStocks(limit = 10) {
-        return this.request(`/api/stocks/popular?limit=${limit}`);
+        return this.request(`/stocks/popular?limit=${limit}`);
     }
 
     async getSectors() {
-        return this.request('/api/stocks/sectors');
+        return this.request(`/stocks/sectors`);
     }
 
     async filterStocks(filters = {}) {
@@ -320,11 +320,11 @@ class APIService {
         if (filters.marketCapBucket) params.append('marketCapBucket', filters.marketCapBucket);
 
         const queryString = params.toString();
-        return this.request(`/api/stocks/filter${queryString ? '?' + queryString : ''}`);
+        return this.request(`/stocks/filter${queryString ? '?' + queryString : ''}`);
     }
 
     async getStockBySymbol(symbol) {
-        return this.request(`/api/stocks/symbol/${symbol}`);
+        return this.request(`/stocks/symbol/${symbol}`);
     }
 }
 

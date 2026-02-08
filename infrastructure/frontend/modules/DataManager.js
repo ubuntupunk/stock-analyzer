@@ -132,7 +132,7 @@ class RequestQueue {
             }
 
             console.log(`RequestQueue: Enqueued ${key || 'anonymous'} (priority: ${priority}, queue size: ${this.queue.length})`);
-            this.process();
+            setTimeout(() => this.process(), 0);
         });
     }
 
@@ -162,7 +162,7 @@ class RequestQueue {
         } finally {
             this.processing.delete(itemKey);
             // Process next
-            this.process();
+            setTimeout(() => this.process(), 0);
         }
     }
 
@@ -560,16 +560,16 @@ class DataManager {
             }
         };
 
-        // Queue the request
-        const promise = this.requestQueue.enqueue(task, priority, cacheKey);
-
-        // Store promise to deduplicate
-        this.pendingRequests.set(cacheKey, promise);
-
-        // Cleanup pending map when done
-        promise.finally(() => {
-            this.pendingRequests.delete(cacheKey);
-        });
+        // Execute the task directly
+        const promise = (async () => {
+            try {
+                return await task();
+            } catch (error) {
+                throw error;
+            } finally {
+                this.pendingRequests.delete(cacheKey);
+            }
+        })();
 
         return promise;
     }

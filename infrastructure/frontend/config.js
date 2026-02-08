@@ -11,7 +11,7 @@ const config = {
     // API Gateway endpoint - auto-selects based on environment
     apiEndpoint: isLocal
         ? 'http://localhost:5000/api'
-        : 'https://j5lafw9554.execute-api.us-east-1.amazonaws.com/prod',
+        : 'https://j5lafw9554.execute-api.us-east-1.amazonaws.com/prod/api',
 
     // CloudFront URL for frontend (HTTPS) - auto-selects based on environment
     frontendUrl: isLocal
