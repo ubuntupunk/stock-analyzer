@@ -251,6 +251,11 @@ class FactorsManager {
             category: factor.category
         };
 
+        if (this.factors.some(f => f.id === screenFactor.id)) {
+            alert(`Factor "${screenFactor.name}" is already added.`);
+            return;
+        }
+
         this.factors.push(screenFactor);
         this.renderActiveFactors();
         this.saveActiveFactorsToLocalStorage(); // Save active factors after adding
@@ -653,7 +658,7 @@ class FactorsManager {
         };
 
         this.customFactors.push(customFactor);
-
+        this.saveCustomFactorsToLocalStorage(); // Save to local storage immediately
         // Save to backend
         await this.saveCustomFactorToBackend(customFactor);
 
