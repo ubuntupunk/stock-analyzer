@@ -49,6 +49,7 @@ class FactorsManager {
     initAfterDOMReady() {
         console.log('FactorsManager: DOM ready, initializing...');
         this.loadCustomFactorsFromBackend();
+        this.loadActiveFactorsFromLocalStorage(); // Load active factors from local storage
 
         this.setupActiveListDropZone();
         this.renderFactorBlocks();
@@ -252,7 +253,7 @@ class FactorsManager {
 
         this.factors.push(screenFactor);
         this.renderActiveFactors();
-
+        this.saveActiveFactorsToLocalStorage(); // Save active factors after adding
         console.log('Factor added to screen:', screenFactor);
     }
 
@@ -472,12 +473,14 @@ class FactorsManager {
     removeFactor(index) {
         this.factors.splice(index, 1);
         this.renderActiveFactors();
+        this.saveActiveFactorsToLocalStorage(); // Save active factors after removing
     }
 
     clearFactors() {
         this.factors = [];
         this.renderActiveFactors();
         this.clearResults();
+        this.saveActiveFactorsToLocalStorage(); // Save active factors after clearing
     }
 
     async screenStocks() {
@@ -755,6 +758,26 @@ class FactorsManager {
             localStorage.setItem('customFactors', JSON.stringify(this.customFactors));
         } catch (error) {
             console.error('Error saving custom factors to localStorage:', error);
+        }
+    }
+
+    saveActiveFactorsToLocalStorage() {
+        try {
+            localStorage.setItem('activeFactors', JSON.stringify(this.factors));
+        } catch (error) {
+            console.error('Error saving active factors to localStorage:', error);
+        }
+    }
+
+    loadActiveFactorsFromLocalStorage() {
+        try {
+            const stored = localStorage.getItem('activeFactors');
+            if (stored) {
+                this.factors = JSON.parse(stored);
+                console.log('Loaded active factors from localStorage:', this.factors.length);
+            }
+        } catch (error) {
+            console.error('Error loading active factors from localStorage:', error);
         }
     }
 
