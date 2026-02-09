@@ -253,6 +253,12 @@ class APIService {
         return this.request(`/factors`);
     }
 
+    async deleteFactor(factorId) {
+        return this.request(`/factors/${factorId}`, {
+            method: 'DELETE'
+        });
+    }
+
     // DCF Analysis
     async calculateDCF(params) {
         return this.request(`/dcf`, {

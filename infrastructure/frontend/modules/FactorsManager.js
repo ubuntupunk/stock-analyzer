@@ -512,20 +512,8 @@ class FactorsManager {
                 }
             });
 
-            const response = await fetch(`${API_BASE_URL}/screener/screen`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ criteria })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to screen stocks');
-            }
-
-            const data = await response.json();
-            this.screenResults = data || [];
+            const data = await window.api.screenStocks(criteria);
+            this.screenResults = data.stocks || [];
             this.renderResults();
 
         } catch (error) {
@@ -684,24 +672,15 @@ class FactorsManager {
                 return;
             }
 
-            const userId = window.userManager.currentUser.userId;
-
-            const response = await fetch(`${API_BASE_URL}/factors`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${window.userManager.currentUser.token || ''}`
-                },
-                body: JSON.stringify({
-                    factorId: factor.id,
-                    name: factor.name,
-                    criteria: factor.criteria,
-                    description: factor.description,
-                    createdAt: factor.createdAt
-                })
+            const response = await window.api.saveFactor({
+                factorId: factor.id,
+                name: factor.name,
+                criteria: factor.criteria,
+                description: factor.description,
+                createdAt: factor.createdAt
             });
 
-            if (!response.ok) {
+            if (!response) {
                 throw new Error('Failed to save custom factor to backend');
             }
 
@@ -721,20 +700,7 @@ class FactorsManager {
                 return;
             }
 
-            const userId = window.userManager.currentUser.userId;
-
-            const response = await fetch(`${API_BASE_URL}/factors`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${window.userManager.currentUser.token || ''}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to load custom factors from backend');
-            }
-
-            const data = await response.json();
+            const data = await window.api.getUserFactors();
             if (Array.isArray(data)) {
                 this.customFactors = data.map(f => ({
                     id: f.factorId,
@@ -762,12 +728,7 @@ class FactorsManager {
         // Delete from backend
         try {
             if (window.userManager && window.userManager.currentUser) {
-                await fetch(`${API_BASE_URL}/factors/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${window.userManager.currentUser.token || ''}`
-                    }
-                });
+                await window.api.deleteFactor(id);
             }
         } catch (error) {
             console.error('Error deleting from backend:', error);

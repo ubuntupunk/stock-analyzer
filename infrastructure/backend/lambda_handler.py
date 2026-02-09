@@ -113,7 +113,7 @@ def lambda_handler(event, context):
             else:
                 result = {'error': 'Invalid batch endpoint'}
 
-        elif '/screener/' in path:
+        elif '/screen' in path:
             screener = StockScreener()
             if method == 'POST':
                 try:
