@@ -49,7 +49,7 @@ class FactorsManager {
     initAfterDOMReady() {
         console.log('FactorsManager: DOM ready, initializing...');
         this.loadCustomFactorsFromBackend();
-        this.setupEventListeners();
+
         this.setupActiveListDropZone();
         this.renderFactorBlocks();
         this.renderActiveFactors();
@@ -852,7 +852,8 @@ class FactorsManager {
 
     // Called when the factors tab is activated
     onTabActivated() {
-        console.log('FactorsManager: Tab activated, rendering blocks...');
+        console.log('FactorsManager: Tab activated, setting up event listeners and rendering blocks...');
+        this.setupEventListeners(); // Setup listeners when tab is activated and content is in DOM
         // Wait a bit for DOM to be ready
         setTimeout(() => {
             this.setupActiveListDropZone();

@@ -18,6 +18,10 @@
   border: none;
   text-decoration: none;
   
+  i {
+    display: inline-flex; // Ensure icon plays nice with flex parent and text
+  }
+  
   &:disabled,
   &.disabled {
     opacity: 0.6;
