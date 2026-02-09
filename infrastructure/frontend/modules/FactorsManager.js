@@ -7,7 +7,6 @@ class FactorsManager {
         this.eventBus = eventBus;
         this.factors = [];
         this.customFactors = [];
-        this.activeFactors = [];
         this.currentStock = null;
         this.dropZoneSetup = false; // Guard to prevent duplicate event listeners
         this.availableFactors = [
@@ -36,11 +35,7 @@ class FactorsManager {
 
     init() {
         console.log('FactorsManager initialized');
-
-        // IMMEDIATE: Setup bus listeners to catch early events (like initial stock selection)
-        this.setupBusListeners();
-
-        // DEFERRED: Setup DOM interaction
+        // Delay initialization to ensure DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 this.initAfterDOMReady();
@@ -52,21 +47,21 @@ class FactorsManager {
     }
 
     initAfterDOMReady() {
-        console.log('FactorsManager: DOM ready, initializing UI components...');
+        console.log('FactorsManager: DOM ready, initializing...');
         this.loadCustomFactorsFromBackend();
-        this.loadActiveFactorsFromLocalStorage(); // NEW: Load active factors
-        this.setupDOMListeners();
+        this.setupEventListeners();
         this.setupActiveListDropZone();
         this.renderFactorBlocks();
         this.renderActiveFactors();
     }
 
-    setupBusListeners() {
-        console.log('FactorsManager: Setting up bus listeners');
-        // No specific bus listeners needed for screener at this moment
-    }
+    setupEventListeners() {
+        // Stock input
+        const stockInput = document.getElementById('factorStockInput');
+        if (stockInput) {
+            stockInput.addEventListener('change', (e) => this.handleStockChange(e.target.value));
+        }
 
-    setupDOMListeners() {
         // Add custom factor button
         const addFactorBtn = document.getElementById('addFactorBtn');
         if (addFactorBtn) {
@@ -117,16 +112,20 @@ class FactorsManager {
                 }
             });
         }
+
+        // Listen for stock changes from other modules
+        this.eventBus.on('stock:selected', (data) => {
+            this.handleStockChange(data.symbol);
+        });
     }
 
-    /**
-     * Called by TabManager when the Factors tab is activated
-     * Ensures UI is in sync with current state
-     */
-    onTabActivated() {
-        console.log('FactorsManager: Tab activated, syncing UI');
-        this.renderFactorBlocks();
-        this.renderActiveFactors();
+    handleStockChange(symbol) {
+        this.currentStock = symbol ? symbol.toUpperCase() : null;
+        const stockDisplay = document.getElementById('currentStockDisplay');
+        if (stockDisplay) {
+            stockDisplay.textContent = this.currentStock || 'No stock selected';
+        }
+        console.log('Current stock for factors:', this.currentStock);
     }
 
     renderFactorBlocks() {
@@ -303,7 +302,6 @@ class FactorsManager {
         };
 
         this.factors.push(screenFactor);
-        this.saveActiveFactorsToLocalStorage(); // NEW: Save changes
         this.renderActiveFactors();
 
         // Clear the inputs
@@ -321,7 +319,7 @@ class FactorsManager {
             return;
         }
 
-        container.innerHTML = '';
+        container.innerHTML = '<h3>Active Screening Factors:</h3>';
         const list = document.createElement('div');
         list.className = 'active-factors-grid';
         list.id = 'activeFactorsGrid';
@@ -473,13 +471,11 @@ class FactorsManager {
 
     removeFactor(index) {
         this.factors.splice(index, 1);
-        this.saveActiveFactorsToLocalStorage(); // NEW: Save changes
         this.renderActiveFactors();
     }
 
     clearFactors() {
         this.factors = [];
-        this.saveActiveFactorsToLocalStorage(); // NEW: Save changes
         this.renderActiveFactors();
         this.clearResults();
     }
@@ -516,13 +512,6 @@ class FactorsManager {
                 }
             });
 
-            // Validate criteria locally before sending
-            const localValidation = this.validateCriteriaLocal(criteria);
-            if (!localValidation.valid) {
-                this.renderValidationErrors(localValidation.errors, localValidation.warnings);
-                return;
-            }
-
             const response = await fetch(`${API_BASE_URL}/screener/screen`, {
                 method: 'POST',
                 headers: {
@@ -531,27 +520,13 @@ class FactorsManager {
                 body: JSON.stringify({ criteria })
             });
 
-            const data = await response.json();
-
-            // Handle validation errors from backend
-            if (!response.ok && data.validation) {
-                this.renderValidationErrors(data.validation.errors, data.validation.warnings);
-                return;
-            }
-
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to screen stocks');
+                throw new Error('Failed to screen stocks');
             }
 
-            // Store results and validation info
-            this.screenResults = data.stocks || [];
-            this.lastValidation = data.validation;
-            this.lastDataQuality = data.data_quality;
-            this.lastMetadata = data.metadata;
-
-            // Render results with validation feedback
+            const data = await response.json();
+            this.screenResults = data || [];
             this.renderResults();
-            this.renderValidationFeedback(data.validation, data.data_quality);
 
         } catch (error) {
             console.error('Error screening stocks:', error);
@@ -561,145 +536,6 @@ class FactorsManager {
         }
     }
 
-    /**
-     * Local validation of criteria before sending to API
-     */
-    validateCriteriaLocal(criteria) {
-        const errors = [];
-        const warnings = [];
-
-        // Check for contradictory ranges
-        for (const [factor, conditions] of Object.entries(criteria)) {
-            const min = conditions.min;
-            const max = conditions.max;
-
-            if (min !== undefined && max !== undefined && min > max) {
-                errors.push(`${this.getFactorDisplayName(factor)}: Minimum (${min}) cannot exceed maximum (${max})`);
-            }
-
-            // Warn about extreme values
-            if (factor === 'pe_ratio' && min !== undefined && min > 100) {
-                warnings.push(`${this.getFactorDisplayName(factor)}: Very high minimum P/E (${min}) - may yield few results`);
-            }
-            if (factor === 'revenue_growth' && min !== undefined && min > 0.5) {
-                warnings.push(`${this.getFactorDisplayName(factor)}: Very high minimum growth (${(min * 100).toFixed(0)}%) - rare to find`);
-            }
-        }
-
-        // Check for overly restrictive combinations
-        const hasRestrictivePE = criteria.pe_ratio?.max !== undefined && criteria.pe_ratio.max < 15;
-        const hasRestrictiveDE = criteria.debt_to_equity?.max !== undefined && criteria.debt_to_equity.max < 0.5;
-        const hasHighROIC = criteria.roic?.min !== undefined && criteria.roic.min > 0.20;
-
-        if (hasRestrictivePE && hasRestrictiveDE && hasHighROIC) {
-            warnings.push('Very restrictive criteria combination - consider relaxing some constraints');
-        }
-
-        return {
-            valid: errors.length === 0,
-            errors,
-            warnings
-        };
-    }
-
-    /**
-     * Get display name for a factor
-     */
-    getFactorDisplayName(factorId) {
-        const factor = this.availableFactors.find(f => f.id === factorId);
-        return factor ? factor.name : factorId;
-    }
-
-    /**
-     * Render validation errors in the UI
-     */
-    renderValidationErrors(errors, warnings) {
-        const container = document.getElementById('screenResults');
-        if (!container) return;
-
-        let html = '<div class="validation-errors">';
-        
-        if (errors && errors.length > 0) {
-            html += '<div class="error-section">';
-            html += '<h4><i class="fas fa-exclamation-circle"></i> Validation Errors</h4>';
-            html += '<ul>';
-            errors.forEach(error => {
-                html += `<li>${error}</li>`;
-            });
-            html += '</ul></div>';
-        }
-
-        if (warnings && warnings.length > 0) {
-            html += '<div class="warning-section">';
-            html += '<h4><i class="fas fa-exclamation-triangle"></i> Warnings</h4>';
-            html += '<ul>';
-            warnings.forEach(warning => {
-                html += `<li>${warning}</li>`;
-            });
-            html += '</ul></div>';
-        }
-
-        html += '</div>';
-        container.innerHTML = html;
-    }
-
-    /**
-     * Render validation feedback after successful screening
-     */
-    renderValidationFeedback(validation, dataQuality) {
-        // Create or update validation feedback panel
-        let feedbackPanel = document.getElementById('validationFeedbackPanel');
-        if (!feedbackPanel) {
-            feedbackPanel = document.createElement('div');
-            feedbackPanel.id = 'validationFeedbackPanel';
-            feedbackPanel.className = 'validation-feedback-panel';
-            
-            const resultsContainer = document.getElementById('screenResults');
-            if (resultsContainer && resultsContainer.parentNode) {
-                resultsContainer.parentNode.insertBefore(feedbackPanel, resultsContainer);
-            }
-        }
-
-        let html = '';
-
-        // Show warnings if any
-        if (validation && validation.warnings && validation.warnings.length > 0) {
-            html += '<div class="feedback-warnings">';
-            html += '<h5><i class="fas fa-info-circle"></i> Screening Notes</h5>';
-            html += '<ul>';
-            validation.warnings.forEach(warning => {
-                html += `<li>${warning}</li>`;
-            });
-            html += '</ul></div>';
-        }
-
-        // Show data quality issues if any
-        if (dataQuality && dataQuality.warning) {
-            html += '<div class="feedback-data-quality">';
-            html += '<h5><i class="fas fa-database"></i> Data Quality</h5>';
-            html += `<p>${dataQuality.warning}</p>`;
-            
-            if (dataQuality.fields_missing_counts) {
-                html += '<ul class="missing-fields">';
-                for (const [field, count] of Object.entries(dataQuality.fields_missing_counts)) {
-                    const percentage = ((count / dataQuality.total_stocks_checked) * 100).toFixed(1);
-                    html += `<li>${this.getFactorDisplayName(field)}: missing in ${count} stocks (${percentage}%)</li>`;
-                }
-                html += '</ul>';
-            }
-            html += '</div>';
-        }
-
-        feedbackPanel.innerHTML = html;
-
-        // Auto-hide after 10 seconds if no errors
-        setTimeout(() => {
-            if (feedbackPanel) {
-                feedbackPanel.style.opacity = '0.7';
-            }
-        }, 10000);
-    }
-
     renderResults() {
         const container = document.getElementById('screenResults');
         const exportBtn = document.getElementById('exportResultsBtn');
@@ -707,12 +543,7 @@ class FactorsManager {
         if (!container) return;
 
         if (this.screenResults.length === 0) {
-            // Check if we have metadata about why no results
-            let message = 'No stocks match your criteria';
-            if (this.lastMetadata && this.lastMetadata.total_stocks_checked > 0) {
-                message += `<br><small>Checked ${this.lastMetadata.total_stocks_checked} stocks</small>`;
-            }
-            container.innerHTML = `<p class="no-results">${message}</p>`;
+            container.innerHTML = '<p class="no-results">No stocks match your criteria</p>';
             if (exportBtn) exportBtn.style.display = 'none';
             return;
         }
@@ -720,17 +551,8 @@ class FactorsManager {
         // Show export button when we have results
         if (exportBtn) exportBtn.style.display = 'inline-flex';
 
-        // Count stocks with incomplete data
-        const incompleteStocks = this.screenResults.filter(s => s._data_quality && !s._data_quality.complete);
-
         let html = `
-            <div class="results-header">
-                <h3>Screening Results (${this.screenResults.length} stocks)</h3>
-                ${incompleteStocks.length > 0 ? 
-                    `<span class="data-quality-badge" title="${incompleteStocks.length} stocks have incomplete data">
-                        <i class="fas fa-exclamation-triangle"></i> ${incompleteStocks.length} incomplete
-                    </span>` : ''}
-            </div>
+            <h3>Screening Results (${this.screenResults.length} stocks)</h3>
             <div class="results-table-container">
                 <table class="results-table">
                     <thead>
@@ -750,18 +572,9 @@ class FactorsManager {
         `;
 
         this.screenResults.forEach(stock => {
-            const dataQuality = stock._data_quality;
-            const hasIncompleteData = dataQuality && !dataQuality.complete;
-            const rowClass = hasIncompleteData ? 'incomplete-data' : '';
-            const dataQualityTitle = hasIncompleteData ? 
-                `Missing: ${dataQuality.missing_fields.join(', ')}` : '';
-
             html += `
-                <tr class="${rowClass}" title="${dataQualityTitle}">
-                    <td>
-                        <strong>${stock.symbol}</strong>
-                        ${hasIncompleteData ? '<i class="fas fa-exclamation-circle" style="color: #f59e0b; margin-left: 4px;"></i>' : ''}
-                    </td>
+                <tr>
+                    <td><strong>${stock.symbol}</strong></td>
                     <td>${stock.name || 'N/A'}</td>
                     <td>${this.formatValue(stock.pe_ratio)}</td>
                     <td>${this.formatValue(stock.roic, '%')}</td>
@@ -984,18 +797,6 @@ class FactorsManager {
         }
     }
 
-    loadActiveFactorsFromLocalStorage() {
-        try {
-            const stored = localStorage.getItem('activeFactors');
-            if (stored) {
-                this.activeFactors = JSON.parse(stored);
-                console.log('Loaded active factors from localStorage:', this.activeFactors.length);
-            }
-        } catch (error) {
-            console.error('Error loading active factors from localStorage:', error);
-        }
-    }
-
     // Export results to CSV
     exportToCSV() {
         if (this.screenResults.length === 0) {
@@ -1048,7 +849,7 @@ class FactorsManager {
     getResults() {
         return this.screenResults;
     }
-    
+
     // Called when the factors tab is activated
     onTabActivated() {
         console.log('FactorsManager: Tab activated, rendering blocks...');
