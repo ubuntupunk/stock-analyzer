@@ -229,7 +229,7 @@ class FactorsManager {
         const value = parseFloat(blockEl.querySelector('.factor-value').value);
 
         if (isNaN(value)) {
-            alert('Please enter a valid number');
+            window.uiManager.showNotification('Please enter a valid number', 'error');
             return;
         }
 
@@ -252,7 +252,7 @@ class FactorsManager {
         };
 
         if (this.factors.some(f => f.id === screenFactor.id)) {
-            alert(`Factor "${screenFactor.name}" is already added.`);
+            window.uiManager.showNotification(`Factor "${screenFactor.name}" is already added.`, 'warning');
             return;
         }
 
@@ -295,7 +295,7 @@ class FactorsManager {
         const valueInput = document.querySelector(`.factor-value[data-factor="${factor.id}"]`);
 
         if (!operatorSelect || !valueInput || !valueInput.value) {
-            alert('Please set operator and value for the factor');
+            window.uiManager.showNotification('Please set operator and value for the factor', 'error');
             return;
         }
 
@@ -490,7 +490,7 @@ class FactorsManager {
 
     async screenStocks() {
         if (this.factors.length === 0) {
-            alert('Please add at least one factor to screen stocks');
+            window.uiManager.showNotification('Please add at least one factor to screen stocks', 'warning');
             return;
         }
 
@@ -644,7 +644,7 @@ class FactorsManager {
         const criteriaInput = document.getElementById('customFactorCriteria');
 
         if (!nameInput.value || !descInput.value || !criteriaInput.value) {
-            alert('Please fill in all fields');
+            window.uiManager.showNotification('Please fill in all fields', 'error');
             return;
         }
 
@@ -789,7 +789,7 @@ class FactorsManager {
     // Export results to CSV
     exportToCSV() {
         if (this.screenResults.length === 0) {
-            alert('No results to export. Please run a screen first.');
+            window.uiManager.showNotification('No results to export. Please run a screen first.', 'info');
             return;
         }
 

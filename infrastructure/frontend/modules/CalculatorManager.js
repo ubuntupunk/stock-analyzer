@@ -113,7 +113,7 @@ class CalculatorManager {
      */
     showError(message) {
         console.error('CalculatorManager Error:', message);
-        alert(message);
+        window.uiManager.showNotification(message, 'error');
     }
 }
 

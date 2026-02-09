@@ -2,49 +2,67 @@
 // Notifications
 // ============================================
 
-.notification {
+.notification-container {
   position: fixed;
   top: var(--spacing-lg);
   right: var(--spacing-lg);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background-color: var(--bg-white);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-lg);
-  z-index: var(--z-tooltip);
+  z-index: var(--z-modal); // High z-index to be on top
+  display: flex;
+  flex-direction: column-reverse; // New notifications appear on top
+  gap: var(--spacing-sm); // Space between notifications
   max-width: 350px;
-  display: none;
-  animation: slideIn 0.3s ease;
-  
-  &.show {
-    display: block;
+  pointer-events: none; // Allow clicks to pass through container
+}
+
+.notification {
+  pointer-events: auto; // Re-enable clicks for individual notifications
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-md);
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+  opacity: 0;
+  transform: translateX(100%);
+  animation: slideIn .3s ease-out forwards, fadeOut 0.3s ease-out 4.7s forwards;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+
+  .notification-icon {
+    font-size: var(--font-size-lg);
   }
-  
-  &.success {
-    border-left: 4px solid var(--success-color);
-  }
-  
-  &.error {
-    border-left: 4px solid var(--danger-color);
-  }
-  
-  &.warning {
-    border-left: 4px solid var(--warning-color);
-  }
-  
-  &.info {
+
+  &.notification-info {
     border-left: 4px solid var(--info-color);
+    .notification-icon { color: var(--info-color); }
+  }
+
+  &.notification-success {
+    border-left: 4px solid var(--success-color);
+    .notification-icon { color: var(--success-color); }
+  }
+
+  &.notification-error {
+    border-left: 4px solid var(--danger-color);
+    .notification-icon { color: var(--danger-color); }
+  }
+
+  &.notification-warning {
+    border-left: 4px solid var(--warning-color);
+    .notification-icon { color: var(--warning-color); }
   }
 }
 
-.notification-title {
-  font-weight: var(--font-weight-semibold);
-  margin-bottom: var(--spacing-xs);
-}
-
-.notification-message {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
+// Remove these as they are not used for the new structure
+// .notification-title {
+//   font-weight: var(--font-weight-semibold);
+//   margin-bottom: var(--spacing-xs);
+// }
+//
+// .notification-message {
+//   font-size: var(--font-size-sm);
+//   color: var(--text-secondary);
+// }
 
 @keyframes slideIn {
   from {
@@ -54,6 +72,15 @@
   to {
     transform: translateX(0);
     opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 

@@ -604,16 +604,13 @@ window.loadAnalyserSymbol = function () {
     }
 
     const symbol = input.value.trim().toUpperCase();
-    if (!symbol) {
-        // Show error notification
-        if (window.app && window.app.showNotification) {
-            window.app.showNotification('Please enter a stock symbol', 'error');
-        } else {
-            alert('Please enter a stock symbol');
-        }
-        return;
-    }
-
+            if (!symbol) {
+                // Show error notification
+                if (window.app && window.app.showNotification) {
+                    window.app.showNotification('Please enter a stock symbol', 'error');
+                }
+                return;
+            }
     console.log('StockAnalyserManager: Loading symbol from input:', symbol);
 
     // Use stockManager to select the stock and switch to stock-analyser tab

@@ -176,7 +176,6 @@ class UIManager {
      * @param {string} type - Notification type (info, success, error, warning)
      */
     showNotification(message, type = 'info') {
-        // Create notification element if it doesn't exist
         let notificationContainer = document.getElementById('notification-container');
         if (!notificationContainer) {
             notificationContainer = document.createElement('div');
@@ -187,16 +186,35 @@ class UIManager {
 
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
-        notification.textContent = message;
+
+        let iconClass = '';
+        switch (type) {
+            case 'info':
+                iconClass = 'fas fa-info-circle';
+                break;
+            case 'success':
+                iconClass = 'fas fa-check-circle';
+                break;
+            case 'error':
+                iconClass = 'fas fa-times-circle';
+                break;
+            case 'warning':
+                iconClass = 'fas fa-exclamation-triangle';
+                break;
+            default:
+                iconClass = 'fas fa-info-circle';
+        }
+
+        notification.innerHTML = `<i class="notification-icon ${iconClass}"></i><span>${message}</span>`;
 
         notificationContainer.appendChild(notification);
 
-        // Auto-remove after 5 seconds
+        // Auto-remove after 5 seconds (matching CSS animation duration)
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
             }
-        }, 5000);
+        }, 5000); // Total animation is 0.3s slideIn + 4.7s stay + 0.3s fadeOut = 5.3s total. Remove slightly before end.
     }
 
     /**
