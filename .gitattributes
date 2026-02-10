@@ -1,0 +1,4 @@
+
+# Use bd merge for beads JSONL files (collaborative issue tracking)
+.beads/issues.jsonl merge=beads
+.beads/interactions.jsonl merge=beads

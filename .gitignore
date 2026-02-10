@@ -130,3 +130,12 @@ voicetree-5-2/
 archive-t6us3w/
 bun.lock
 
+# Beads SQLite database files (local cache only - don't track)
+.beads/*.db*
+.beads/*.lock
+.beads/*.pid
+.beads/daemon*
+.beads/.local_version
+.beads/config.yaml
+.beads/metadata.json
+.beads/README.md
