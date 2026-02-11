@@ -318,12 +318,56 @@ Resources:
       Timeout: 900
       MemorySize: 1024
       Events:
-        WeeklyUpdate:
+        # Staggered weekly updates for each index to avoid rate limits
+        SP500Weekly:
           Type: Schedule
           Properties:
             Schedule: rate(7 days)
-            Description: Weekly update of stock universe data
+            Description: Weekly update of S&P 500 index
             Enabled: true
+            Input: !Sub |
+              {
+                "indexId": "SP500",
+                "operation": "seed",
+                "enrich": true
+              }
+
+        RussellWeekly:
+          Type: Schedule
+          Properties:
+            Schedule: rate(7 days)
+            Description: Weekly update of Russell 3000 index
+            Enabled: true
+            Input: !Sub |
+              {
+                "indexId": "RUSSELL3000",
+                "operation": "seed",
+                "enrich": true
+              }
+
+        JSEWeekly:
+          Type: Schedule
+          Properties:
+            Schedule: rate(7 days)
+            Description: Weekly update of JSE indices
+            Enabled: true
+            Input: !Sub |
+              {
+                "indexId": "JSE_ALSI",
+                "operation": "seed",
+                "enrich": true
+              }
+
+        DailyValidation:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 day)
+            Description: Daily validation of all stocks
+            Enabled: true
+            Input: !Sub |
+              {
+                "operation": "validate"
+              }
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StockUniverseTable
@@ -372,10 +416,20 @@ Resources:
           AttributeType: S
         - AttributeName: marketCapBucket
           AttributeType: S
+        # Multi-index GSIs
+        - AttributeName: region
+          AttributeType: S
+        - AttributeName: indexId
+          AttributeType: S
+        - AttributeName: currency
+          AttributeType: S
+        - AttributeName: isActive
+          AttributeType: B
       KeySchema:
         - AttributeName: symbol
           KeyType: HASH
       GlobalSecondaryIndexes:
+        # Existing GSIs
         - IndexName: sector-index
           KeySchema:
             - AttributeName: sector
@@ -387,6 +441,39 @@ Resources:
         - IndexName: marketcap-index
           KeySchema:
             - AttributeName: marketCapBucket
+              KeyType: HASH
+            - AttributeName: symbol
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # Multi-index GSIs
+        - IndexName: region-index
+          KeySchema:
+            - AttributeName: region
+              KeyType: HASH
+            - AttributeName: symbol
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: index-id-index
+          KeySchema:
+            - AttributeName: indexId
+              KeyType: HASH
+            - AttributeName: symbol
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: currency-index
+          KeySchema:
+            - AttributeName: currency
+              KeyType: HASH
+            - AttributeName: symbol
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: status-index
+          KeySchema:
+            - AttributeName: isActive
               KeyType: HASH
             - AttributeName: symbol
               KeyType: RANGE
