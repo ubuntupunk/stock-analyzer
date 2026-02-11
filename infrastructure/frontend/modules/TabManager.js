@@ -9,6 +9,7 @@ class TabManager {
         this.currentTab = 'popular-stocks';
         this.tabHistory = [];
         this.sectionsLoaded = new Set(); // Track which sections are loaded
+        this.protectedTabs = ['financials', 'factors', 'analyst-estimates', 'news', 'stock-analyser', 'watchlist', 'model-portfolio'];
 
         // Tab display names for breadcrumbs
         this.tabDisplayNames = {
@@ -19,7 +20,8 @@ class TabManager {
             'analyst-estimates': 'Analyst Estimates',
             'news': 'News',
             'stock-analyser': 'Stock Analyser',
-            'watchlist': 'Watchlist'
+            'watchlist': 'Watchlist',
+            'model-portfolio': 'Model Portfolio'
         };
 
         // Subscribe to tab events
@@ -81,22 +83,20 @@ class TabManager {
     async switchTab(tabName) {
         console.log('TabManager: switchTab called with:', tabName);
 
-        // Protected tabs that require authentication
-        const protectedTabs = ['financials', 'factors', 'analyst-estimates', 'news', 'stock-analyser', 'watchlist'];
-        
-        if (protectedTabs.includes(tabName)) {
-            const isAuth = await window.authManager?.isAuthenticated();
-            if (!isAuth) {
-                this.eventBus.emit('notification:show', {
-                    message: 'Please sign in to access this feature',
-                    type: 'warning'
-                });
-                // Show auth dropdown
-                if (window.app) {
-                    window.app.toggleAuthDropdown();
-                }
-                return;
+        // Determine if current tab is protected
+        const isProtectedTab = this.protectedTabs.includes(tabName);
+        let isAuthenticated = await window.authManager?.isAuthenticated(); // Check authentication status
+
+        if (isProtectedTab && !isAuthenticated) {
+            this.eventBus.emit('notification:show', {
+                message: 'Please sign in to access this feature',
+                type: 'warning'
+            });
+            // Show auth dropdown
+            if (window.app) {
+                window.app.toggleAuthDropdown();
             }
+            // Do NOT return here, proceed to load content and apply overlay
         }
 
         // Update tab buttons immediately for responsive UI
@@ -139,6 +139,16 @@ class TabManager {
         const targetSection = document.getElementById(tabName);
         if (targetSection) {
             targetSection.classList.add('active');
+
+            // Apply protection styles and overlay if unauthenticated for a protected tab
+            if (isProtectedTab && !isAuthenticated) {
+                targetSection.classList.add('content-protected');
+                this.addProtectedContentOverlay(targetSection);
+            } else {
+                targetSection.classList.remove('content-protected');
+                this.removeProtectedContentOverlay(targetSection);
+            }
+
             console.log('TabManager: Section activated:', tabName);
         } else {
             console.warn('TabManager: Section not found after loading:', tabName);
@@ -1116,6 +1126,42 @@ class TabManager {
             }
         } catch (error) {
             console.error('TabManager: Failed to load analyst estimates data:', error);
+        }
+    }
+
+    /**
+     * Adds an overlay to a protected content section when the user is unauthenticated.
+     * @param {HTMLElement} section - The content section element.
+     */
+    addProtectedContentOverlay(section) {
+        let overlay = section.querySelector('.protected-content-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'protected-content-overlay';
+            overlay.innerHTML = `
+                <div class="overlay-content">
+                    <i class="fas fa-lock overlay-icon"></i>
+                    <h3>Unlock Full Access</h3>
+                    <p>Sign in to view detailed ${section.id} data and features.</p>
+                    <button class="btn btn-primary" onclick="window.app.toggleAuthDropdown()">Sign In Now</button>
+                </div>
+            `;
+            section.appendChild(overlay);
+        }
+        // Ensure overlay is visible
+        overlay.style.display = 'flex';
+    }
+
+    /**
+     * Removes the overlay from a protected content section.
+     * @param {HTMLElement} section - The content section element.
+     */
+    removeProtectedContentOverlay(section) {
+        const overlay = section.querySelector('.protected-content-overlay');
+        if (overlay) {
+            overlay.style.display = 'none'; // Hide instead of remove for performance if re-authenticated frequently
+            // If the section is now authenticated, remove the protected-content class
+            section.classList.remove('content-protected');
         }
     }
 

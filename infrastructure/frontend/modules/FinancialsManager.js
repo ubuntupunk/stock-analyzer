@@ -42,6 +42,19 @@ class FinancialsManager {
             }
         });
 
+        // Listen for period changes and reload data
+        this.eventBus.on('financials:periodChanged', async ({ period }) => {
+            console.log('FinancialsManager: Period changed to:', period);
+            this.currentPeriod = period;
+            
+            // Reload financials data with new period
+            const currentSymbol = window.stockManager?.getCurrentSymbol();
+            if (currentSymbol && window.dataManager) {
+                console.log('FinancialsManager: Reloading financials with period:', period);
+                await window.dataManager.loadStockData(currentSymbol, 'financials', period);
+            }
+        });
+
         // Listen for stock selected events to update company info
         this.eventBus.on('stock:selected', ({ symbol }) => {
             console.log('FinancialsManager: Stock selected:', symbol);

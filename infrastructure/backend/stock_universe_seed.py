@@ -49,8 +49,10 @@ class StockUniverseSeeder:
     def get_fallback_stock_list(self) -> list:
         """
         Fallback list of popular stocks if Wikipedia fetch fails
+        Includes both S&P 500 and popular non-S&P 500 stocks
         """
         return [
+            # S&P 500 Stocks
             {'symbol': 'AAPL', 'name': 'Apple Inc.', 'sector': 'Information Technology'},
             {'symbol': 'MSFT', 'name': 'Microsoft Corporation', 'sector': 'Information Technology'},
             {'symbol': 'GOOGL', 'name': 'Alphabet Inc.', 'sector': 'Communication Services'},
@@ -96,6 +98,32 @@ class StockUniverseSeeder:
             {'symbol': 'AMD', 'name': 'Advanced Micro Devices', 'sector': 'Information Technology'},
             {'symbol': 'QCOM', 'name': 'QUALCOMM Incorporated', 'sector': 'Information Technology'},
             {'symbol': 'IBM', 'name': 'International Business Machines', 'sector': 'Information Technology'},
+            # Popular Non-S&P 500 Stocks (for search/watchlist support)
+            {'symbol': 'MELI', 'name': 'MercadoLibre Inc.', 'sector': 'Consumer Discretionary'},
+            {'symbol': 'SMCI', 'name': 'Super Micro Computer Inc.', 'sector': 'Information Technology'},
+            {'symbol': 'COIN', 'name': 'Coinbase Global Inc.', 'sector': 'Financials'},
+            {'symbol': 'UBER', 'name': 'Uber Technologies Inc.', 'sector': 'Information Technology'},
+            {'symbol': 'ABNB', 'name': 'Airbnb Inc.', 'sector': 'Consumer Discretionary'},
+            {'symbol': 'PLTR', 'name': 'Palantir Technologies Inc.', 'sector': 'Information Technology'},
+            {'symbol': 'SNOW', 'name': 'Snowflake Inc.', 'sector': 'Information Technology'},
+            {'symbol': 'HOOD', 'name': 'Robinhood Markets Inc.', 'sector': 'Financials'},
+            {'symbol': 'RIVN', 'name': 'Rivian Automotive Inc.', 'sector': 'Consumer Discretionary'},
+            {'symbol': 'LCID', 'name': 'Lucid Group Inc.', 'sector': 'Consumer Discretionary'},
+            {'symbol': 'DOCU', 'name': 'DocuSign Inc.', 'sector': 'Technology'},
+            {'symbol': 'ZM', 'name': 'Zoom Video Communications', 'sector': 'Technology'},
+            {'symbol': 'DDOG', 'name': 'Datadog Inc.', 'sector': 'Technology'},
+            {'symbol': 'CRWD', 'name': 'CrowdStrike Holdings Inc.', 'sector': 'Technology'},
+            {'symbol': 'NET', 'name': 'Cloudflare Inc.', 'sector': 'Technology'},
+            {'symbol': 'SQ', 'name': 'Block Inc.', 'sector': 'Financials'},
+            {'symbol': 'SPOT', 'name': 'Spotify Technology S.A.', 'sector': 'Communication Services'},
+            {'symbol': 'PINS', 'name': 'Pinterest Inc.', 'sector': 'Communication Services'},
+            {'symbol': 'SNAP', 'name': 'Snap Inc.', 'sector': 'Communication Services'},
+            {'symbol': 'TWLO', 'name': 'Twilio Inc.', 'sector': 'Technology'},
+            {'symbol': 'SHOP', 'name': 'Shopify Inc.', 'sector': 'Technology'},
+            {'symbol': 'COUP', 'name': 'Coupang Inc.', 'sector': 'Consumer Discretionary'},
+            {'symbol': 'BABA', 'name': 'Alibaba Group Holding Ltd.', 'sector': 'Consumer Discretionary'},
+            {'symbol': 'PDD', 'name': 'PDD Holdings Inc.', 'sector': 'Consumer Discretionary'},
+            {'symbol': 'JD', 'name': 'JD.com Inc.', 'sector': 'Consumer Discretionary'},
         ]
     
     def get_market_cap_bucket(self, market_cap: float) -> str:

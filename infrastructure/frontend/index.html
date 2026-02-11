@@ -8,6 +8,22 @@
     <link rel="stylesheet" href="styles.css?v=5">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://js.hcaptcha.com/1/api.js" async defer onload="onHCaptchaLoad"></script>
+    <script>
+        // Placeholder for hCaptcha API loaded event.
+        // This ensures the function is defined even if hcaptcha.js loads before app.js
+        window.onHCaptchaLoad = window.onHCaptchaLoad || function() {
+            console.log('hCaptcha API loaded (placeholder)');
+        };
+        window.onHCaptchaSuccess = window.onHCaptchaSuccess || function(token) {
+            console.log('hCaptcha success (placeholder)');
+        };
+        window.onHCaptchaExpired = window.onHCaptchaExpired || function() {
+            console.log('hCaptcha expired (placeholder)');
+        };
+        window.onHCaptchaReady = window.onHCaptchaReady || function() {
+            console.log('hCaptcha ready (placeholder)');
+        };
+    </script>
 </head>
 
 <body>
@@ -163,6 +179,7 @@
     <script src="config.js?v=3"></script>
     <script src="api.js?v=4"></script>
     <script src="auth.js?v=2"></script>
+    <script src="app.js?v=4"></script>
 
     <!-- Utilities (must load first) -->
     <script src="utils/Formatters.js?v=2"></script>
@@ -193,8 +210,8 @@
     <script src="modules/StockAnalyserManager.js?v=2"></script>
     <script src="modules/TabManager.js?v=7"></script>
 
-    <!-- Main app (must load last) -->
-    <script src="app.js?v=4"></script>
+    <!-- Main app (already loaded in core modules) -->
+    <!-- <script src="app.js?v=4"></script> -->
 
     <!-- Component Loader -->
     <script>

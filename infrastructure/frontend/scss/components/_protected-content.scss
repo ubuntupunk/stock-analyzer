@@ -1,0 +1,69 @@
+// Protected Content Overlay Styles
+
+.content-section.content-protected {
+    position: relative;
+    pointer-events: none; // Prevent interaction with content underneath
+    user-select: none; // Prevent text selection
+    transition: filter 0.3s ease, opacity 0.3s ease;
+    
+    // Apply blur and reduced opacity to the content itself
+    filter: blur(5px);
+    opacity: 0.3;
+
+    // Ensure children don't override pointer-events
+    * {
+        pointer-events: none;
+    }
+}
+
+.protected-content-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.4); // Semi-transparent overlay
+    z-index: 10; // Above the blurred content
+    border-radius: var(--border-radius-lg); // Match section border-radius
+    pointer-events: auto; // Allow interaction with the overlay content
+    text-align: center;
+    
+    .overlay-content {
+        background-color: var(--bg-white);
+        padding: var(--spacing-xl);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-lg);
+        color: var(--text-primary);
+        max-width: 400px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-md);
+
+        .overlay-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: var(--font-size-2xl);
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        p {
+            font-size: var(--font-size-base);
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .btn {
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-xl);
+            font-size: var(--font-size-lg);
+        }
+    }
+}

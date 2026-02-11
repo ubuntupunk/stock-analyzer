@@ -93,6 +93,16 @@ class APIService {
             }
         }
 
+        // --- Local Development Fallback for Auth Token ---
+        // If in local development and authentication is required, but no Cognito token is present,
+        // use a predefined local dev token. This is for local testing of protected routes.
+        if (!authToken && config.isLocal && requiresAuth) {
+            authToken = config.localDevToken;
+            console.log('APIService: Using local development token for authenticated request.');
+        }
+        // --- End Local Development Fallback ---
+
+
         // Proactively refresh token if needed (only if a token was obtained)
         if (authToken) {
             await this.refreshTokenIfNeeded();
@@ -221,13 +231,13 @@ class APIService {
         return this.request(`/stock/estimates?symbol=${symbol}`);
     }
 
-    async getFinancialStatements(symbol) {
+    async getFinancialStatements(symbol, period = 'annual') {
         console.log('=== API: getFinancialStatements START ===');
-        console.log('API: Requesting financials for symbol:', symbol);
-        console.log('API: Request URL:', `${this.baseURL}/stock/financials?symbol=${symbol}`);
+        console.log('API: Requesting financials for symbol:', symbol, 'period:', period);
+        console.log('API: Request URL:', `${this.baseURL}/stock/financials?symbol=${symbol}&period=${period}`);
 
         try {
-            const data = await this.request(`/stock/financials?symbol=${symbol}`);
+            const data = await this.request(`/stock/financials?symbol=${symbol}&period=${period}`);
             console.log('API: Financials response received:', {
                 hasData: !!data,
                 dataKeys: data ? Object.keys(data) : [],

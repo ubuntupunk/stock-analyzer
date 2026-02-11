@@ -700,8 +700,13 @@ class StockAnalyzer {
                 dropdown.classList.add('show');
 
                 // Programmatically render hCaptcha if it hasn't been rendered yet and hcaptcha API is loaded
+                console.log('toggleAuthDropdown: Checking hCaptcha rendering conditions...');
+                console.log('toggleAuthDropdown: typeof hcaptcha:', typeof hcaptcha);
+                console.log('toggleAuthDropdown: this.hCaptchaWidgetId:', this.hCaptchaWidgetId);
+
                 if (typeof hcaptcha !== 'undefined' && this.hCaptchaWidgetId === null) {
                     const hCaptchaContainer = dropdown.querySelector('.h-captcha');
+                    console.log('toggleAuthDropdown: hCaptchaContainer found:', !!hCaptchaContainer);
                     if (hCaptchaContainer) {
                         this.hCaptchaWidgetId = hcaptcha.render(hCaptchaContainer, {
                             sitekey: hCaptchaContainer.dataset.sitekey, // Use sitekey from data-attribute
@@ -709,8 +714,14 @@ class StockAnalyzer {
                             callback: window.onHCaptchaSuccess, // Use global callback
                             'expired-callback': window.onHCaptchaExpired // Use global callback
                         });
-                        console.log('hCaptcha rendered:', this.hCaptchaWidgetId);
+                        console.log('hCaptcha rendered. Widget ID:', this.hCaptchaWidgetId);
+                    } else {
+                        console.warn('toggleAuthDropdown: hCaptcha container not found in dropdown.');
                     }
+                } else if (typeof hcaptcha === 'undefined') {
+                    console.warn('toggleAuthDropdown: hCaptcha object not available, cannot render.');
+                } else if (this.hCaptchaWidgetId !== null) {
+                    console.log('toggleAuthDropdown: hCaptcha already rendered with ID:', this.hCaptchaWidgetId);
                 }
 
                 // Focus on the email field
@@ -741,14 +752,21 @@ class StockAnalyzer {
             return;
         }
 
+        console.log('handleQuickSignIn: Checking for hCaptcha token and rendering status...');
+        console.log('handleQuickSignIn: this.hCaptchaToken:', this.hCaptchaToken);
+        console.log('handleQuickSignIn: typeof hcaptcha:', typeof hcaptcha);
+        console.log('handleQuickSignIn: this.hCaptchaWidgetId:', this.hCaptchaWidgetId);
+
         // Store data temporarily and execute hCaptcha if no token
         if (!this.hCaptchaToken) {
             if (typeof hcaptcha !== 'undefined' && this.hCaptchaWidgetId !== null) {
                 this.showNotification('Please complete the security check...', 'info');
                 this._tempQuickSignInData = { email, password }; // Store credentials
+                console.log('handleQuickSignIn: Executing invisible hCaptcha...');
                 hcaptcha.execute(this.hCaptchaWidgetId); // Execute invisible hCaptcha
                 return; // Wait for onHCaptchaSuccess to call handleQueuedQuickSignIn
             } else {
+                console.error('handleQuickSignIn: Security check not available. hCaptcha object or widget ID missing.');
                 this.showNotification('Security check not available, please try again.', 'error');
                 return;
             }

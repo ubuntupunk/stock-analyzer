@@ -5,12 +5,15 @@ Serves the frontend and provides API endpoints
 
 import os
 import sys
-from flask import Flask, jsonify, request, send_from_directory, render_template
+from flask import Flask, jsonify, request, send_from_directory, render_template, g, abort
+from functools import wraps
 
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from stock_api import StockDataAPI
+from watchlist_api import WatchlistManager
+from screener_api import StockScreener
 import math
 import json
 
@@ -30,10 +33,32 @@ class SafeJSONProvider(DefaultJSONProvider):
                 return [sanitize(v) for v in o]
             return o
         
-        return super().dumps(sanitize(obj), **kwargs)
+        return super().dumps(sanitize(sanitize(obj)), **kwargs)
 
 app = Flask(__name__, template_folder='../frontend')
 app.json = SafeJSONProvider(app)
+
+# --- Authentication Logic for Local Development ---
+LOCAL_DEV_TOKEN = "local-dev-token" # This token will be sent by the frontend for authenticated requests
+
+@app.before_request
+def before_request():
+    g.user_id = None # Initialize user_id for each request
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+        if token == LOCAL_DEV_TOKEN:
+            g.user_id = 'local-dev-user' # Assign a mock user ID for authenticated requests
+        else:
+            print(f"Warning: Invalid local dev token received: {token}")
+
+def auth_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not g.user_id:
+            abort(401, description="Authentication required for this resource.")
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Initialize the Stock Data API
 stock_api = StockDataAPI()
@@ -248,30 +273,27 @@ def run_dcf_analysis():
 WATCHLIST = []
 
 @app.route('/api/watchlist', methods=['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'])
+@auth_required
 def manage_watchlist():
     """Manage user watchlist items"""
-    global WATCHLIST
+    manager = WatchlistManager()
+    user_id = g.user_id # Get user_id from the authenticated context
     
     if request.method == 'OPTIONS':
         return '', 200
         
     if request.method == 'GET':
-        return jsonify(WATCHLIST)
+        return jsonify(manager.get_watchlist(user_id))
         
     elif request.method == 'POST':
         data = request.get_json()
         if not data or 'symbol' not in data:
             return jsonify({'error': 'Symbol required'}), 400
             
-        symbol = data['symbol'].upper()
-        # Avoid duplicates
-        if not any(item.get('symbol') == symbol for item in WATCHLIST):
-            WATCHLIST.append({
-                'symbol': symbol,
-                'name': data.get('name', ''),
-                'addedAt': data.get('addedAt', '')
-            })
-        return jsonify({'status': 'success', 'watchlist': WATCHLIST})
+        result = manager.add_to_watchlist(user_id, data)
+        if result.get('success'):
+            return jsonify(result.get('item')) # Return the added item
+        return jsonify({'error': result.get('error')}), 500
         
     elif request.method == 'PUT':
         data = request.get_json()
@@ -280,26 +302,27 @@ def manage_watchlist():
             
         symbol = data['symbol'].upper()
         updates = data.get('updates', {})
-        
-        for item in WATCHLIST:
-            if item.get('symbol') == symbol:
-                item.update(updates)
-                break
-        return jsonify({'status': 'success', 'watchlist': WATCHLIST})
+        result = manager.update_watchlist_item(user_id, symbol, updates)
+        if result.get('success'):
+            return jsonify(result.get('item')) # Return the updated item
+        return jsonify({'error': result.get('error')}), 500
         
     elif request.method == 'DELETE':
         symbol = request.args.get('symbol')
         if not symbol:
             return jsonify({'error': 'Symbol required'}), 400
             
-        WATCHLIST = [s for s in WATCHLIST if s.get('symbol') != symbol.upper()]
-        return jsonify({'status': 'success', 'watchlist': WATCHLIST})
+        result = manager.remove_from_watchlist(user_id, symbol.upper())
+        if result.get('success'):
+            return jsonify({'status': 'success', 'message': 'Item deleted'})
+        return jsonify({'error': result.get('error')}), 500
 
 # ============================================
 # Screener & Custom Factors Endpoints
 # ============================================
 
 @app.route('/api/screener/screen', methods=['POST', 'OPTIONS'])
+@auth_required
 def screen_stocks():
     """Screen stocks based on custom criteria"""
     if request.method == 'OPTIONS':
@@ -319,6 +342,7 @@ def screen_stocks():
         return jsonify({'error': str(e), 'results': []}), 500
 
 @app.route('/api/factors', methods=['GET', 'POST', 'OPTIONS'])
+@auth_required
 def custom_factors():
     """Get or save custom screening factors"""
     if request.method == 'OPTIONS':
@@ -328,8 +352,8 @@ def custom_factors():
         from screener_api import StockScreener
         screener = StockScreener()
         
-        # Mock user ID for local development (in production, get from auth)
-        user_id = 'local-dev-user'
+        # Use g.user_id from authenticated request
+        user_id = g.user_id
         
         if request.method == 'POST':
             # Save custom factor
@@ -347,6 +371,7 @@ def custom_factors():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/factors/<factor_id>', methods=['DELETE', 'OPTIONS'])
+@auth_required
 def delete_custom_factor(factor_id):
     """Delete a custom factor"""
     if request.method == 'OPTIONS':
@@ -356,8 +381,8 @@ def delete_custom_factor(factor_id):
         from screener_api import StockScreener
         screener = StockScreener()
         
-        # Mock user ID for local development
-        user_id = 'local-dev-user'
+        # Use g.user_id from authenticated request
+        user_id = g.user_id
         
         result = screener.delete_factor(user_id, factor_id)
         return jsonify(result)
@@ -365,6 +390,54 @@ def delete_custom_factor(factor_id):
     except Exception as e:
         print(f"Error deleting factor: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+# ============================================
+# Auth Endpoints (Local Development Mock)
+# ============================================
+@app.route('/api/auth/signin', methods=['POST'])
+def mock_signin():
+    """Mocks user sign-in with hCaptcha verification for local development."""
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    hcaptcha_token = data.get('hcaptchaToken')
+
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required'}), 400
+
+    # Mock hCaptcha verification
+    if not hcaptcha_token:
+        print("Mock Sign-in: hCaptcha token missing.")
+        return jsonify({'error': 'hCaptcha token missing. Security check required.'}), 400
+    
+    # In a real scenario, you would send this token to hCaptcha verification API
+    # response = requests.post("https://hcaptcha.com/siteverify", data={
+    #     'response': hcaptcha_token,
+    #     'secret': 'YOUR_HCAPTCHA_SECRET_KEY'
+    # })
+    # if not response.json().get('success'):
+    #     return jsonify({'error': 'hCaptcha verification failed'}), 400
+
+    print(f"Mock Sign-in: Successfully verified hCaptcha for {email}. Token: {hcaptcha_token[:10]}...")
+    
+    # Mock user authentication (simple check for local dev)
+    # For a real app, integrate with Cognito or a proper user management system
+    if email == 'test@example.com' and password == 'password':
+        # Simulate a successful login by returning a dummy JWT
+        # In a real app, this would be a real JWT from Cognito
+        dummy_jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsb2NhbC1kZXYtdXNlciIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTUxNjIzOTAyMn0.dummyjwttoken"
+        return jsonify({
+            'success': True,
+            'message': 'Mock sign-in successful',
+            'user': {
+                'email': email,
+                'userId': 'local-dev-user'
+            },
+            'idToken': dummy_jwt,
+            'accessToken': dummy_jwt # In a real app, these would be different
+        }), 200
+    else:
+        return jsonify({'error': 'Invalid email or password'}), 401
 
 if __name__ == '__main__':
     print("Starting local Flask server at http://localhost:5000")

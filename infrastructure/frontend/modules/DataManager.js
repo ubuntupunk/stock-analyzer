@@ -440,10 +440,12 @@ class DataManager {
      * Uses RequestQueue to throttle concurrent requests
      * @param {string} symbol - Stock symbol
      * @param {string} type - Data type (metrics, financials, etc.)
+     * @param {string} period - Time period for financials (annual, quarterly)
      * @returns {Promise} Data promise
      */
-    async loadStockData(symbol, type) {
-        const cacheKey = `${symbol}:${type}`;
+    async loadStockData(symbol, type, period = 'annual') {
+        // Include period in cache key for financials
+        const cacheKey = type === 'financials' ? `${symbol}:${type}:${period}` : `${symbol}:${type}`;
 
         // Check cache first
         const cachedData = this.cache.get(cacheKey);
@@ -517,7 +519,7 @@ class DataManager {
                         };
                         break;
                     case 'financials':
-                        data = await this.executeWithCircuitBreaker(() => api.getFinancialStatements(symbol), type);
+                        data = await this.executeWithCircuitBreaker(() => api.getFinancialStatements(symbol, period), type);
                         data = this.transformFinancialsData(data);
                         break;
                     case 'analyst-estimates':

@@ -27,6 +27,8 @@ const config = {
 
     // Environment flag for debugging
     isDevelopment: isLocal,
+    isLocal: isLocal, // Explicitly expose isLocal
+    localDevToken: 'local-dev-token', // Token for local development authentication
 
     // Debug logging
     debug: isLocal

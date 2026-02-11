@@ -139,3 +139,4 @@ bun.lock
 .beads/config.yaml
 .beads/metadata.json
 .beads/README.md
+.blackboxcli/

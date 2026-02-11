@@ -101,13 +101,35 @@
   }
 }
 
-.financials-table {
+.financial-table {
   width: 100%;
   border-collapse: collapse;
   background-color: var(--bg-white);
   border-radius: var(--border-radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  
+  thead {
+    th {
+      background-color: var(--bg-light);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+    }
+  }
+  
+  tbody {
+    tr:nth-child(odd) td {
+      background-color: var(--bg-white);
+    }
+    
+    tr:nth-child(even) td {
+      background-color: var(--bg-stripe);
+    }
+    
+    tr:hover td {
+      background-color: var(--bg-hover);
+    }
+  }
   
   th, td {
     padding: var(--spacing-md);
@@ -132,10 +154,6 @@
   
   tr:last-child td {
     border-bottom: none;
-  }
-  
-  tr:hover td {
-    background-color: var(--bg-hover);
   }
 }
 

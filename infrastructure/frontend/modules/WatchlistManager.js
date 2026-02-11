@@ -1041,6 +1041,8 @@ class WatchlistManager {
      * Search and display stocks in picker
      */
     async searchAndDisplayStocks(query, resultsContainer) {
+        const upperQuery = query.toUpperCase().trim();
+        
         resultsContainer.innerHTML = `
             <div class="stock-picker-loading">
                 <i class="fas fa-spinner fa-spin"></i>
@@ -1071,13 +1073,34 @@ class WatchlistManager {
                     </div>
                 `).join('');
             } else {
-                resultsContainer.innerHTML = `
-                    <div class="stock-picker-empty">
-                        <i class="fas fa-search"></i>
-                        <p>No stocks found for "${query}"</p>
-                        <span class="hint">Try searching with a different term</span>
-                    </div>
-                `;
+                // No results found - show manual entry option for valid-looking symbols
+                const isValidSymbol = upperQuery.length >= 1 && upperQuery.length <= 5 && /^[A-Z]/.test(upperQuery);
+                
+                if (isValidSymbol) {
+                    resultsContainer.innerHTML = `
+                        <div class="stock-picker-item manual-entry" data-symbol="${upperQuery}">
+                            <div class="stock-info">
+                                <span class="stock-symbol">${upperQuery}</span>
+                                <span class="stock-name">Add symbol directly</span>
+                            </div>
+                            <button class="btn-add-stock" onclick="window.watchlistManager.addStockDirectly('${upperQuery}')">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <div class="stock-picker-manual-hint">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Symbol not found in database. Click Add to add it anyway.</span>
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div class="stock-picker-empty">
+                            <i class="fas fa-search"></i>
+                            <p>No stocks found for "${query}"</p>
+                            <span class="hint">Try searching with a different term</span>
+                        </div>
+                    `;
+                }
             }
         } catch (error) {
             console.error('Search failed:', error);
@@ -1087,6 +1110,53 @@ class WatchlistManager {
                     <p>Search failed. Please try again.</p>
                 </div>
             `;
+        }
+    }
+
+    /**
+     * Add a stock directly by symbol (when not found in search)
+     * @param {string} symbol - Stock symbol
+     */
+    async addStockDirectly(symbol) {
+        const upperSymbol = symbol.toUpperCase().trim();
+        
+        // Validate symbol format
+        if (!/^[A-Z]{1,5}$/.test(upperSymbol)) {
+            this.showNotification('Invalid symbol format', 'error');
+            return;
+        }
+
+        // Try to get company info from the metrics API
+        let companyName = upperSymbol;
+        try {
+            const metricsData = await api.getStockMetrics(upperSymbol);
+            if (metricsData && metricsData.companyName) {
+                companyName = metricsData.companyName;
+            }
+        } catch (e) {
+            console.log('Could not fetch company name for', upperSymbol, '- using symbol as name');
+        }
+
+        // Check if already on watchlist
+        if (this.isOnWatchlist(upperSymbol)) {
+            this.showNotification(`${upperSymbol} is already in your watchlist`, 'warning');
+            return;
+        }
+
+        const stockData = {
+            symbol: upperSymbol,
+            name: companyName,
+            notes: '',
+            alertPrice: null,
+            tags: []
+        };
+
+        await this.addToWatchlist(stockData);
+
+        // Close picker
+        const overlay = document.querySelector('.stock-picker-overlay');
+        if (overlay) {
+            overlay.remove();
         }
     }
 
@@ -1272,6 +1342,27 @@ class WatchlistManager {
             }
             .stock-picker-item:last-child {
                 border-bottom: none;
+            }
+            .stock-picker-item.manual-entry {
+                background-color: rgba(91, 163, 208, 0.1);
+                border: 1px dashed var(--primary-color);
+                margin: var(--spacing-sm) var(--spacing-md);
+                border-radius: var(--border-radius-md);
+            }
+            .stock-picker-item.manual-entry:hover {
+                background-color: rgba(91, 163, 208, 0.2);
+            }
+            .stock-picker-manual-hint {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-sm);
+                padding: var(--spacing-sm) var(--spacing-lg);
+                color: var(--text-muted);
+                font-size: var(--font-size-xs);
+                font-style: italic;
+            }
+            .stock-picker-manual-hint i {
+                color: var(--primary-color);
             }
             .stock-info {
                 display: flex;
