@@ -26,8 +26,13 @@ After Step 1 completes, add each GSI separately:
 
 #### GSI #1: region-index
 1. Edit `template.yaml`
-2. Uncomment the `region-index` GSI block
-3. Run:
+2. In `AttributeDefinitions`, uncomment:
+   ```
+   - AttributeName: region
+     AttributeType: S
+   ```
+3. In `GlobalSecondaryIndexes`, uncomment the `region-index` block
+4. Run:
    ```bash
    sam build
    sam deploy
@@ -35,8 +40,13 @@ After Step 1 completes, add each GSI separately:
 
 #### GSI #2: index-id-index
 1. Edit `template.yaml`
-2. Uncomment the `index-id-index` GSI block
-3. Run:
+2. In `AttributeDefinitions`, uncomment:
+   ```
+   - AttributeName: indexId
+     AttributeType: S
+   ```
+3. In `GlobalSecondaryIndexes`, uncomment the `index-id-index` block
+4. Run:
    ```bash
    sam build
    sam deploy
@@ -44,8 +54,13 @@ After Step 1 completes, add each GSI separately:
 
 #### GSI #3: currency-index
 1. Edit `template.yaml`
-2. Uncomment the `currency-index` GSI block
-3. Run:
+2. In `AttributeDefinitions`, uncomment:
+   ```
+   - AttributeName: currency
+     AttributeType: S
+   ```
+3. In `GlobalSecondaryIndexes`, uncomment the `currency-index` block
+4. Run:
    ```bash
    sam build
    sam deploy
@@ -53,8 +68,13 @@ After Step 1 completes, add each GSI separately:
 
 #### GSI #4: status-index
 1. Edit `template.yaml`
-2. Uncomment the `status-index` GSI block
-3. Run:
+2. In `AttributeDefinitions`, uncomment:
+   ```
+   - AttributeName: isActive
+     AttributeType: B
+   ```
+3. In `GlobalSecondaryIndexes`, uncomment the `status-index` block
+4. Run:
    ```bash
    sam build
    sam deploy

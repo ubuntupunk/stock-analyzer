@@ -416,15 +416,15 @@ Resources:
           AttributeType: S
         - AttributeName: marketCapBucket
           AttributeType: S
-        # Multi-index GSIs
-        - AttributeName: region
-          AttributeType: S
-        - AttributeName: indexId
-          AttributeType: S
-        - AttributeName: currency
-          AttributeType: S
-        - AttributeName: isActive
-          AttributeType: B
+        # Add these AttributeDefinitions when adding corresponding GSI:
+        # - AttributeName: region
+        #   AttributeType: S
+        # - AttributeName: indexId
+        #   AttributeType: S
+        # - AttributeName: currency
+        #   AttributeType: S
+        # - AttributeName: isActive
+        #   AttributeType: B
       KeySchema:
         - AttributeName: symbol
           KeyType: HASH
