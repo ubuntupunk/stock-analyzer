@@ -72,6 +72,35 @@ Access the test page at:
 - [x] Auth handlers in app.js
 - [x] Test page created and deployed
 - [x] Frontend deployed to S3/CloudFront
+- [x] hCaptcha added to sign-in form
+- [x] Protected routes implemented (financials, factors, analyst-estimates, news, stock-analyser, watchlist)
+
+## 🔐 Protected Routes
+
+The following tabs require authentication:
+- **Financials** - Financial statements
+- **Factors** - Factor screening
+- **Analyst Estimates** - Analyst estimates and ratings
+- **News** - Stock news
+- **Stock Analyser** - DCF valuation tool
+- **Watchlist** - Personal watchlist
+
+When an unauthenticated user tries to access these tabs, they will:
+1. See a warning notification
+2. Auth dropdown will open automatically
+3. Must sign in to proceed
+
+## 🤖 hCaptcha Integration
+
+- **Test Site Key**: `10000000-ffff-ffff-ffff-000000000001` (always passes)
+- **Production**: Replace with your real hCaptcha site key
+- Captcha is verified before sign-in
+- Automatically resets after each attempt
+
+To get a production site key:
+1. Sign up at https://www.hcaptcha.com/
+2. Create a new site
+3. Replace the test key in `header.html`
 
 ### 🔄 Next Steps (Optional Enhancements)
 
