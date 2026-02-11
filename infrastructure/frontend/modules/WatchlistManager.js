@@ -164,6 +164,12 @@ class WatchlistManager {
             }
 
             this.eventBus.emit('watchlist:loaded', { watchlist: this.watchlist });
+            
+            // Update the watchlist button state for the currently selected stock
+            const currentSymbol = window.stockManager?.getCurrentSymbol();
+            if (currentSymbol) {
+                this.updateWatchlistButtonState(currentSymbol);
+            }
         } catch (error) {
             console.error('>>> _doLoadWatchlist: Failed:', error);
             this.eventBus.emit('watchlist:error', { error: error.message });
@@ -222,6 +228,7 @@ class WatchlistManager {
                 this.watchlist.push(watchlistItem);
                 this.renderWatchlist();
                 this.updateStockCardWatchlistButtons(stockData.symbol);
+                this.updateWatchlistButtonState(stockData.symbol);
 
                 this.showNotification(`${stockData.symbol} added to watchlist`, 'success');
                 this.eventBus.emit('watchlist:added', { stockData, item: watchlistItem });
@@ -250,6 +257,7 @@ class WatchlistManager {
                 this.watchlist = this.watchlist.filter(item => item.symbol !== symbol);
                 this.renderWatchlist();
                 this.updateStockCardWatchlistButtons(symbol);
+                this.updateWatchlistButtonState(symbol);
 
                 this.showNotification(`${symbol} removed from watchlist`, 'success');
                 this.eventBus.emit('watchlist:removed', { symbol });
