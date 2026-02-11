@@ -84,6 +84,25 @@ class StockAnalyzer {
         // Error boundary must be initialized first
         this.modules.errorBoundary = new ErrorBoundary(eventBus);
 
+        // Configure authentication
+        if (window.authManager && window.config?.cognito) {
+            const configured = window.authManager.configure({
+                region: window.config.cognito.region,
+                userPoolId: window.config.cognito.userPoolId,
+                userPoolClientId: window.config.cognito.userPoolClientId
+            });
+            
+            if (configured) {
+                console.log('✓ Authentication configured');
+                // Check if user is already authenticated
+                this.checkAuthStatus();
+            } else {
+                console.warn('⚠ Authentication configuration failed');
+            }
+        } else {
+            console.warn('⚠ Authentication not available (missing authManager or config)');
+        }
+
         // Core modules
         this.modules.dataManager = new DataManager(eventBus);
         this.modules.uiManager = new UIManager(eventBus);
