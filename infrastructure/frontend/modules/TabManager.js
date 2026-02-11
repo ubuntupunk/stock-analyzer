@@ -81,6 +81,24 @@ class TabManager {
     async switchTab(tabName) {
         console.log('TabManager: switchTab called with:', tabName);
 
+        // Protected tabs that require authentication
+        const protectedTabs = ['financials', 'factors', 'analyst-estimates', 'news', 'stock-analyser', 'watchlist'];
+        
+        if (protectedTabs.includes(tabName)) {
+            const isAuth = await window.authManager?.isAuthenticated();
+            if (!isAuth) {
+                this.eventBus.emit('notification:show', {
+                    message: 'Please sign in to access this feature',
+                    type: 'warning'
+                });
+                // Show auth dropdown
+                if (window.app) {
+                    window.app.toggleAuthDropdown();
+                }
+                return;
+            }
+        }
+
         // Update tab buttons immediately for responsive UI
         document.querySelectorAll('.tab-btn').forEach(tab => {
             tab.classList.remove('active');

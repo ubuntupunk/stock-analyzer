@@ -724,6 +724,13 @@ class StockAnalyzer {
             return;
         }
 
+        // Verify hCaptcha
+        const captchaResponse = hcaptcha.getResponse();
+        if (!captchaResponse) {
+            this.showNotification('Please complete the captcha', 'error');
+            return;
+        }
+
         try {
             const result = await window.authManager.signIn(email, password);
 
@@ -736,15 +743,19 @@ class StockAnalyzer {
                 }
                 this.updateAuthUI(true);
                 await this.modules.watchlistManager.loadWatchlist();
+                hcaptcha.reset();
             } else if (result.needsConfirmation) {
                 this.showNotification('Please check your email for verification code');
                 this.showVerifyForm(email);
+                hcaptcha.reset();
             } else {
                 this.showNotification('Sign in failed: ' + result.error, 'error');
+                hcaptcha.reset();
             }
         } catch (error) {
             console.error('Quick sign in error:', error);
             this.showNotification('Sign in failed', 'error');
+            hcaptcha.reset();
         }
     }
 
