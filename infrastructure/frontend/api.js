@@ -9,6 +9,26 @@ class APIService {
         this.retryDelays = [1000, 2000, 4000]; // Exponential backoff
         this.rateLimitDelay = 60000; // 60 second delay on 429
         this.tokenRefreshThreshold = 300000; // Refresh token 5 min before expiry
+
+        // Endpoints that do not strictly require authentication for GET requests
+        // (but will still send a token if available, for personalization)
+        this.publicEndpoints = [
+            /^\/stock\/metrics/,
+            /^\/stock\/price/,
+            /^\/stock\/estimates/,
+            /^\/stock\/financials/,
+            /^\/stock\/factors/,
+            /^\/stock\/news/,
+            /^\/stock\/batch\/prices/,
+            /^\/stock\/batch\/metrics/,
+            /^\/stock\/batch\/estimates/,
+            /^\/stock\/batch\/financials/,
+            /^\/stocks\/search/,
+            /^\/stocks\/popular/,
+            /^\/stocks\/sectors/,
+            /^\/stocks\/filter/,
+            /^\/stocks\/symbol/
+        ];
     }
 
     /**
@@ -42,15 +62,42 @@ class APIService {
 
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
+        const method = options.method ? options.method.toUpperCase() : 'GET';
 
-        // Get auth token if available
+        // Determine if this endpoint requires authentication
+        let requiresAuth = true;
+        if (method === 'GET') {
+            for (const pattern of this.publicEndpoints) {
+                if (pattern.test(endpoint)) {
+                    requiresAuth = false;
+                    break;
+                }
+            }
+        }
+        // If it's a POST/PUT/DELETE (or other) to factors, watchlist, screen, dcf, etc., it generally requires auth.
+        // We'll rely on the default `requiresAuth = true` for these,
+        // unless explicitly marked as public (which they typically won't be).
+
+
+        // Get auth token if available (only if auth is required or user is already logged in)
         let authToken = null;
-        if (window.authManager) {
-            authToken = await window.authManager.getAuthToken();
+        if (window.authManager && (requiresAuth || await window.authManager.isAuthenticated())) {
+            try {
+                authToken = await window.authManager.getAuthToken();
+            } catch (e) {
+                console.warn('APIService: Failed to get auth token for endpoint:', endpoint, e.message);
+                // If auth is strictly required and token cannot be obtained, rethrow
+                if (requiresAuth) {
+                    throw new Error('Authentication required and token could not be obtained.');
+                }
+            }
         }
 
-        // Proactively refresh token if needed
-        await this.refreshTokenIfNeeded();
+        // Proactively refresh token if needed (only if a token was obtained)
+        if (authToken) {
+            await this.refreshTokenIfNeeded();
+        }
+
 
         // Build headers
         const headers = {

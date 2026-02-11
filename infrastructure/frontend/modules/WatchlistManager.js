@@ -97,6 +97,20 @@ class WatchlistManager {
     async loadWatchlist() {
         console.log('>>> loadWatchlist()');
 
+        if (!window.authManager) {
+            console.warn('AuthManager not available, cannot check authentication status for watchlist.');
+            return;
+        }
+
+        const isAuthenticated = await window.authManager.isAuthenticated();
+        if (!isAuthenticated) {
+            console.log('User not authenticated, skipping watchlist load.');
+            // Optionally, clear existing watchlist data or show a message to the user
+            this.watchlist = [];
+            this.renderWatchlist(); // Render an empty watchlist or a login prompt
+            return;
+        }
+
         // If already loading, wait for it
         if (this._watchlistLoading && this._watchlistLoadPromise) {
             console.log('>>> loadWatchlist: Waiting for in-progress load');
@@ -674,6 +688,18 @@ class WatchlistManager {
      */
     async loadWatchlistPrices() {
         console.log('>>> loadWatchlistPrices() CALLED, _pricesLoading=' + this._pricesLoading);
+
+        if (!window.authManager) {
+            console.warn('AuthManager not available, cannot check authentication status for watchlist prices.');
+            return;
+        }
+
+        const isAuthenticated = await window.authManager.isAuthenticated();
+        if (!isAuthenticated) {
+            console.log('User not authenticated, skipping watchlist price load.');
+            // Optionally, clear existing price data or show a message
+            return;
+        }
 
         // If prices are already loading, wait for that to complete
         if (this._pricesLoading && this._pricesLoadingPromise) {

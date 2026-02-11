@@ -5,6 +5,9 @@ class StockAnalyzer {
     constructor() {
         this.modules = {};
         this.isInitialized = false;
+        this.hCaptchaToken = null;
+        this.hCaptchaWidgetId = null;
+        this._tempQuickSignInData = null;
 
         // Initialize immediately
         this.init();
@@ -696,6 +699,20 @@ class StockAnalyzer {
                 // Open this dropdown
                 dropdown.classList.add('show');
 
+                // Programmatically render hCaptcha if it hasn't been rendered yet and hcaptcha API is loaded
+                if (typeof hcaptcha !== 'undefined' && this.hCaptchaWidgetId === null) {
+                    const hCaptchaContainer = dropdown.querySelector('.h-captcha');
+                    if (hCaptchaContainer) {
+                        this.hCaptchaWidgetId = hcaptcha.render(hCaptchaContainer, {
+                            sitekey: hCaptchaContainer.dataset.sitekey, // Use sitekey from data-attribute
+                            size: 'invisible', // Ensure it's invisible
+                            callback: window.onHCaptchaSuccess, // Use global callback
+                            'expired-callback': window.onHCaptchaExpired // Use global callback
+                        });
+                        console.log('hCaptcha rendered:', this.hCaptchaWidgetId);
+                    }
+                }
+
                 // Focus on the email field
                 setTimeout(() => {
                     const emailInput = document.getElementById('quickSignInEmail');
@@ -712,7 +729,7 @@ class StockAnalyzer {
      * @param {Event} event - Form submit event
      */
     async handleQuickSignIn(event) {
-        event.preventDefault();
+        event.preventDefault(); // Prevent immediate form submission
 
         if (!window.authManager) return;
 
@@ -724,39 +741,24 @@ class StockAnalyzer {
             return;
         }
 
-        // Verify hCaptcha
-        const captchaResponse = hcaptcha.getResponse();
-        if (!captchaResponse) {
-            this.showNotification('Please complete the captcha', 'error');
-            return;
-        }
-
-        try {
-            const result = await window.authManager.signIn(email, password);
-
-            if (result.success) {
-                this.showNotification('Signed in successfully!');
-                // Close dropdown
-                const dropdown = document.getElementById('authDropdown');
-                if (dropdown) {
-                    dropdown.classList.remove('show');
-                }
-                this.updateAuthUI(true);
-                await this.modules.watchlistManager.loadWatchlist();
-                hcaptcha.reset();
-            } else if (result.needsConfirmation) {
-                this.showNotification('Please check your email for verification code');
-                this.showVerifyForm(email);
-                hcaptcha.reset();
+        // Store data temporarily and execute hCaptcha if no token
+        if (!this.hCaptchaToken) {
+            if (typeof hcaptcha !== 'undefined' && this.hCaptchaWidgetId !== null) {
+                this.showNotification('Please complete the security check...', 'info');
+                this._tempQuickSignInData = { email, password }; // Store credentials
+                hcaptcha.execute(this.hCaptchaWidgetId); // Execute invisible hCaptcha
+                return; // Wait for onHCaptchaSuccess to call handleQueuedQuickSignIn
             } else {
-                this.showNotification('Sign in failed: ' + result.error, 'error');
-                hcaptcha.reset();
+                this.showNotification('Security check not available, please try again.', 'error');
+                return;
             }
-        } catch (error) {
-            console.error('Quick sign in error:', error);
-            this.showNotification('Sign in failed', 'error');
-            hcaptcha.reset();
         }
+
+        // If hCaptchaToken is already present (e.g., from a previous execution or rapid re-submission)
+        // proceed directly to sign-in. This case might be less common with invisible hCaptcha.
+        this.showNotification('Proceeding with sign-in using existing security token...', 'info');
+        this._tempQuickSignInData = { email, password }; // Ensure data is set for handleQueuedQuickSignIn
+        this.handleQueuedQuickSignIn();
     }
 
     /**
@@ -828,6 +830,56 @@ class StockAnalyzer {
     }
 
     /**
+     * Handles a quick sign-in attempt that was queued after hCaptcha completion.
+     */
+    async handleQueuedQuickSignIn() {
+        if (this.hCaptchaToken && this._tempQuickSignInData) {
+            const { email, password } = this._tempQuickSignInData;
+            this.showNotification('Security check passed, attempting sign-in...', 'info');
+
+            try {
+                // Assuming authManager.signIn does not directly take captcha token,
+                // but the API Gateway/Lambda layer will validate it.
+                const result = await window.authManager.signIn(email, password);
+
+                if (result.success) {
+                    this.showNotification('Signed in successfully!');
+                    this.hideAuthDropdown();
+                    this.updateAuthUI(true);
+                    await this.modules.watchlistManager.loadWatchlist();
+                } else if (result.needsConfirmation) {
+                    this.showNotification('Please check your email for verification code');
+                    this.showVerifyForm(email);
+                } else {
+                    this.showNotification('Sign in failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Queued quick sign in error:', error);
+                this.showNotification('Sign in failed', 'error');
+            } finally {
+                // Always reset hCaptcha and clear token/temp data
+                if (typeof hcaptcha !== 'undefined' && this.hCaptchaWidgetId !== null) {
+                    hcaptcha.reset(this.hCaptchaWidgetId);
+                }
+                this.hCaptchaToken = null;
+                this._tempQuickSignInData = null;
+            }
+        } else {
+            console.warn('Queued sign in called without hCaptcha token or temporary data.');
+        }
+    }
+
+    /**
+     * Helper to hide the authentication dropdown.
+     */
+    hideAuthDropdown() {
+        const dropdown = document.getElementById('authDropdown');
+        if (dropdown) {
+            dropdown.classList.remove('show');
+        }
+    }
+
+    /**
      * Cleanup resources and event listeners
      */
     cleanup() {
@@ -847,6 +899,49 @@ class StockAnalyzer {
 
 // Global app instance
 let app;
+
+// Define global hCaptcha callbacks and helper methods BEFORE app instance is created
+// to ensure they are available when hCaptcha script loads or widget callbacks are fired.
+
+/**
+ * Global callback for hCaptcha API loaded event.
+ * Called when the hCaptcha script (api.js) has fully loaded.
+ */
+window.onHCaptchaLoad = function() {
+    console.log('hCaptcha API loaded.');
+    // At this point, hcaptcha object is available globally.
+    // We don't render it immediately, but rather when the auth dropdown is toggled.
+};
+
+/**
+ * Global callback for hCaptcha successful challenge completion.
+ * Called by the hCaptcha widget when a user successfully completes a challenge.
+ * @param {string} token - The hCaptcha response token.
+ */
+window.onHCaptchaSuccess = function(token) {
+    console.log('hCaptcha success. Token:', token.substring(0, 10) + '...');
+    if (app) {
+        app.hCaptchaToken = token;
+        // Attempt to proceed with the quick sign-in if it was queued
+        app.handleQueuedQuickSignIn();
+    }
+};
+
+/**
+ * Global callback for hCaptcha challenge expiration.
+ * Called by the hCaptcha widget when the response token expires.
+ */
+window.onHCaptchaExpired = function() {
+    console.log('hCaptcha expired.');
+    if (app) {
+        app.hCaptchaToken = null;
+        app.showNotification('Security check expired, please try again.', 'warning');
+        // Optionally, reset the hCaptcha widget if it's currently visible
+        if (typeof hcaptcha !== 'undefined' && app.hCaptchaWidgetId !== null) {
+            hcaptcha.reset(app.hCaptchaWidgetId);
+        }
+    }
+};
 
 // Initialize application when DOM is ready
 // The app waits for sections to load via waitForSections() in init()

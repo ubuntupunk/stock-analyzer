@@ -18,8 +18,8 @@
 .row {
   display: flex;
   flex-wrap: wrap;
-  margin-left: -var(--spacing-sm);
-  margin-right: -var(--spacing-sm);
+  margin-left: calc(var(--spacing-sm) * -1);
+  margin-right: calc(var(--spacing-sm) * -1);
 }
 
 .col {
