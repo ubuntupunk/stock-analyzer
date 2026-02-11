@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Test - Stock Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        #status { margin-top: 20px; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Stock Analyzer - Authentication Test</h1>
+    
+    <div id="status">
+        <strong>Status:</strong> <span id="authStatus">Checking...</span>
+    </div>
+
+    <div class="section">
+        <h2>Sign Up</h2>
+        <input type="email" id="signUpEmail" placeholder="Email">
+        <input type="password" id="signUpPassword" placeholder="Password (min 8 chars)">
+        <button onclick="testSignUp()">Sign Up</button>
+        <div id="signUpResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Verify Email</h2>
+        <input type="email" id="verifyEmail" placeholder="Email">
+        <input type="text" id="verifyCode" placeholder="Verification Code">
+        <button onclick="testVerify()">Verify</button>
+        <div id="verifyResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Sign In</h2>
+        <input type="email" id="signInEmail" placeholder="Email">
+        <input type="password" id="signInPassword" placeholder="Password">
+        <button onclick="testSignIn()">Sign In</button>
+        <div id="signInResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Current User</h2>
+        <button onclick="checkUser()">Check Current User</button>
+        <button onclick="testSignOut()">Sign Out</button>
+        <div id="userResult"></div>
+    </div>
+
+    <!-- AWS Amplify -->
+    <script src="https://unpkg.com/@aws-amplify/core@4.5.5/dist/aws-amplify-core.min.js"></script>
+    <script src="https://unpkg.com/@aws-amplify/auth@4.5.5/dist/aws-amplify-auth.min.js"></script>
+    
+    <!-- Config and Auth -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+
+    <script>
+        // Initialize auth
+        if (window.authManager && window.config?.cognito) {
+            const configured = window.authManager.configure({
+                region: window.config.cognito.region,
+                userPoolId: window.config.cognito.userPoolId,
+                userPoolClientId: window.config.cognito.userPoolClientId
+            });
+            
+            if (configured) {
+                document.getElementById('authStatus').innerHTML = '<span class="success">✓ Configured</span>';
+                checkUser();
+            } else {
+                document.getElementById('authStatus').innerHTML = '<span class="error">✗ Configuration Failed</span>';
+            }
+        } else {
+            document.getElementById('authStatus').innerHTML = '<span class="error">✗ Missing Config</span>';
+        }
+
+        async function testSignUp() {
+            const email = document.getElementById('signUpEmail').value;
+            const password = document.getElementById('signUpPassword').value;
+            const result = await window.authManager.signUp(email, password);
+            
+            document.getElementById('signUpResult').innerHTML = result.success 
+                ? `<p class="success">${result.message}</p>`
+                : `<p class="error">${result.error}</p>`;
+        }
+
+        async function testVerify() {
+            const email = document.getElementById('verifyEmail').value;
+            const code = document.getElementById('verifyCode').value;
+            const result = await window.authManager.confirmSignUp(email, code);
+            
+            document.getElementById('verifyResult').innerHTML = result.success 
+                ? `<p class="success">${result.message}</p>`
+                : `<p class="error">${result.error}</p>`;
+        }
+
+        async function testSignIn() {
+            const email = document.getElementById('signInEmail').value;
+            const password = document.getElementById('signInPassword').value;
+            const result = await window.authManager.signIn(email, password);
+            
+            document.getElementById('signInResult').innerHTML = result.success 
+                ? `<p class="success">${result.message}</p>`
+                : `<p class="error">${result.error}</p>`;
+            
+            if (result.success) {
+                checkUser();
+            }
+        }
+
+        async function checkUser() {
+            const user = await window.authManager.getCurrentUser();
+            const isAuth = await window.authManager.isAuthenticated();
+            
+            if (user) {
+                const attrs = await window.authManager.getUserAttributes();
+                document.getElementById('userResult').innerHTML = `
+                    <p class="success">✓ Authenticated</p>
+                    <p><strong>Email:</strong> ${attrs?.email || 'N/A'}</p>
+                    <p><strong>User ID:</strong> ${attrs?.sub || 'N/A'}</p>
+                `;
+                document.getElementById('authStatus').innerHTML = '<span class="success">✓ Signed In</span>';
+            } else {
+                document.getElementById('userResult').innerHTML = '<p>Not signed in</p>';
+                document.getElementById('authStatus').innerHTML = '<span>Not signed in</span>';
+            }
+        }
+
+        async function testSignOut() {
+            const result = await window.authManager.signOut();
+            document.getElementById('userResult').innerHTML = result.success 
+                ? `<p class="success">${result.message}</p>`
+                : `<p class="error">${result.error}</p>`;
+            
+            if (result.success) {
+                document.getElementById('authStatus').innerHTML = '<span>Signed out</span>';
+            }
+        }
+    </script>
+</body>
+</html>
