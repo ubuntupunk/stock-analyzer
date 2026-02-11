@@ -119,6 +119,10 @@
     &.active i {
       color: gold;
     }
+    
+    &.on-watchlist i {
+      color: #28a745;
+    }
   }
 }
 
