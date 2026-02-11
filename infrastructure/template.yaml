@@ -416,7 +416,7 @@ Resources:
           AttributeType: S
         - AttributeName: marketCapBucket
           AttributeType: S
-        # Add these AttributeDefinitions when adding corresponding GSI:
+        # Multi-index GSIs - Add these AttributeDefinitions when adding corresponding GSI:
         # - AttributeName: region
         #   AttributeType: S
         # - AttributeName: indexId
@@ -448,7 +448,6 @@ Resources:
             ProjectionType: ALL
         # Multi-index GSIs - NOTE: Must be added one at a time due to DynamoDB limitations
         # Uncomment one GSI at a time and redeploy. After each GSI is created, uncomment the next one.
-        # Uncomment the GSI you want to add, keeping others commented:
         #
         # - IndexName: region-index
         #   KeySchema:
@@ -461,30 +460,30 @@ Resources:
         #
         # - IndexName: index-id-index
         #   KeySchema:
-        #     - AttributeName: indexId
-        #       KeyType: HASH
-        #     - AttributeName: symbol
-        #       KeyType: RANGE
+        #      - AttributeName: indexId
+        #        KeyType: HASH
+        #      - AttributeName: symbol
+        #        KeyType: RANGE
         #   Projection:
-        #     ProjectionType: ALL
+        #      ProjectionType: ALL
         #
         # - IndexName: currency-index
         #   KeySchema:
-        #     - AttributeName: currency
-        #       KeyType: HASH
-        #     - AttributeName: symbol
-        #       KeyType: RANGE
+        #      - AttributeName: currency
+        #        KeyType: HASH
+        #      - AttributeName: symbol
+        #        KeyType: RANGE
         #   Projection:
-        #     ProjectionType: ALL
+        #      ProjectionType: ALL
         #
         # - IndexName: status-index
         #   KeySchema:
-        #     - AttributeName: isActive
-        #       KeyType: HASH
-        #     - AttributeName: symbol
-        #       KeyType: RANGE
+        #      - AttributeName: isActive
+        #        KeyType: HASH
+        #      - AttributeName: symbol
+        #        KeyType: RANGE
         #   Projection:
-        #     ProjectionType: ALL
+        #      ProjectionType: ALL
       BillingMode: PAY_PER_REQUEST
       Tags:
         - Key: Application
