@@ -12,34 +12,33 @@ class AuthManager {
      * Should be called on app initialization with CloudFormation outputs
      */
     configure(config) {
-        // Check if Amplify is available
-        if (typeof Amplify === 'undefined') {
-            console.warn('Amplify not available - authentication disabled');
+        // Check if Amplify/Auth is available
+        if (typeof Auth === 'undefined') {
+            console.warn('Amplify Auth not available - authentication disabled');
             this.isConfigured = false;
             return false;
         }
 
         if (!config.userPoolId || !config.userPoolClientId || !config.region) {
-            console.error('Missing required Cognito configuration');
+            console.error('Missing required Cognito configuration', config);
             return false;
         }
 
         try {
-            Amplify.configure({
-                Auth: {
-                    region: config.region,
-                    userPoolId: config.userPoolId,
-                    userPoolWebClientId: config.userPoolClientId,
-                    mandatorySignIn: false,
-                    authenticationFlowType: 'USER_SRP_AUTH'
-                }
+            // Configure Auth directly (Amplify v4 style)
+            Auth.configure({
+                region: config.region,
+                userPoolId: config.userPoolId,
+                userPoolWebClientId: config.userPoolClientId,
+                mandatorySignIn: false,
+                authenticationFlowType: 'USER_SRP_AUTH'
             });
             
             this.isConfigured = true;
-            console.log('Amplify configured successfully');
+            console.log('Amplify Auth configured successfully');
             return true;
         } catch (error) {
-            console.error('Failed to configure Amplify:', error);
+            console.error('Failed to configure Amplify Auth:', error);
             return false;
         }
     }
