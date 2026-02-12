@@ -25,7 +25,7 @@ Each module should implement:
 - [x] **WatchlistManager** - ✅ Migrated - Stops price updates on hide, saves/restores scroll position, lifecycle hooks implemented
 - [x] **NewsManager** - ✅ Migrated - Stops news refresh on hide, auto-refreshes every 5 min when visible, lifecycle hooks implemented
 - [x] **EstimatesManager** - ✅ Migrated - Pauses calculations on hide, refreshes if data stale on show, lifecycle hooks implemented
-- [ ] **FactorsManager** - Cleanup analysis
+- [x] **FactorsManager** - ✅ Migrated - Clears screen results on hide to free memory, re-renders on show, lifecycle hooks implemented
 
 ### Priority 3 - Supporting
 - [ ] **SearchManager** - Clear timeouts

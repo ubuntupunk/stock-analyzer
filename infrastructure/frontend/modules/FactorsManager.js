@@ -850,6 +850,95 @@ class FactorsManager {
             this.renderActiveFactors();
         }, 50);
     }
+
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        console.log('FactorsManager: Cleaning up');
+        // Clear screen results to free memory
+        this.screenResults = [];
+        // Reset factors to defaults if needed
+        console.log('FactorsManager: Cleaned up');
+    }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[FactorsManager] Initialized');
+        this.isInitialized = true;
+        this.isVisible = true;
+        this.analysisActive = true;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[FactorsManager] Shown - resuming analysis');
+        this.isVisible = true;
+        this.analysisActive = true;
+        // Re-render if needed
+        if (this.factors.length > 0) {
+            setTimeout(() => {
+                this.renderFactorBlocks();
+                this.renderActiveFactors();
+            }, 50);
+        }
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[FactorsManager] Hidden - clearing analysis cache');
+        this.isVisible = false;
+        this.analysisActive = false;
+        // Clear screen results to free memory (can be re-screened when shown)
+        if (this.screenResults.length > 0) {
+            this.screenResults = [];
+            console.log('[FactorsManager] Screen results cleared to free memory');
+        }
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[FactorsManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+        this.factors = [];
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            factors: this.factors,
+            screenResults: this.screenResults,
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            analysisActive: this.analysisActive
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[FactorsManager] Restoring state:', state);
+        if (state?.factors) {
+            this.factors = state.factors;
+        }
+        if (state?.screenResults) {
+            this.screenResults = state.screenResults;
+        }
+        this.isVisible = state?.isVisible ?? true;
+        this.analysisActive = state?.analysisActive ?? true;
+    }
 }
 
 // Make available globally

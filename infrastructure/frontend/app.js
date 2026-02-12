@@ -229,9 +229,10 @@ class StockAnalyzer {
 
         if (this.modules.factorsManager) {
             lifecycle.registerModule('factorsManager', this.modules.factorsManager, {
-                onShow: () => console.log('FactorsManager shown'),
-                onHide: () => this.modules.factorsManager.cleanup?.(),
-                onDestroy: () => this.modules.factorsManager.cleanup?.()
+                onInit: () => this.modules.factorsManager.onInit?.(),
+                onShow: () => this.modules.factorsManager.onShow?.(),
+                onHide: () => this.modules.factorsManager.onHide?.(),
+                onDestroy: () => this.modules.factorsManager.onDestroy?.()
             });
         }
 
