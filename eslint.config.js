@@ -70,8 +70,7 @@ export default [
       "no-undef": ["error"],
       "no-unused-vars": ["warn", { 
         args: "none",
-        varsIgnorePattern: "^_",
-        argsIgnorePattern: "^_"
+        caughtErrors: "none"
       }],
     },
   },
