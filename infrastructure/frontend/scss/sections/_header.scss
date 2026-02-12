@@ -49,10 +49,11 @@
     border-radius: 25px;
     font-size: var(--font-size-base);
     background-color: var(--bg-white);
+    color: var(--text-primary);
     transition: all var(--transition-fast);
 
     &:hover {
-      border-color: #8dc5e3;
+      border-color: var(--primary-color);
       box-shadow: 0 2px 8px rgba(91, 163, 208, 0.1);
     }
 
@@ -65,13 +66,13 @@
 
     // Active typing state (has value)
     &:not(:placeholder-shown) {
-      background-color: #fafcfe;
+      background-color: var(--bg-stripe);
       border-color: var(--primary-color);
     }
 
     // Loading state for input
     &.loading {
-      background-color: #f8fcff;
+      background-color: var(--bg-hover);
       border-color: var(--info-color);
       animation: pulseInput 2s ease-in-out infinite;
       box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
@@ -130,10 +131,10 @@
 @keyframes pulseInput {
   0%,
   100% {
-    background-color: #f8fcff;
+    background-color: var(--bg-hover);
   }
   50% {
-    background-color: #f0f8ff;
+    background-color: var(--bg-stripe);
   }
 }
 
