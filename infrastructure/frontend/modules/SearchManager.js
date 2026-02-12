@@ -432,6 +432,79 @@ class SearchManager {
             console.warn('Failed to clear recent searches:', error);
         }
     }
+
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        console.log('SearchManager: Cleaning up');
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = null;
+        }
+        this.hideSearchResults();
+        console.log('SearchManager: Cleaned up');
+    }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[SearchManager] Initialized');
+        this.isInitialized = true;
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[SearchManager] Shown - resuming search');
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[SearchManager] Hidden - clearing search timeout and hiding results');
+        this.isVisible = false;
+        // Clear any pending search timeout
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = null;
+        }
+        // Hide search results
+        this.hideSearchResults();
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[SearchManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            recentSearches: this.getRecentSearches(),
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[SearchManager] Restoring state:', state);
+        this.isVisible = state?.isVisible ?? true;
+    }
 }
 
 // Export for use in other modules
