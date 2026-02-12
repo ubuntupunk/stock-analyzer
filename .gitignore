@@ -140,3 +140,4 @@ bun.lock
 .beads/metadata.json
 .beads/README.md
 .blackboxcli/
+.coverage
