@@ -357,7 +357,123 @@ class FinancialsManager {
      * Cleanup resources
      */
     cleanup() {
+        // Clear financial data caches
+        this.financialData = null;
+        this.statementCache?.clear();
+        this.calculationCache?.clear();
         console.log('FinancialsManager: Cleaned up');
+    }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[FinancialsManager] Initialized');
+        this.isInitialized = true;
+        // Initialize caches
+        this.statementCache = new Map();
+        this.calculationCache = new Map();
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[FinancialsManager] Shown - resuming operations');
+        this.isVisible = true;
+        this.calculationsActive = true;
+        // Refresh financials if data is stale
+        if (this.financialData && this.isDataStale()) {
+            this.refreshFinancials();
+        }
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[FinancialsManager] Hidden - clearing caches to free memory');
+        this.isVisible = false;
+        this.calculationsActive = false;
+        // Clear expensive caches to free memory
+        this.clearExpensiveCaches();
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[FinancialsManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.statementCache?.clear();
+        this.calculationCache?.clear();
+        this.isInitialized = false;
+    }
+
+    /**
+     * Clear expensive memory caches
+     */
+    clearExpensiveCaches() {
+        // Clear calculation cache (can be recalculated)
+        if (this.calculationCache) {
+            this.calculationCache.clear();
+        }
+        // Keep statement cache for faster reload, but limit size
+        if (this.statementCache && this.statementCache.size > 10) {
+            // Keep only recent entries
+            const entries = Array.from(this.statementCache.entries());
+            this.statementCache.clear();
+            entries.slice(-5).forEach(([key, value]) => {
+                this.statementCache.set(key, value);
+            });
+        }
+        console.log('[FinancialsManager] Expensive caches cleared');
+    }
+
+    /**
+     * Check if financial data is stale
+     */
+    isDataStale() {
+        if (!this.lastUpdate) return true;
+        const staleThreshold = 5 * 60 * 1000; // 5 minutes
+        return (Date.now() - this.lastUpdate) > staleThreshold;
+    }
+
+    /**
+     * Refresh financials display
+     */
+    refreshFinancials() {
+        if (this.currentSymbol) {
+            this.loadFinancials(this.currentSymbol);
+        }
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            currentSymbol: this.currentSymbol,
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            calculationsActive: this.calculationsActive,
+            cacheSizes: {
+                statements: this.statementCache?.size || 0,
+                calculations: this.calculationCache?.size || 0
+            }
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[FinancialsManager] Restoring state:', state);
+        if (state?.currentSymbol) {
+            this.currentSymbol = state.currentSymbol;
+        }
+        this.isVisible = state?.isVisible ?? true;
+        this.calculationsActive = state?.calculationsActive ?? true;
     }
 }
 

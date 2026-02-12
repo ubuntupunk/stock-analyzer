@@ -19,7 +19,7 @@ Each module should implement:
 - [x] **ChartManager** - ✅ Migrated - Destroys charts on hide, saves states, lifecycle hooks implemented
 - [x] **StockManager** - ✅ Migrated - Pauses data preloading on hide, aborts ongoing requests, lifecycle hooks implemented
 - [x] **MetricsManager** - ✅ Migrated - Pauses calculations on hide, marks for refresh on show, lifecycle hooks implemented
-- [ ] **FinancialsManager** - Clear caches
+- [x] **FinancialsManager** - ✅ Migrated - Clears expensive caches on hide, manages statement cache, lifecycle hooks implemented
 
 ### Priority 2 - Data Heavy
 - [ ] **WatchlistManager** - Save scroll position

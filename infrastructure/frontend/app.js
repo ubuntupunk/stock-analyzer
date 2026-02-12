@@ -184,9 +184,10 @@ class StockAnalyzer {
 
         if (this.modules.financialsManager) {
             lifecycle.registerModule('financialsManager', this.modules.financialsManager, {
-                onShow: () => console.log('FinancialsManager shown'),
-                onHide: () => this.modules.financialsManager.cleanup?.(),
-                onDestroy: () => this.modules.financialsManager.cleanup?.()
+                onInit: () => this.modules.financialsManager.onInit?.(),
+                onShow: () => this.modules.financialsManager.onShow?.(),
+                onHide: () => this.modules.financialsManager.onHide?.(),
+                onDestroy: () => this.modules.financialsManager.onDestroy?.()
             });
         }
 
