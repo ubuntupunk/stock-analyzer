@@ -1105,6 +1105,83 @@ class DataManager {
         }
         return data;
     }
+
+    /**
+     * Start cache pruning interval
+     */
+    startCachePruning() {
+        if (!this.pruneInterval) {
+            this.pruneInterval = setInterval(() => {
+                if (this.cache && typeof this.cache.prune === 'function') {
+                    this.cache.prune();
+                }
+            }, 60000); // Prune every minute
+            console.log('[DataManager] Cache pruning started');
+        }
+    }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[DataManager] Initialized');
+        this.isInitialized = true;
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[DataManager] Shown - resuming data operations');
+        this.isVisible = true;
+        // Resume cache pruning
+        if (!this.pruneInterval) {
+            this.startCachePruning();
+        }
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[DataManager] Hidden - pausing non-essential operations');
+        this.isVisible = false;
+        // Stop cache pruning to save resources
+        if (this.pruneInterval) {
+            clearInterval(this.pruneInterval);
+            this.pruneInterval = null;
+        }
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[DataManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            cacheSize: this.cache.size,
+            pendingRequests: this.pendingRequests.size
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[DataManager] Restoring state:', state);
+        this.isVisible = state?.isVisible ?? true;
+    }
 }
 
 // Export for use in other modules

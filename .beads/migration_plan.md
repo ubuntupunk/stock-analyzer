@@ -34,8 +34,8 @@ Each module should implement:
 - [x] **UIManager** - ✅ Migrated - Basic lifecycle hooks implemented, error states managed
 
 ### Priority 4 - Infrastructure
-- [ ] **DataManager** - Cache lifecycle
-- [ ] **TabManager** - ✅ Already integrated
+- [x] **DataManager** - ✅ Migrated - Stops cache pruning on hide, manages cache lifecycle, lifecycle hooks implemented
+- [x] **TabManager** - ✅ Already integrated
 - [ ] **HealthManager** - Pause checks
 
 ## Implementation Template
