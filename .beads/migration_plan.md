@@ -24,7 +24,7 @@ Each module should implement:
 ### Priority 2 - Data Heavy
 - [x] **WatchlistManager** - ✅ Migrated - Stops price updates on hide, saves/restores scroll position, lifecycle hooks implemented
 - [x] **NewsManager** - ✅ Migrated - Stops news refresh on hide, auto-refreshes every 5 min when visible, lifecycle hooks implemented
-- [ ] **EstimatesManager** - Pause calculations
+- [x] **EstimatesManager** - ✅ Migrated - Pauses calculations on hide, refreshes if data stale on show, lifecycle hooks implemented
 - [ ] **FactorsManager** - Cleanup analysis
 
 ### Priority 3 - Supporting

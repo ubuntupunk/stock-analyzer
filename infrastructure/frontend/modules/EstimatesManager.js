@@ -439,6 +439,83 @@ class EstimatesManager {
         }
         console.log('EstimatesManager: Cleaned up');
     }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[EstimatesManager] Initialized');
+        this.isInitialized = true;
+        this.isVisible = true;
+        this.calculationsActive = true;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[EstimatesManager] Shown - resuming calculations');
+        this.isVisible = true;
+        this.calculationsActive = true;
+        // Refresh estimates if data might be stale
+        if (this.currentSymbol && this.isDataStale()) {
+            this.loadEstimates(this.currentSymbol);
+        }
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[EstimatesManager] Hidden - pausing calculations');
+        this.isVisible = false;
+        this.calculationsActive = false;
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[EstimatesManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+        this.currentSymbol = null;
+    }
+
+    /**
+     * Check if estimates data is stale
+     */
+    isDataStale() {
+        if (!this.lastUpdate) return true;
+        const staleThreshold = 15 * 60 * 1000; // 15 minutes
+        return (Date.now() - this.lastUpdate) > staleThreshold;
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            currentSymbol: this.currentSymbol,
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            calculationsActive: this.calculationsActive,
+            lastUpdate: this.lastUpdate
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[EstimatesManager] Restoring state:', state);
+        if (state?.currentSymbol) {
+            this.currentSymbol = state.currentSymbol;
+        }
+        this.isVisible = state?.isVisible ?? true;
+        this.calculationsActive = state?.calculationsActive ?? true;
+        this.lastUpdate = state?.lastUpdate;
+    }
 }
 
 // Export for use in other modules

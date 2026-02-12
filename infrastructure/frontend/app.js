@@ -220,9 +220,10 @@ class StockAnalyzer {
 
         if (this.modules.estimatesManager) {
             lifecycle.registerModule('estimatesManager', this.modules.estimatesManager, {
-                onShow: () => console.log('EstimatesManager shown'),
-                onHide: () => this.modules.estimatesManager.cleanup?.(),
-                onDestroy: () => this.modules.estimatesManager.cleanup?.()
+                onInit: () => this.modules.estimatesManager.onInit?.(),
+                onShow: () => this.modules.estimatesManager.onShow?.(),
+                onHide: () => this.modules.estimatesManager.onHide?.(),
+                onDestroy: () => this.modules.estimatesManager.onDestroy?.()
             });
         }
 
