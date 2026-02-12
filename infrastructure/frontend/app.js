@@ -211,9 +211,10 @@ class StockAnalyzer {
 
         if (this.modules.newsManager) {
             lifecycle.registerModule('newsManager', this.modules.newsManager, {
-                onShow: () => console.log('NewsManager shown'),
-                onHide: () => this.modules.newsManager.cleanup?.(),
-                onDestroy: () => this.modules.newsManager.cleanup?.()
+                onInit: () => this.modules.newsManager.onInit?.(),
+                onShow: () => this.modules.newsManager.onShow?.(),
+                onHide: () => this.modules.newsManager.onHide?.(),
+                onDestroy: () => this.modules.newsManager.onDestroy?.()
             });
         }
 

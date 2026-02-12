@@ -74,7 +74,7 @@ class NewsManager {
         // Make the keydown handler globally available
         window.handleNewsSymbolKeydown = (event) => {
             if (event.key === 'Enter') {
-                loadNewsSymbol();
+                window.loadNewsSymbol();
             }
         };
 
@@ -258,6 +258,9 @@ class NewsManager {
      */
     updateNewsDisplay(symbol, data) {
         console.log('NewsManager: updateNewsDisplay called with:', { symbol, hasData: !!data, dataType: typeof data });
+
+        // Track last update time for stale data detection
+        this.lastNewsUpdate = Date.now();
 
         const container = document.getElementById('newsContainer');
         if (!container) {
@@ -445,6 +448,111 @@ class NewsManager {
      */
     cleanup() {
         console.log('NewsManager: Cleaned up');
+    }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[NewsManager] Initialized');
+        this.isInitialized = true;
+        this.newsRefreshInterval = null;
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[NewsManager] Shown - resuming news updates');
+        this.isVisible = true;
+        this.startNewsRefresh();
+        // Refresh news if we have a symbol and data might be stale
+        if (this.currentSymbol && this.isDataStale()) {
+            this.loadNews(this.currentSymbol);
+        }
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[NewsManager] Hidden - pausing news refresh');
+        this.isVisible = false;
+        this.stopNewsRefresh();
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[NewsManager] Destroyed - complete cleanup');
+        this.stopNewsRefresh();
+        this.cleanup();
+        this.isInitialized = false;
+    }
+
+    /**
+     * Start periodic news refresh
+     */
+    startNewsRefresh() {
+        // Refresh news every 5 minutes when visible
+        if (!this.newsRefreshInterval) {
+            this.newsRefreshInterval = setInterval(() => {
+                if (this.currentSymbol && this.isVisible) {
+                    console.log('[NewsManager] Auto-refreshing news for:', this.currentSymbol);
+                    this.loadNews(this.currentSymbol);
+                }
+            }, 5 * 60 * 1000); // 5 minutes
+        }
+    }
+
+    /**
+     * Stop periodic news refresh
+     */
+    stopNewsRefresh() {
+        if (this.newsRefreshInterval) {
+            clearInterval(this.newsRefreshInterval);
+            this.newsRefreshInterval = null;
+            console.log('[NewsManager] News refresh stopped');
+        }
+    }
+
+    /**
+     * Check if news data is stale
+     */
+    isDataStale() {
+        if (!this.lastNewsUpdate) return true;
+        const staleThreshold = 10 * 60 * 1000; // 10 minutes
+        return (Date.now() - this.lastNewsUpdate) > staleThreshold;
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            currentSymbol: this.currentSymbol,
+            currentPeriod: this.currentPeriod,
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            lastNewsUpdate: this.lastNewsUpdate
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[NewsManager] Restoring state:', state);
+        if (state?.currentSymbol) {
+            this.currentSymbol = state.currentSymbol;
+        }
+        if (state?.currentPeriod) {
+            this.currentPeriod = state.currentPeriod;
+        }
+        this.isVisible = state?.isVisible ?? true;
+        this.lastNewsUpdate = state?.lastNewsUpdate;
     }
 }
 
