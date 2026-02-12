@@ -87,6 +87,9 @@ class StockAnalyzer {
         // Error boundary must be initialized first
         this.modules.errorBoundary = new ErrorBoundary(eventBus);
 
+        // Initialize lifecycle manager for module lifecycle management
+        this.modules.lifecycleManager = new LifecycleManager(eventBus);
+
         // Configure authentication
         if (window.authManager && window.config?.cognito) {
             const configured = window.authManager.configure({
@@ -143,8 +146,92 @@ class StockAnalyzer {
         this.modules.factorsManager = new FactorsManager(eventBus);
         window.factorsManager = this.modules.factorsManager;
 
+        // Register modules with lifecycle manager
+        this.registerModulesWithLifecycle();
+
         // Expose financials manager globally
         window.financialsManager = this.modules.financialsManager;
+    }
+
+    /**
+     * Register all modules with lifecycle manager
+     */
+    registerModulesWithLifecycle() {
+        if (!this.modules.lifecycleManager) return;
+
+        const lifecycle = this.modules.lifecycleManager;
+
+        // Register modules with their lifecycle hooks
+        // Modules will implement hooks gradually, starting with basic registration
+
+        if (this.modules.stockManager) {
+            lifecycle.registerModule('stockManager', this.modules.stockManager, {
+                onInit: () => this.modules.stockManager.initialize?.(),
+                onShow: () => console.log('StockManager shown'),
+                onHide: () => this.modules.stockManager.cleanup?.(),
+                onDestroy: () => this.modules.stockManager.cleanup?.()
+            });
+        }
+
+        if (this.modules.metricsManager) {
+            lifecycle.registerModule('metricsManager', this.modules.metricsManager, {
+                onInit: () => this.modules.metricsManager.initialize?.(),
+                onShow: () => console.log('MetricsManager shown'),
+                onHide: () => this.modules.metricsManager.cleanup?.(),
+                onDestroy: () => this.modules.metricsManager.cleanup?.()
+            });
+        }
+
+        if (this.modules.financialsManager) {
+            lifecycle.registerModule('financialsManager', this.modules.financialsManager, {
+                onShow: () => console.log('FinancialsManager shown'),
+                onHide: () => this.modules.financialsManager.cleanup?.(),
+                onDestroy: () => this.modules.financialsManager.cleanup?.()
+            });
+        }
+
+        if (this.modules.watchlistManager) {
+            lifecycle.registerModule('watchlistManager', this.modules.watchlistManager, {
+                onInit: () => this.modules.watchlistManager.initialize?.(),
+                onShow: () => console.log('WatchlistManager shown'),
+                onHide: () => this.modules.watchlistManager.cleanup?.(),
+                onDestroy: () => this.modules.watchlistManager.cleanup?.()
+            });
+        }
+
+        if (this.modules.chartManager) {
+            lifecycle.registerModule('chartManager', this.modules.chartManager, {
+                onShow: () => console.log('ChartManager shown'),
+                onHide: () => this.modules.chartManager.destroyAllCharts?.(),
+                onDestroy: () => this.modules.chartManager.destroyAllCharts?.()
+            });
+        }
+
+        if (this.modules.newsManager) {
+            lifecycle.registerModule('newsManager', this.modules.newsManager, {
+                onShow: () => console.log('NewsManager shown'),
+                onHide: () => this.modules.newsManager.cleanup?.(),
+                onDestroy: () => this.modules.newsManager.cleanup?.()
+            });
+        }
+
+        if (this.modules.estimatesManager) {
+            lifecycle.registerModule('estimatesManager', this.modules.estimatesManager, {
+                onShow: () => console.log('EstimatesManager shown'),
+                onHide: () => this.modules.estimatesManager.cleanup?.(),
+                onDestroy: () => this.modules.estimatesManager.cleanup?.()
+            });
+        }
+
+        if (this.modules.factorsManager) {
+            lifecycle.registerModule('factorsManager', this.modules.factorsManager, {
+                onShow: () => console.log('FactorsManager shown'),
+                onHide: () => this.modules.factorsManager.cleanup?.(),
+                onDestroy: () => this.modules.factorsManager.cleanup?.()
+            });
+        }
+
+        console.log('✓ All modules registered with lifecycle manager');
     }
 
     /**
@@ -901,7 +988,12 @@ class StockAnalyzer {
      * Cleanup resources and event listeners
      */
     cleanup() {
-        // Clean up event listeners and resources
+        // Clean up lifecycle manager first (will destroy all modules)
+        if (this.modules.lifecycleManager) {
+            this.modules.lifecycleManager.cleanupAll();
+        }
+
+        // Clean up individual modules
         if (this.modules.tabManager) {
             this.modules.tabManager.cleanup();
         }

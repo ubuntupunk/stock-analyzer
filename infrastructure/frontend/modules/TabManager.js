@@ -83,6 +83,14 @@ class TabManager {
     async switchTab(tabName) {
         console.log('TabManager: switchTab called with:', tabName);
 
+        // Track previous tab for lifecycle management
+        const previousTab = this.currentTab;
+
+        // Use lifecycle manager to handle tab switch if available
+        if (window.app?.modules?.lifecycleManager) {
+            await window.app.modules.lifecycleManager.handleTabSwitch(tabName);
+        }
+
         // Determine if current tab is protected
         const isProtectedTab = this.protectedTabs.includes(tabName);
         let isAuthenticated = await window.authManager?.isAuthenticated(); // Check authentication status
@@ -155,7 +163,7 @@ class TabManager {
         }
 
         // Emit tab switched event
-        this.eventBus.emit('tab:switched', { tabName, previousTab: this.tabHistory[this.tabHistory.length - 2] });
+        this.eventBus.emit('tab:switched', { tabName, previousTab });
     }
 
     /**
