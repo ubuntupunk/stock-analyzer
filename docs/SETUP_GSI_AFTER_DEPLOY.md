@@ -10,9 +10,24 @@ Your SAM template is deployed with:
 
 ---
 
-## Step 1: Add All 4 GSIs (Automated)
+## Step 1: Create the Table
 
-The easiest way is to run the provided script:
+The `stock-universe` table doesn't exist yet. Create it first:
+
+```bash
+./infrastructure/scripts/create-stock-universe-table.sh
+```
+
+This will create the table with:
+- Primary key: `symbol`
+- 2 existing GSIs: `sector-index`, `marketcap-index`
+- PAY_PER_REQUEST billing mode
+
+---
+
+## Step 2: Add New GSIs
+
+After the table is ACTIVE, add the 4 remaining GSIs:
 
 ```bash
 # Make script executable
