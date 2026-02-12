@@ -398,6 +398,86 @@ class MetricsManager {
         this.currentView = 'grid';
         console.log('MetricsManager: Cleaned up');
     }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[MetricsManager] Initialized');
+        this.isInitialized = true;
+        this.calculationsPaused = false;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[MetricsManager] Shown - resuming calculations');
+        this.calculationsPaused = false;
+        this.isVisible = true;
+        // Refresh metrics if needed
+        if (this.needsRefresh) {
+            this.refreshMetrics();
+            this.needsRefresh = false;
+        }
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[MetricsManager] Hidden - pausing calculations');
+        this.calculationsPaused = true;
+        this.isVisible = false;
+        // Mark for refresh when shown again
+        this.needsRefresh = true;
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[MetricsManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+        this.metrics = null;
+    }
+
+    /**
+     * Refresh metrics display
+     */
+    refreshMetrics() {
+        // Trigger a re-render of metrics if data available
+        if (this.metrics) {
+            this.renderMetrics(this.metrics);
+        }
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            currentView: this.currentView,
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            calculationsPaused: this.calculationsPaused,
+            needsRefresh: this.needsRefresh
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[MetricsManager] Restoring state:', state);
+        if (state?.currentView) {
+            this.currentView = state.currentView;
+        }
+        this.isVisible = state?.isVisible ?? true;
+        this.calculationsPaused = state?.calculationsPaused ?? false;
+        this.needsRefresh = state?.needsRefresh ?? false;
+    }
 }
 
 // Export for use in other modules

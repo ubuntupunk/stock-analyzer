@@ -175,10 +175,10 @@ class StockAnalyzer {
 
         if (this.modules.metricsManager) {
             lifecycle.registerModule('metricsManager', this.modules.metricsManager, {
-                onInit: () => this.modules.metricsManager.initialize?.(),
-                onShow: () => console.log('MetricsManager shown'),
-                onHide: () => this.modules.metricsManager.cleanup?.(),
-                onDestroy: () => this.modules.metricsManager.cleanup?.()
+                onInit: () => this.modules.metricsManager.onInit?.(),
+                onShow: () => this.modules.metricsManager.onShow?.(),
+                onHide: () => this.modules.metricsManager.onHide?.(),
+                onDestroy: () => this.modules.metricsManager.onDestroy?.()
             });
         }
 
