@@ -572,6 +572,87 @@ class StockAnalyserManager {
             }
         });
     }
+
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        console.log('StockAnalyserManager: Cleaning up');
+        this.currentSymbol = null;
+        this.currentData = null;
+        console.log('StockAnalyserManager: Cleaned up');
+    }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[StockAnalyserManager] Initialized');
+        this.isInitialized = true;
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[StockAnalyserManager] Shown - resuming analysis');
+        this.isVisible = true;
+        // Refresh data if we have a symbol
+        if (this.currentSymbol) {
+            this.populateStockData(this.currentSymbol);
+        }
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[StockAnalyserManager] Hidden - pausing analysis');
+        this.isVisible = false;
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[StockAnalyserManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+        this.initialized = false;
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            currentSymbol: this.currentSymbol,
+            currentData: this.currentData,
+            marketData: this.marketData,
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            initialized: this.initialized
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[StockAnalyserManager] Restoring state:', state);
+        if (state?.currentSymbol) {
+            this.currentSymbol = state.currentSymbol;
+        }
+        if (state?.currentData) {
+            this.currentData = state.currentData;
+        }
+        if (state?.marketData) {
+            this.marketData = state.marketData;
+        }
+        this.isVisible = state?.isVisible ?? true;
+        this.initialized = state?.initialized ?? false;
+    }
 }
 
 // Helper function for rounding
