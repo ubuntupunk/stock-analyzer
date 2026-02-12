@@ -201,9 +201,10 @@ class StockAnalyzer {
 
         if (this.modules.chartManager) {
             lifecycle.registerModule('chartManager', this.modules.chartManager, {
-                onShow: () => console.log('ChartManager shown'),
-                onHide: () => this.modules.chartManager.destroyAllCharts?.(),
-                onDestroy: () => this.modules.chartManager.destroyAllCharts?.()
+                onInit: () => this.modules.chartManager.onInit?.(),
+                onShow: () => this.modules.chartManager.onShow?.(),
+                onHide: () => this.modules.chartManager.onHide?.(),
+                onDestroy: () => this.modules.chartManager.onDestroy?.()
             });
         }
 

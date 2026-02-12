@@ -884,6 +884,94 @@ class ChartManager {
         }
         return this.createChart(canvasId, "line", chartData, options);
     }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[ChartManager] Initialized');
+        this.isInitialized = true;
+        this.chartStates = new Map(); // Store chart states for restoration
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[ChartManager] Shown - restoring charts');
+        // Charts will be recreated by the UI when data is loaded
+        // This hook primarily ensures the manager is ready
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Hide module (pause and cleanup)
+     */
+    onHide() {
+        console.log('[ChartManager] Hidden - destroying charts to free memory');
+        // Save chart states before destroying
+        this.saveChartStates();
+        // Destroy all charts to free memory
+        this.destroyAllCharts();
+        this.isVisible = false;
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[ChartManager] Destroyed - complete cleanup');
+        this.destroyAllCharts();
+        this.chartStates.clear();
+        this.charts.clear();
+        this.isInitialized = false;
+    }
+
+    /**
+     * Legacy cleanup method (called by LifecycleManager)
+     */
+    cleanup() {
+        console.log('[ChartManager] Cleanup called');
+        this.destroyAllCharts();
+        this.chartStates?.clear();
+    }
+
+    /**
+     * Save chart states before hiding
+     */
+    saveChartStates() {
+        for (const [canvasId, chart] of this.charts) {
+            this.chartStates.set(canvasId, {
+                type: chart.config?.type,
+                data: chart.data,
+                options: chart.options,
+                symbol: chart.symbol,
+                dates: chart.dates
+            });
+        }
+        console.log(`[ChartManager] Saved ${this.chartStates.size} chart states`);
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            chartCount: this.charts.size,
+            chartIds: Array.from(this.charts.keys()),
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[ChartManager] Restoring state:', state);
+        // Charts will be recreated by the UI when shown
+        this.isVisible = state?.isVisible ?? true;
+    }
 }
 
 // Export for use in other modules
