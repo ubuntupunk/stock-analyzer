@@ -731,6 +731,80 @@ class StockManager {
         this.currentSymbol = null;
         console.log('StockManager: Cleaned up');
     }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[StockManager] Initialized');
+        this.isInitialized = true;
+        this.preloadPaused = false;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[StockManager] Shown - resuming data preloading');
+        this.preloadPaused = false;
+        this.isVisible = true;
+        // Resume any paused preloading operations
+        if (this.currentSymbol && this.pendingPreload) {
+            this.preloadStockData(this.currentSymbol).catch(err => {
+                console.warn('Resumed preload failed:', err.message);
+            });
+            this.pendingPreload = false;
+        }
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[StockManager] Hidden - pausing data preloading');
+        this.preloadPaused = true;
+        this.isVisible = false;
+        // Cancel any ongoing preloading
+        if (this.preloadController) {
+            this.preloadController.abort();
+            this.preloadController = null;
+        }
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[StockManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+        this.currentSymbol = null;
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            currentSymbol: this.currentSymbol,
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            preloadPaused: this.preloadPaused,
+            popularStocksCount: this.popularStocks?.length || 0
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[StockManager] Restoring state:', state);
+        if (state?.currentSymbol) {
+            this.currentSymbol = state.currentSymbol;
+        }
+        this.isVisible = state?.isVisible ?? true;
+        this.preloadPaused = state?.preloadPaused ?? false;
+    }
 }
 
 // Export for use in other modules

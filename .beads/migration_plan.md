@@ -17,7 +17,7 @@ Each module should implement:
 
 ### Priority 1 - High Resource Usage
 - [x] **ChartManager** - ✅ Migrated - Destroys charts on hide, saves states, lifecycle hooks implemented
-- [ ] **StockManager** - Pause data fetching
+- [x] **StockManager** - ✅ Migrated - Pauses data preloading on hide, aborts ongoing requests, lifecycle hooks implemented
 - [ ] **MetricsManager** - Stop calculations
 - [ ] **FinancialsManager** - Clear caches
 

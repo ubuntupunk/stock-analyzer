@@ -166,10 +166,10 @@ class StockAnalyzer {
 
         if (this.modules.stockManager) {
             lifecycle.registerModule('stockManager', this.modules.stockManager, {
-                onInit: () => this.modules.stockManager.initialize?.(),
-                onShow: () => console.log('StockManager shown'),
-                onHide: () => this.modules.stockManager.cleanup?.(),
-                onDestroy: () => this.modules.stockManager.cleanup?.()
+                onInit: () => this.modules.stockManager.onInit?.(),
+                onShow: () => this.modules.stockManager.onShow?.(),
+                onHide: () => this.modules.stockManager.onHide?.(),
+                onDestroy: () => this.modules.stockManager.onDestroy?.()
             });
         }
 
