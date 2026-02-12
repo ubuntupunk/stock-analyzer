@@ -125,7 +125,7 @@ class MetricsManager {
         // Make the keydown handler globally available
         window.handleMetricsSymbolKeydown = (event) => {
             if (event.key === 'Enter') {
-                loadMetricsSymbol();
+                window.loadMetricsSymbol();
             }
         };
 

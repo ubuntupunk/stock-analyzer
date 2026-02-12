@@ -178,7 +178,7 @@ class FinancialsManager {
         // Make the keydown handler globally available
         window.handleFinancialsSymbolKeydown = (event) => {
             if (event.key === 'Enter') {
-                loadFinancialsSymbol();
+                window.loadFinancialsSymbol();
             }
         };
         
