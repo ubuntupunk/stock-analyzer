@@ -39,7 +39,7 @@ class JSEFetcher(IndexFetcher):
         """
         url = self.url
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
 
         try:
@@ -51,38 +51,34 @@ class JSEFetcher(IndexFetcher):
             stocks = []
             for _, row in jse_table.iterrows():
                 # Table structure varies; try common column names
-                if 'Symbol' in row:
-                    symbol = str(row['Symbol'])
-                elif 'Ticker' in row:
-                    symbol = str(row['Ticker'])
+                if "Symbol" in row:
+                    symbol = str(row["Symbol"])
+                elif "Ticker" in row:
+                    symbol = str(row["Ticker"])
                 else:
                     continue
 
-                if 'Company' in row:
-                    name = str(row['Company'])
-                elif 'Name' in row:
-                    name = str(row['Name'])
+                if "Company" in row:
+                    name = str(row["Company"])
+                elif "Name" in row:
+                    name = str(row["Name"])
                 else:
                     continue
 
                 # Get sector if available
-                sector = str(row.get('Sector', 'Unknown'))
-                if sector == 'nan':
-                    sector = 'Unknown'
+                sector = str(row.get("Sector", "Unknown"))
+                if sector == "nan":
+                    sector = "Unknown"
 
-                stock = self.format_stock(
-                    symbol=symbol,
-                    name=name,
-                    sector=sector
-                )
+                stock = self.format_stock(symbol=symbol, name=name, sector=sector)
 
                 stocks.append(stock)
 
             print(f"✅ Fetched {len(stocks)} stocks from Wikipedia")
             return stocks
 
-        except Exception as e:
-            print(f"⚠️  Error fetching JSE stocks from Wikipedia: {e}")
+        except Exception as err:
+            print(f"⚠️  Error fetching JSE stocks from Wikipedia: {err}")
             return []
 
     def _get_fallback(self) -> list:
@@ -97,53 +93,48 @@ class JSEFetcher(IndexFetcher):
         # Popular JSE stocks from various sectors
         fallback_stocks = [
             # Financials
-            ('ABG', 'Absa Group Ltd', 'Financials'),
-            ('FSR', 'FirstRand Ltd', 'Financials'),
-            ('NED', 'Nedbank Ltd', 'Financials'),
-            ('SBK', 'Standard Bank Group Ltd', 'Financials'),
-            ('CPI', 'Capitec Bank Holdings Ltd', 'Financials'),
-            ('SPP', 'Sanlam Ltd', 'Financials'),
-            ('MTN', 'MTN Group Ltd', 'Communication Services'),
-            ('VOD', 'Vodacom Group Ltd', 'Communication Services'),
-
+            ("ABG", "Absa Group Ltd", "Financials"),
+            ("FSR", "FirstRand Ltd", "Financials"),
+            ("NED", "Nedbank Ltd", "Financials"),
+            ("SBK", "Standard Bank Group Ltd", "Financials"),
+            ("CPI", "Capitec Bank Holdings Ltd", "Financials"),
+            ("SPP", "Sanlam Ltd", "Financials"),
+            ("MTN", "MTN Group Ltd", "Communication Services"),
+            ("VOD", "Vodacom Group Ltd", "Communication Services"),
             # Mining & Resources
-            ('AGL', 'Anglo American plc', 'Materials'),
-            ('ANG', 'AngloGold Ashanti Ltd', 'Materials'),
-            ('GLN', 'Gold Fields Ltd', 'Materials'),
-            ('HAR', 'Harmony Gold Mining Co Ltd', 'Materials'),
-            ('SOL', 'Sibanye Stillwater Ltd', 'Materials'),
-            ('IMP', 'Impala Platinum Holdings Ltd', 'Materials'),
-            ('AMS', 'African Rainbow Minerals Ltd', 'Materials'),
-            ('KIO', 'Kumba Iron Ore Ltd', 'Materials'),
-            ('EXX', 'Exxaro Resources Ltd', 'Materials'),
-
+            ("AGL", "Anglo American plc", "Materials"),
+            ("ANG", "AngloGold Ashanti Ltd", "Materials"),
+            ("GLN", "Gold Fields Ltd", "Materials"),
+            ("HAR", "Harmony Gold Mining Co Ltd", "Materials"),
+            ("SOL", "Sibanye Stillwater Ltd", "Materials"),
+            ("IMP", "Impala Platinum Holdings Ltd", "Materials"),
+            ("AMS", "African Rainbow Minerals Ltd", "Materials"),
+            ("KIO", "Kumba Iron Ore Ltd", "Materials"),
+            ("EXX", "Exxaro Resources Ltd", "Materials"),
             # Industrial & Retail
-            ('BID', 'Bid Corporation Ltd', 'Consumer Discretionary'),
-            ('NPN', 'Naspers Ltd', 'Communication Services'),
-            ('PRX', 'Prosus N.V.', 'Consumer Discretionary'),
-            ('TKG', 'The Foschini Group Ltd', 'Consumer Discretionary'),
-            ('WHL', 'Woolworths Holdings Ltd', 'Consumer Staples'),
-            ('SHP', 'Shoprite Holdings Ltd', 'Consumer Staples'),
-            ('TFG', 'The Foschini Group Ltd', 'Consumer Discretionary'),
-            ('RCL', 'RCL Foods Ltd', 'Consumer Staples'),
-            ('TRU', 'Tiger Brands Ltd', 'Consumer Staples'),
-
+            ("BID", "Bid Corporation Ltd", "Consumer Discretionary"),
+            ("NPN", "Naspers Ltd", "Communication Services"),
+            ("PRX", "Prosus N.V.", "Consumer Discretionary"),
+            ("TKG", "The Foschini Group Ltd", "Consumer Discretionary"),
+            ("WHL", "Woolworths Holdings Ltd", "Consumer Staples"),
+            ("SHP", "Shoprite Holdings Ltd", "Consumer Staples"),
+            ("TFG", "The Foschini Group Ltd", "Consumer Discretionary"),
+            ("RCL", "RCL Foods Ltd", "Consumer Staples"),
+            ("TRU", "Tiger Brands Ltd", "Consumer Staples"),
             # Technology & Healthcare
-            ('DTC', 'Netcare Ltd', 'Health Care'),
-            ('DDT', 'Discovery Ltd', 'Health Care'),
-            ('APN', 'Aspen Pharmacare Holdings Ltd', 'Health Care'),
-            ('MCG', 'Mediclinic International Ltd', 'Health Care'),
-
+            ("DTC", "Netcare Ltd", "Health Care"),
+            ("DDT", "Discovery Ltd", "Health Care"),
+            ("APN", "Aspen Pharmacare Holdings Ltd", "Health Care"),
+            ("MCG", "Mediclinic International Ltd", "Health Care"),
             # Energy
-            ('SHP', 'Sasol Ltd', 'Energy'),
-            ('OMN', 'Omura Holdings Ltd', 'Energy'),
-
+            ("SHP", "Sasol Ltd", "Energy"),
+            ("OMN", "Omura Holdings Ltd", "Energy"),
             # Industrial
-            ('TCS', 'Truworths International Ltd', 'Consumer Discretionary'),
-            ('CFR', 'Crossroads Distribution Ltd', 'Industrials'),
-            ('DSY', 'Dis-Chem Pharmacies Ltd', 'Consumer Staples'),
-            ('GRW', 'Growthpoint Properties Ltd', 'Real Estate'),
-            ('AEC', 'AECI Ltd', 'Materials'),
+            ("TCS", "Truworths International Ltd", "Consumer Discretionary"),
+            ("CFR", "Crossroads Distribution Ltd", "Industrials"),
+            ("DSY", "Dis-Chem Pharmacies Ltd", "Consumer Staples"),
+            ("GRW", "Growthpoint Properties Ltd", "Real Estate"),
+            ("AEC", "AECI Ltd", "Materials"),
         ]
 
         stocks = []
@@ -161,21 +152,21 @@ class JSEFetcher(IndexFetcher):
         Returns:
             Exchange rate (ZAR per 1 USD) - e.g., 18.5 means 18.5 ZAR = 1 USD
         """
-        fx_symbol = self.config.get('fxRate', {}).get('symbol', 'ZAR=X')
+        fx_symbol = self.config.get("fxRate", {}).get("symbol", "ZAR=X")
 
         try:
             ticker = yf.Ticker(fx_symbol)
             info = ticker.info
 
             # Try to get live rate, fallback to previous close
-            rate = info.get('regularMarketPrice') or info.get('previousClose')
+            rate = info.get("regularMarketPrice") or info.get("previousClose")
 
             if rate and rate > 0:
                 print(f"ℹ️  FX Rate: {rate:.2f} ZAR = 1 USD")
                 return float(rate)
 
-        except Exception as e:
-            print(f"⚠️  Error fetching ZAR/USD rate: {e}")
+        except Exception as err:
+            print(f"⚠️  Error fetching ZAR/USD rate: {err}")
 
         # Fallback rate (approximately current)
         print("ℹ️  Using fallback FX rate: 18.50 ZAR = 1 USD")

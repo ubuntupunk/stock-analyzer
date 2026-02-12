@@ -28,14 +28,14 @@ class IndexFetcher(ABC):
             config: Index configuration dict from IndexConfig
         """
         self.config = config
-        self.id = config['id']
-        self.name = config['name']
-        self.region = config['region']
-        self.currency = config['currency']
-        self.exchange = config['exchange']
-        self.exchange_suffix = config.get('exchangeSuffix', '')
-        self.data_source = config['dataSource']
-        self.url = config['url']
+        self.id = config["id"]
+        self.name = config["name"]
+        self.region = config["region"]
+        self.currency = config["currency"]
+        self.exchange = config["exchange"]
+        self.exchange_suffix = config.get("exchangeSuffix", "")
+        self.data_source = config["dataSource"]
+        self.url = config["url"]
 
     @abstractmethod
     def fetch_constituents(self) -> list:
@@ -68,8 +68,8 @@ class IndexFetcher(ABC):
             Normalized symbol with exchange suffix
         """
         # Remove any dots from US symbols (yfinance uses hyphens)
-        if self.region == 'US' and '.' in symbol and self.exchange_suffix == '':
-            return symbol.replace('.', '-')
+        if self.region == "US" and "." in symbol and self.exchange_suffix == "":
+            return symbol.replace(".", "-")
 
         # Add exchange suffix if not already present
         if self.exchange_suffix and not symbol.endswith(self.exchange_suffix):
@@ -77,7 +77,9 @@ class IndexFetcher(ABC):
 
         return symbol
 
-    def apply_fx_conversion(self, amount: float, fx_rate: Optional[float] = None) -> float:
+    def apply_fx_conversion(
+        self, amount: float, fx_rate: Optional[float] = None
+    ) -> float:
         """
         Convert amount to USD if needed
 
@@ -89,7 +91,7 @@ class IndexFetcher(ABC):
         Returns:
             Amount converted to USD
         """
-        if self.currency == 'USD':
+        if self.currency == "USD":
             return amount
 
         if fx_rate is None:
@@ -108,31 +110,32 @@ class IndexFetcher(ABC):
             Exchange rate (local currency per 1 USD)
             Returns 1.0 if no conversion needed or error occurs
         """
-        if self.currency == 'USD':
+        if self.currency == "USD":
             return 1.0
 
-        fx_config = self.config.get('fxRate', {})
-        fx_symbol = fx_config.get('symbol')
-        source = fx_config.get('source')
+        fx_config = self.config.get("fxRate", {})
+        fx_symbol = fx_config.get("symbol")
+        source = fx_config.get("source")
 
         if not fx_symbol:
             return 1.0
 
         try:
-            if source == 'yfinance':
+            if source == "yfinance":
                 ticker = yf.Ticker(fx_symbol)
                 info = ticker.info
-                rate = info.get('regularMarketPrice') or info.get('previousClose')
+                rate = info.get("regularMarketPrice") or info.get("previousClose")
 
                 if rate and rate > 0:
                     return float(rate)
-        except Exception as e:
-            print(f"Error fetching FX rate for {fx_symbol}: {e}")
+        except Exception as err:
+            print(f"Error fetching FX rate for {fx_symbol}: {err}")
 
         return 1.0
 
-    def format_stock(self, symbol: str, name: str, sector: str,
-                     subSector: str = '') -> dict:
+    def format_stock(
+        self, symbol: str, name: str, sector: str, subSector: str = ""
+    ) -> dict:
         """
         Format stock data to standard structure
 
@@ -146,13 +149,13 @@ class IndexFetcher(ABC):
             Formatted stock dict
         """
         return {
-            'symbol': self.normalize_symbol(symbol),
-            'name': name,
-            'sector': sector,
-            'subSector': subSector,
-            'region': self.region,
-            'currency': self.currency,
-            'exchange': self.exchange
+            "symbol": self.normalize_symbol(symbol),
+            "name": name,
+            "sector": sector,
+            "subSector": subSector,
+            "region": self.region,
+            "currency": self.currency,
+            "exchange": self.exchange,
         }
 
     def get_market_cap_bucket(self, market_cap_usd: float) -> str:
@@ -167,19 +170,19 @@ class IndexFetcher(ABC):
         Returns:
             Bucket name: 'mega', 'large', 'mid', 'small', or 'unknown'
         """
-        thresholds = self.config.get('marketCapThresholds', {})
+        thresholds = self.config.get("marketCapThresholds", {})
 
-        mega_threshold = thresholds.get('mega', 200_000_000_000)
-        large_threshold = thresholds.get('large', 10_000_000_000)
-        mid_threshold = thresholds.get('mid', 2_000_000_000)
+        mega_threshold = thresholds.get("mega", 200_000_000_000)
+        large_threshold = thresholds.get("large", 10_000_000_000)
+        mid_threshold = thresholds.get("mid", 2_000_000_000)
 
         if market_cap_usd >= mega_threshold:
-            return 'mega'
+            return "mega"
         elif market_cap_usd >= large_threshold:
-            return 'large'
+            return "large"
         elif market_cap_usd >= mid_threshold:
-            return 'mid'
+            return "mid"
         elif market_cap_usd > 0:
-            return 'small'
+            return "small"
         else:
-            return 'unknown'
+            return "unknown"

@@ -18,16 +18,16 @@ def clean_float_values(obj):
         if math.isnan(obj) or math.isinf(obj):
             return None
     elif isinstance(obj, dict):
-        return {k: clean_float_values(v) for k, v in obj.items()}
+        return {key: clean_float_values(value) for key, value in obj.items()}
     elif isinstance(obj, list):
-        return [clean_float_values(v) for v in obj]
+        return [clean_float_values(item) for item in obj]
     return obj
 
 
 def lambda_handler(event, context):
     """
     AWS Lambda handler for stock data API
-    
+
     Single stock endpoints:
         /api/stock/metrics?symbol=AAPL
         /api/stock/price?symbol=AAPL
@@ -35,166 +35,173 @@ def lambda_handler(event, context):
         /api/stock/financials?symbol=AAPL
         /api/stock/factors?symbol=AAPL
         /api/stock/news?symbol=AAPL
-    
+
     Batch endpoints (NEW):
         /api/stock/batch/prices?symbols=AAPL,MSFT,GOOGL
         /api/stock/batch/metrics?symbols=AAPL,MSFT,GOOGL
         /api/stock/batch/estimates?symbols=AAPL,MSFT,GOOGL
         /api/stock/batch/financials?symbols=AAPL,MSFT,GOOGL
     """
-    
+
     # Handle CORS preflight
-    if event.get('httpMethod') == 'OPTIONS':
+    if event.get("httpMethod") == "OPTIONS":
         return {
-            'statusCode': 200,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
             },
-            'body': ''
+            "body": "",
         }
-    
-    path = event.get('path', '')
-    method = event.get('httpMethod', 'GET')
-    query_params = event.get('queryStringParameters') or {}
-    
+
+    path = event.get("path", "")
+    method = event.get("httpMethod", "GET")
+    query_params = event.get("queryStringParameters") or {}
+
     # Initialize API
     api = StockDataAPI()
-    
+
     try:
         # Check if this is a batch request
-        if '/batch/' in path:
+        if "/batch/" in path:
             # Batch endpoints - require 'symbols' parameter (comma-separated)
-            symbols_param = query_params.get('symbols', '')
+            symbols_param = query_params.get("symbols", "")
             if not symbols_param:
                 return {
-                    'statusCode': 400,
-                    'headers': {
-                        'Access-Control-Allow-Origin': '*',
-                        'Content-Type': 'application/json'
+                    "statusCode": 400,
+                    "headers": {
+                        "Access-Control-Allow-Origin": "*",
+                        "Content-Type": "application/json",
                     },
-                    'body': json.dumps({'error': 'Symbols parameter is required (comma-separated list)'})
+                    "body": json.dumps(
+                        {
+                            "error": "Symbols parameter is required (comma-separated list)"
+                        }
+                    ),
                 }
-            
+
             # Parse comma-separated symbols
-            symbols = [s.strip().upper() for s in symbols_param.split(',') if s.strip()]
-            
+            symbols = [
+                suffix.strip().upper()
+                for suffix in symbols_param.split(",")
+                if suffix.strip()
+            ]
+
             if not symbols:
                 return {
-                    'statusCode': 400,
-                    'headers': {
-                        'Access-Control-Allow-Origin': '*',
-                        'Content-Type': 'application/json'
+                    "statusCode": 400,
+                    "headers": {
+                        "Access-Control-Allow-Origin": "*",
+                        "Content-Type": "application/json",
                     },
-                    'body': json.dumps({'error': 'At least one symbol is required'})
+                    "body": json.dumps({"error": "At least one symbol is required"}),
                 }
-            
+
             # Limit batch size to prevent abuse
             if len(symbols) > 50:
                 return {
-                    'statusCode': 400,
-                    'headers': {
-                        'Access-Control-Allow-Origin': '*',
-                        'Content-Type': 'application/json'
+                    "statusCode": 400,
+                    "headers": {
+                        "Access-Control-Allow-Origin": "*",
+                        "Content-Type": "application/json",
                     },
-                    'body': json.dumps({'error': 'Maximum 50 symbols per batch request'})
+                    "body": json.dumps(
+                        {"error": "Maximum 50 symbols per batch request"}
+                    ),
                 }
-            
+
             # Route to appropriate batch handler
-            if '/batch/prices' in path or '/batch/price' in path:
+            if "/batch/prices" in path or "/batch/price" in path:
                 result = api.get_batch_prices(symbols)
-            elif '/batch/metrics' in path:
+            elif "/batch/metrics" in path:
                 result = api.get_batch_metrics(symbols)
-            elif '/batch/estimates' in path:
+            elif "/batch/estimates" in path:
                 result = api.get_batch_estimates(symbols)
-            elif '/batch/financials' in path:
+            elif "/batch/financials" in path:
                 result = api.get_batch_financials(symbols)
             else:
-                result = {'error': 'Invalid batch endpoint'}
+                result = {"error": "Invalid batch endpoint"}
 
-        elif '/screen' in path:
+        elif "/screen" in path:
             screener = StockScreener()
-            if method == 'POST':
+            if method == "POST":
                 try:
-                    body = json.loads(event.get('body', '{}'))
-                    criteria = body.get('criteria', {})
+                    body = json.loads(event.get("body", "{}"))
+                    criteria = body.get("criteria", {})
                     result = screener.screen_stocks(criteria)
-                except Exception as e:
+                except Exception as err:
                     return {
-                        'statusCode': 400,
-                        'headers': {
-                            'Access-Control-Allow-Origin': '*',
-                            'Content-Type': 'application/json'
+                        "statusCode": 400,
+                        "headers": {
+                            "Access-Control-Allow-Origin": "*",
+                            "Content-Type": "application/json",
                         },
-                        'body': json.dumps({'error': str(e)})
+                        "body": json.dumps({"error": str(err)}),
                     }
             else:
                 return {
-                    'statusCode': 405,
-                    'headers': {
-                        'Access-Control-Allow-Origin': '*',
-                        'Content-Type': 'application/json'
+                    "statusCode": 405,
+                    "headers": {
+                        "Access-Control-Allow-Origin": "*",
+                        "Content-Type": "application/json",
                     },
-                    'body': json.dumps({'error': 'Method not allowed'})
+                    "body": json.dumps({"error": "Method not allowed"}),
                 }
-        
+
         else:
             # Single stock endpoints - require 'symbol' parameter
-            symbol = query_params.get('symbol', '').upper()
-            
+            symbol = query_params.get("symbol", "").upper()
+
             if not symbol:
                 return {
-                    'statusCode': 400,
-                    'headers': {
-                        'Access-Control-Allow-Origin': '*',
-                        'Content-Type': 'application/json'
+                    "statusCode": 400,
+                    "headers": {
+                        "Access-Control-Allow-Origin": "*",
+                        "Content-Type": "application/json",
                     },
-                    'body': json.dumps({'error': 'Symbol parameter is required'})
+                    "body": json.dumps({"error": "Symbol parameter is required"}),
                 }
-            
+
             # Route to appropriate single stock handler
-            if '/metrics' in path:
+            if "/metrics" in path:
                 result = api.get_stock_metrics(symbol)
-            elif '/price' in path:
+            elif "/price" in path:
                 # Support optional period parameter for historical data
-                period = query_params.get('period', '1mo')
-                startDate = query_params.get('startDate', None)
-                endDate = query_params.get('endDate', None)
+                period = query_params.get("period", "1mo")
+                startDate = query_params.get("startDate", None)
+                endDate = query_params.get("endDate", None)
                 result = api.get_stock_price(symbol, period, startDate, endDate)
-            elif '/estimates' in path:
+            elif "/estimates" in path:
                 result = api.get_analyst_estimates(symbol)
-            elif '/financials' in path:
+            elif "/financials" in path:
                 result = api.get_financial_statements(symbol)
-            elif '/factors' in path:
+            elif "/factors" in path:
                 result = api.get_stock_factors(symbol)
-            elif '/news' in path:
+            elif "/news" in path:
                 result = api.get_stock_news(symbol)
             else:
-                result = {'error': 'Invalid endpoint'}
-        
+                result = {"error": "Invalid endpoint"}
+
         # Clean result of NaN/Infinity values before serialization
         cleaned_result = clean_float_values(result)
-        
+
         return {
-            'statusCode': 200,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Content-Type': 'application/json'
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Content-Type": "application/json",
             },
-            'body': json.dumps(cleaned_result, default=decimal_default)
+            "body": json.dumps(cleaned_result, default=decimal_default),
         }
-    
-    except Exception as e:
-        print(f"Error processing request: {str(e)}")
+
+    except Exception as err:
+        print(f"Error processing request: {str(err)}")
         return {
-            'statusCode': 500,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Content-Type': 'application/json'
+            "statusCode": 500,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Content-Type": "application/json",
             },
-            'body': json.dumps({
-                'error': 'Internal server error',
-                'message': str(e)
-            })
+            "body": json.dumps({"error": "Internal server error", "message": str(err)}),
         }

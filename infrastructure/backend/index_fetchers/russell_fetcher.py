@@ -42,12 +42,12 @@ class Russell3000Fetcher(IndexFetcher):
         Returns:
             List of stock dicts or empty list if failed
         """
-        etf_symbol = self.config.get('etfSymbol', 'IWV')
+        etf_symbol = self.config.get("etfSymbol", "IWV")
         iShares_url = "https://www.ishares.com/us/products/239724/ishares-core-sp-total-us-stock-market-etf"
 
         try:
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             }
 
             # iShares holdings page requires JavaScript; this is a simplified approach
@@ -56,10 +56,12 @@ class Russell3000Fetcher(IndexFetcher):
             # 2. Use a headless browser to render the page
             # 3. Use alternative data source
 
-            print(f"ℹ️  iShares holdings page requires JavaScript, trying alternative...")
+            print(
+                f"ℹ️  iShares holdings page requires JavaScript, trying alternative..."
+            )
 
-        except Exception as e:
-            print(f"⚠️  Error fetching iShares holdings: {e}")
+        except Exception as err:
+            print(f"⚠️  Error fetching iShares holdings: {err}")
 
         return []
 
@@ -70,7 +72,7 @@ class Russell3000Fetcher(IndexFetcher):
         Returns:
             List of stock dicts or empty list if failed
         """
-        fallback_url = self.config.get('fallbackUrl')
+        fallback_url = self.config.get("fallbackUrl")
 
         if not fallback_url:
             return []
@@ -84,33 +86,34 @@ class Russell3000Fetcher(IndexFetcher):
 
             # Read Excel file
             import io
+
             excel_file = io.BytesIO(response.content)
             df = pd.read_excel(excel_file)
 
             # The Excel file typically has a 'Symbol' column
-            if 'Symbol' in df.columns:
+            if "Symbol" in df.columns:
                 stocks = []
                 for _, row in df.iterrows():
-                    symbol = str(row['Symbol'])
+                    symbol = str(row["Symbol"])
 
                     # Some rows might be headers or empty
-                    if not symbol or symbol.lower() == 'symbol':
+                    if not symbol or symbol.lower() == "symbol":
                         continue
 
                     # For Russell 3000, we may not have sector info from Excel
                     # We'll populate it later from yfinance
                     stock = self.format_stock(
                         symbol=symbol,
-                        name='',  # Will be enriched later
-                        sector='Unknown'
+                        name="",  # Will be enriched later
+                        sector="Unknown",
                     )
                     stocks.append(stock)
 
                 print(f"✅ Parsed {len(stocks)} stocks from Excel")
                 return stocks
 
-        except Exception as e:
-            print(f"⚠️  Error fetching from Excel: {e}")
+        except Exception as err:
+            print(f"⚠️  Error fetching from Excel: {err}")
 
         return []
 
@@ -126,32 +129,29 @@ class Russell3000Fetcher(IndexFetcher):
         # Mix of large, mid, and small cap stocks
         fallback_stocks = [
             # Mega Cap
-            ('AAPL', 'Apple Inc.', 'Information Technology'),
-            ('MSFT', 'Microsoft Corporation', 'Information Technology'),
-            ('GOOGL', 'Alphabet Inc.', 'Communication Services'),
-            ('AMZN', 'Amazon.com Inc.', 'Consumer Discretionary'),
-            ('NVDA', 'NVIDIA Corporation', 'Information Technology'),
-
+            ("AAPL", "Apple Inc.", "Information Technology"),
+            ("MSFT", "Microsoft Corporation", "Information Technology"),
+            ("GOOGL", "Alphabet Inc.", "Communication Services"),
+            ("AMZN", "Amazon.com Inc.", "Consumer Discretionary"),
+            ("NVDA", "NVIDIA Corporation", "Information Technology"),
             # Large Cap
-            ('META', 'Meta Platforms Inc.', 'Communication Services'),
-            ('TSLA', 'Tesla Inc.', 'Consumer Discretionary'),
-            ('BRK-B', 'Berkshire Hathaway', 'Financials'),
-            ('JPM', 'JPMorgan Chase & Co.', 'Financials'),
-            ('V', 'Visa Inc.', 'Financials'),
-
+            ("META", "Meta Platforms Inc.", "Communication Services"),
+            ("TSLA", "Tesla Inc.", "Consumer Discretionary"),
+            ("BRK-B", "Berkshire Hathaway", "Financials"),
+            ("JPM", "JPMorgan Chase & Co.", "Financials"),
+            ("V", "Visa Inc.", "Financials"),
             # Mid Cap
-            ('PLTR', 'Palantir Technologies Inc.', 'Information Technology'),
-            ('SOFI', 'SoFi Technologies Inc.', 'Financials'),
-            ('RBLX', 'Roblox Corporation', 'Communication Services'),
-            ('SNOW', 'Snowflake Inc.', 'Information Technology'),
-            ('DASH', 'DoorDash Inc.', 'Consumer Discretionary'),
-
+            ("PLTR", "Palantir Technologies Inc.", "Information Technology"),
+            ("SOFI", "SoFi Technologies Inc.", "Financials"),
+            ("RBLX", "Roblox Corporation", "Communication Services"),
+            ("SNOW", "Snowflake Inc.", "Information Technology"),
+            ("DASH", "DoorDash Inc.", "Consumer Discretionary"),
             # Small Cap
-            ('CLOV', 'Clover Health Investments', 'Health Care'),
-            ('HOOD', 'Robinhood Markets', 'Financials'),
-            ('LCID', 'Lucid Group', 'Consumer Discretionary'),
-            ('RIVN', 'Rivian Automotive', 'Consumer Discretionary'),
-            ('SPCE', 'Virgin Galactic Holdings', 'Industrials'),
+            ("CLOV", "Clover Health Investments", "Health Care"),
+            ("HOOD", "Robinhood Markets", "Financials"),
+            ("LCID", "Lucid Group", "Consumer Discretionary"),
+            ("RIVN", "Rivian Automotive", "Consumer Discretionary"),
+            ("SPCE", "Virgin Galactic Holdings", "Industrials"),
         ]
 
         stocks = []

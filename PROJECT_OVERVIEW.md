@@ -7,6 +7,7 @@ A full-stack stock analysis application that runs on AWS serverless infrastructu
 ## Key Features
 
 ### 1. Stock Metrics Dashboard
+
 - Real-time stock prices
 - Comprehensive financial metrics (P/E, ROI, ROE, Revenue Growth, etc.)
 - 52-week highs/lows
@@ -14,6 +15,7 @@ A full-stack stock analysis application that runs on AWS serverless infrastructu
 - Market capitalization and enterprise value
 
 ### 2. DCF Valuation Tool
+
 - Discounted Cash Flow analysis
 - Customizable assumptions (revenue growth, profit margins, etc.)
 - Multiple scenarios (Low, Mid, High)
@@ -21,6 +23,7 @@ A full-stack stock analysis application that runs on AWS serverless infrastructu
 - Terminal value calculations
 
 ### 3. Factor Screener
+
 - Create custom stock screening criteria
 - Save and reuse screening factors
 - Examples:
@@ -30,24 +33,28 @@ A full-stack stock analysis application that runs on AWS serverless infrastructu
   - Cash flow growth positive
 
 ### 4. Analyst Estimates
+
 - Consensus earnings per share (EPS) estimates
 - Revenue forecasts
 - Number of analysts covering
 - Historical vs. projected visualization
 
 ### 5. Watchlist Management
+
 - Track favorite stocks
 - Real-time price updates
 - Custom notes and tags
 - Alert price settings
 
 ### 6. Financial Statements
+
 - Income statements
 - Balance sheets
 - Cash flow statements
 - Multi-year comparison
 
 ### 7. API Resilience & Circuit Breaker
+
 - **Multi-source Fallback Strategy**: Automatically switches between data sources when one fails
 - **Circuit Breaker Pattern**: Prevents cascading failures when external APIs are unavailable
 - **Real-time Metrics**: Tracks API performance, latency, success rates, and error types
@@ -346,17 +353,20 @@ api.cb.reset()
 ## Tech Stack
 
 ### Frontend
+
 - **HTML5**: Semantic markup
 - **CSS3**: Responsive design with flexbox/grid
 - **JavaScript (ES6+)**: Vanilla JS, no frameworks
 - **Chart.js**: Data visualization library
 
 ### Backend
+
 - **Python 3.11**: Lambda functions
 - **boto3**: AWS SDK for Python
 - **requests**: HTTP library for API calls
 
 ### Infrastructure
+
 - **AWS Lambda**: Serverless compute
 - **API Gateway**: REST API management
 - **DynamoDB**: NoSQL database
@@ -364,6 +374,7 @@ api.cb.reset()
 - **CloudFormation/SAM**: Infrastructure as Code
 
 ### External Services
+
 - **Alpha Vantage**: Financial data API (free tier available)
 - Alternative: Yahoo Finance, IEX Cloud, Finnhub
 
@@ -474,6 +485,7 @@ npm test
 ## API Endpoints Reference
 
 ### Stock Data Endpoints
+
 ```
 GET /api/stock/metrics?symbol={SYMBOL}
 GET /api/stock/price?symbol={SYMBOL}
@@ -482,6 +494,7 @@ GET /api/stock/financials?symbol={SYMBOL}
 ```
 
 ### Analysis Endpoints
+
 ```
 POST /api/screen
 POST /api/dcf
@@ -490,6 +503,7 @@ POST /api/factors
 ```
 
 ### Watchlist Endpoints
+
 ```
 GET /api/watchlist
 POST /api/watchlist
@@ -509,12 +523,14 @@ DELETE /api/watchlist?symbol={SYMBOL}
 ## Cost Structure
 
 ### Free Tier (First 12 Months)
+
 - Lambda: 1M requests/month
 - API Gateway: 1M calls/month
 - DynamoDB: 25GB storage + 25 RCU/WCU
 - S3: 5GB storage + 20k GET + 2k PUT
 
 ### Beyond Free Tier
+
 - Lambda: ~$0.20 per 1M requests
 - API Gateway: ~$3.50 per 1M requests
 - DynamoDB: ~$0.25 per GB/month
@@ -574,27 +590,27 @@ DELETE /api/watchlist?symbol={SYMBOL}
 
 ### Architecture Gotchas ⚠️
 
-4. **Backend-Frontend Circuit Breaker Desync**
+1. **Backend-Frontend Circuit Breaker Desync**
    - **Issue**: Frontend and backend circuit breakers operate independently
    - **Impact**: Frontend may open circuit while backend is healthy
    - **Mitigation**: Added `HealthManager.js` with periodic backend health checks
    - **Files Created**: `infrastructure/frontend/modules/HealthManager.js`
 
-5. **Missing Frontend Tests**
+2. **Missing Frontend Tests**
    - **Issue**: Only backend had unit test coverage
    - **Solution**: Added Jest tests for CircuitBreaker.js
    - **Files Created**: `tests/integration/circuitbreaker.test.js` (20 tests)
 
 ### Known Limitations
 
-6. **API Key Exposure**
+1. **API Key Exposure**
    - API URLs visible in browser network tab (acceptable for client-side apps)
    - API keys stored in Lambda environment variables (secure)
 
-7. **No WebSocket Support**
+2. **No WebSocket Support**
    - Real-time updates require polling (future enhancement)
 
-8. **Lambda Cold Starts**
+3. **Lambda Cold Starts**
    - First request after idle period may be slow (30+ seconds)
    - Mitigated by circuit breaker timeout configuration
 
@@ -608,18 +624,21 @@ DELETE /api/watchlist?symbol={SYMBOL}
 ## Future Enhancements
 
 ### Phase 1 (Foundation)
+
 - ✅ Stock data retrieval
 - ✅ DCF analysis
 - ✅ Factor screening
 - ✅ Watchlist management
 
 ### Phase 2 (User Features)
+
 - [ ] User authentication (Cognito)
 - [ ] Save analysis reports
-- [ ] Email alerts for watchlist
+- [ ] Email alerts for watchlist changes
 - [ ] Export to PDF/Excel
 
 ### Phase 3 (Advanced Features)
+
 - [ ] Real-time WebSocket updates
 - [ ] Options pricing calculator
 - [ ] Portfolio tracking
@@ -627,6 +646,7 @@ DELETE /api/watchlist?symbol={SYMBOL}
 - [ ] Social features (share analysis)
 
 ### Phase 4 (Mobile & Integration)
+
 - [ ] Mobile app (React Native)
 - [ ] Chrome extension
 - [ ] Slack/Discord integration
@@ -635,7 +655,9 @@ DELETE /api/watchlist?symbol={SYMBOL}
 ## Customization Guide
 
 ### Change Color Scheme
+
 Edit `frontend/styles.css`:
+
 ```css
 :root {
     --primary-color: #5ba3d0;    /* Main theme color */
@@ -645,12 +667,15 @@ Edit `frontend/styles.css`:
 ```
 
 ### Add New Metrics
+
 1. Backend: Fetch data in `stock_api.py`
 2. Frontend: Add HTML in `index.html`
 3. Logic: Update `app.js` to display
 
 ### Change Financial Data Provider
+
 Edit `backend/stock_api.py`:
+
 ```python
 self.base_url = "https://your-provider.com"
 self.api_key = os.environ.get('YOUR_API_KEY')
@@ -666,6 +691,7 @@ self.api_key = os.environ.get('YOUR_API_KEY')
 4. **High Costs**: Review CloudWatch usage metrics
 
 ### Debug Commands
+
 ```bash
 # View Lambda logs
 sam logs -n StockAPIFunction --tail
@@ -679,14 +705,15 @@ aws cloudformation describe-stacks --stack-name stock-analyzer-stack
 
 ## Support & Resources
 
-- **AWS Documentation**: https://docs.aws.amazon.com/
-- **Alpha Vantage API**: https://www.alphavantage.co/documentation/
-- **Chart.js Docs**: https://www.chartjs.org/docs/
-- **SAM Documentation**: https://docs.aws.amazon.com/serverless-application-model/
+- **AWS Documentation**: <https://docs.aws.amazon.com/>
+- **Alpha Vantage API**: <https://www.alphavantage.co/documentation/>
+- **Chart.js Docs**: <https://www.chartjs.org/docs/>
+- **SAM Documentation**: <https://docs.aws.amazon.com/serverless-application-model/>
 
 ## Contributing
 
 Contributions welcome! Areas for improvement:
+
 - Additional financial calculators
 - More data providers
 - UI/UX enhancements
@@ -695,7 +722,7 @@ Contributions welcome! Areas for improvement:
 
 ## License
 
-MIT License - Free to use and modify for personal and commercial projects.
+Netbones License - Free to use and modify for personal projects, no commercial use without commercial license.
 
 ---
 

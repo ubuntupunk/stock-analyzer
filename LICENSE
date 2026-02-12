@@ -1,4 +1,4 @@
-                    NON-COMMERCIAL SOFTWARE LICENSE AGREEMENT
+                    NETBONES NON-COMMERCIAL SOFTWARE LICENSE AGREEMENT
                        For Stock Analyzer Application
 
 Copyright (c) 2025 Netbones Solutions Pty Ltd South Africa
@@ -11,10 +11,11 @@ South Africa ("Licensor") grants you a non-exclusive, non-transferable, royalty-
 license to use, copy, modify, and distribute the Stock Analyzer Application
 ("Software") for non-commercial purposes only.
 
-2. DEFINITIONS
+1. DEFINITIONS
 
 "Non-Commercial Use" means use that is not primarily intended for or directed
 toward commercial advantage or monetary compensation. This includes:
+
 - Personal use
 - Educational use
 - Academic research
@@ -23,34 +24,36 @@ toward commercial advantage or monetary compensation. This includes:
 
 "Commercial Use" means any use that is primarily intended for or directed toward
 commercial advantage or monetary compensation, including but not limited to:
+
 - Use by for-profit businesses
 - Use in commercial products or services
 - Use that generates revenue
 - Use in consulting services
 - Use in production environments
 
-3. COMMERCIAL USE RESTRICTION
+1. COMMERCIAL USE RESTRICTION
 
 You may NOT use the Software for Commercial Use without obtaining a separate
 commercial license from the Licensor. Any Commercial Use of the Software without
 such a license is a violation of this Agreement and may result in legal action.
 
-4. COMMERCIAL LICENSE INQUIRY
+1. COMMERCIAL LICENSE INQUIRY
 
 For Commercial Use of this Software, you must contact:
 
 Netbones Solutions Pty Ltd
 South Africa
-Email: hello@netbones.co.za
-Website: https://netbones.co.za
+Email: <hello@netbones.co.za>
+Website: <https://netbones.co.za>
 
 Please provide details about your intended Commercial Use, including:
+
 - Organization name and type
 - Intended use case
 - Expected scale of deployment
 - Any other relevant information
 
-5. NO WARRANTY
+1. NO WARRANTY
 
 THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
@@ -62,31 +65,31 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-6. TERMINATION
+1. TERMINATION
 
 This Agreement is effective until terminated. Your rights under this Agreement will
 terminate automatically without notice from the Licensor if you fail to comply with
 any term of this Agreement. Upon termination, you must cease all use of the
 Software and destroy all copies in your possession.
 
-7. GOVERNING LAW
+1. GOVERNING LAW
 
 This Agreement shall be governed by and construed in accordance with the laws of
 South Africa, without regard to its conflict of law principles.
 
-8. ENTIRE AGREEMENT
+1. ENTIRE AGREEMENT
 
 This Agreement constitutes the entire agreement between the parties concerning
 the subject matter hereof and supersedes all prior or contemporaneous agreements
 and understandings, whether written or oral.
 
-9. SEVERABILITY
+1. SEVERABILITY
 
 If any provision of this Agreement is held to be unenforceable, such provision
 shall be modified to the minimum extent necessary to make it enforceable, and
 the remaining provisions shall remain in full force and effect.
 
-10. CONTACT
+1. CONTACT
 
 For questions regarding this license or to obtain a commercial license, please
 contact Netbones Solutions Pty Ltd South Africa at the address above.

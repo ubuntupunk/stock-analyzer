@@ -226,31 +226,124 @@ npm run test:watchlist      # Test specific file
 ## Code Style Guidelines
 
 ### Python (Backend)
-- Follow PEP 8 style guide
-- Use type hints where appropriate
-- Document classes and methods with docstrings
-- Use async/await for I/O operations
-- Handle exceptions gracefully with try/except blocks
 
-**Example:**
+Based on our project's .windsurfrules configuration, we follow these specific Python coding standards:
+
+#### Language Standards
+- Python version: 3.8+
+- Style guide: PEP 8
+- Maximum line length: 88 characters
+- Indentation: 4 spaces (no tabs)
+- All files should be formatted using the black auto-formatter
+- All code must pass minimum flake8 standards
+
+#### Type Hints
+- Use type hints for all function parameters and return values
+- Use type hints for class attributes and variables when beneficial for clarity
+- Import necessary types from `typing` module when needed (e.g., `List`, `Dict`, `Optional`)
+
+#### String Formatting
+- Use f-strings for string formatting (e.g., `f"Hello {name}"`)
+- Avoid `.format()` method and `%` formatting
+- Use single quotes for strings unless double quotes are necessary (e.g., when the string contains single quotes)
+
+#### Comments and Documentation
+- Avoid inline comments; use descriptive variable and function names instead
+- Require docstrings for all functions, classes, and modules using Google style
+- Document complex logic with comments, but avoid excessive comments (maximum 30% of lines should be comments)
+- Use meaningful variable names that make code self-documenting
+
+#### Code Structure
+- Limit function length to 50 lines for improved readability
+- Encourage modular code with separate files for utilities, models, and data handling
+- Avoid complex list comprehensions; use loops for readability when comprehension exceeds 50 characters
+- Organize imports in three groups: standard library, third-party, and local application imports
+
+#### Example:
 ```python
-async def get_stock_metrics(self, symbol: str) -> Dict:
+from typing import Dict, Optional
+import logging
+
+logger = logging.getLogger(__name__)
+
+def calculate_metrics(
+    revenue: float,
+    expenses: float
+) -> Dict[str, float]:
     """
-    Retrieve stock metrics with fallback to multiple sources.
-    
+    Calculate key financial metrics from revenue and expenses.
+
     Args:
-        symbol: Stock ticker symbol (e.g., 'AAPL')
-        
+        revenue: Total revenue amount
+        expenses: Total expenses amount
+
     Returns:
-        Dictionary containing financial metrics
+        Dictionary containing calculated metrics
     """
-    try:
-        # Implementation
-        pass
-    except Exception as e:
-        logger.error(f"Failed to fetch metrics for {symbol}: {e}")
-        return {'error': str(e)}
+    if revenue <= 0:
+        logger.warning("Revenue value is zero or negative")
+        return {}
+
+    profit = revenue - expenses
+    profit_margin = profit / revenue if revenue != 0 else 0
+
+    return {
+        'profit': profit,
+        'profit_margin': profit_margin
+    }
 ```
+
+### Testing Standards
+- Unit tests are recommended using pytest framework
+- Place all tests in a dedicated `tests/` directory
+- Name test files with `test_` prefix (e.g., `test_stock_api.py`)
+- Use descriptive test function names that explain what is being tested
+
+#### Example:
+```python
+import pytest
+from backend.stock_api import StockAPI
+
+def test_get_stock_metrics_success():
+    """Test successful retrieval of stock metrics."""
+    api = StockAPI()
+    result = api.get_stock_metrics("AAPL")
+
+    assert "symbol" in result
+    assert result["symbol"] == "AAPL"
+```
+
+### Logging Standards
+- Use INFO level for general application flow
+- Use ERROR level for exceptions and unexpected behavior
+- Format: `%(asctime)s - %(name)s - %(levelname)s - %(message)s`
+
+### Dependencies
+- Maintain a `requirements.txt` file for reproducibility
+- Pin dependency versions for stability
+- Recommended libraries include:
+  - streamlit>=1.45.1
+  - pandas>=2.0.0
+  - numpy>=1.24.0
+  - plotly>=5.15.0
+  - pytest>=7.4.0
+
+### Code Quality Tools
+- Black formatter: Automatically formats Python code to ensure consistent style
+- Flake8: Checks code for compliance with Python style guides
+- Pre-commit hooks: Run code quality checks before each commit
+
+### Performance Considerations
+- Cache large datasets to avoid repeated loading
+- Limit expensive computations in main application loop
+- Use efficient data structures (NumPy arrays over lists when appropriate)
+- Use pandas DataFrames for data manipulation tasks
+
+### Security Practices
+- Do not hardcode sensitive information (API keys, passwords)
+- Store sensitive information in environment variables or secure configuration systems
+- Validate all user inputs from form fields or file uploads
+- Sanitize any user-provided data before processing
 
 ### JavaScript (Frontend)
 - Use ES6+ class syntax for modules
@@ -373,6 +466,31 @@ const config = {
    ```
 
 3. Update `config.js` to point to local endpoints when developing locally
+
+### Setting Up Development Environment
+
+1. Install project dependencies:
+   ```bash
+   pip install -r infrastructure/backend/requirements.txt
+   ```
+
+2. Install and set up pre-commit hooks:
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
+
+   This will ensure that black automatically formats your Python code before each commit.
+
+3. You can also run black manually on the entire codebase:
+   ```bash
+   black .
+   ```
+
+4. To run flake8 checks manually:
+   ```bash
+   flake8 .
+   ```
 
 ### Adding a New API Endpoint
 1. Add route handler in `lambda_handler.py`

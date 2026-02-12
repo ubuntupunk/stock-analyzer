@@ -1,0 +1,8 @@
+[flake8]
+max-line-length = 100
+select = WPS
+
+# WPS-specific settings (relaxed from defaults)
+max-cognitive-complexity = 20
+max-nested-try-body = 3
+max-module-members = 15

@@ -1,0 +1,83 @@
+# .windsurfrules for Python Streamlit Project
+
+[language.python]
+version = "3.8+"
+style_guide = "PEP8"
+max_line_length = 88
+indent_style = "spaces"
+indent_size = 4
+
+[rules.python]
+-- Enforce type hints for better code clarity and IDE support
+use_type_hints = true
+-- Prefer f-strings for string formatting
+string_formatting = "f-strings"
+-- Avoid inline comments; use descriptive variable names instead
+inline_comments = "discouraged"
+-- Require docstrings for all functions, classes, and modules
+require_docstrings = true
+docstring_style = "google"
+-- Avoid complex list comprehensions; use loops for readability
+max_comprehension_length = 50
+-- Enforce single quotes for strings unless double quotes are necessary
+string_quotes = "single"
+-- Limit function length to improve readability
+max_function_length = 50
+-- Encourage modular code with separate files for utilities, models, and data handling
+modular_code = true
+file_structure = [
+]
+
+[rules.testing]
+-- Encourage unit tests for utility functions and data processing
+unit_tests = "recommended"
+test_framework = "pytest"
+-- Include tests in a dedicated tests/ directory
+test_directory = "tests"
+-- Require logging for debugging Streamlit apps
+logging = "enabled"
+logging_level = "INFO"
+logging_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+[rules.dependencies]
+-- Require a requirements.txt file for reproducibility
+requirements_file = "requirements.txt"
+-- Pin dependency versions for stability
+pin_versions = true
+-- Recommended libraries for Streamlit projects
+recommended_libraries = [
+    "streamlit>=1.45.1",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "plotly>=5.15.0",
+    "pytest>=7.4.0"
+]
+
+[rules.documentation]
+-- Require a README.md with setup and usage instructions
+readme = "required"
+readme_sections = [
+    "Project Overview",
+    "Installation",
+    "Usage",
+    "File Structure",
+    "Contributing"
+]
+-- Encourage comments for complex logic
+comment_complex_logic = true
+-- Avoid excessive comments for self-explanatory code
+max_comment_density = 0.3  # 30% of lines can be comments
+
+[rules.performance]
+-- Avoid loading large datasets without caching
+cache_large_datasets = true
+-- Limit expensive computations in main app loop
+avoid_expensive_computations = true
+-- Use efficient data structures (e.g., NumPy arrays over lists)
+preferred_data_structures = ["numpy.ndarray", "pandas.DataFrame"]
+
+[rules.security]
+-- Avoid hardcoding sensitive information (e.g., API keys)
+no_hardcoded_secrets = true
+-- Validate user inputs from st.file_uploader or text inputs
+input_validation = true

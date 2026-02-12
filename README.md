@@ -91,7 +91,19 @@ aws configure
 cd stock-analyzer
 ```
 
-### 2. Set Environment Variables
+### 2. Set Up Development Environment
+First, install the project dependencies and set up code quality tools:
+
+```bash
+# Install project dependencies
+pip install -r infrastructure/backend/requirements.txt
+
+# Install and set up pre-commit hooks (formats code automatically before commits)
+pip install pre-commit
+pre-commit install
+```
+
+### 3. Set Environment Variables
 ```bash
 # Optional: Set your financial API key
 export FINANCIAL_API_KEY="your_api_key_here"
