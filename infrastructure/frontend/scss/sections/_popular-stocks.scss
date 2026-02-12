@@ -25,12 +25,12 @@
 .popular-header {
   text-align: center;
   margin-bottom: var(--spacing-xl);
-  
+
   h2 {
     color: var(--primary-color);
     margin-bottom: var(--spacing-sm);
   }
-  
+
   p {
     color: var(--text-secondary);
     margin-bottom: var(--spacing-lg);
@@ -59,35 +59,35 @@
     align-items: center;
     cursor: pointer;
     transition: background-color var(--transition-fast);
-    
+
     &:hover {
       background-color: var(--bg-hover);
     }
-    
+
     &:last-child {
       border-bottom: none;
     }
   }
-  
+
   .stock-symbol {
     font-weight: var(--font-weight-bold);
     color: var(--primary-color);
     font-size: var(--font-size-lg);
   }
-  
+
   .stock-price {
     font-weight: var(--font-weight-semibold);
     text-align: center;
   }
-  
+
   .stock-change {
     text-align: right;
     font-weight: var(--font-weight-medium);
-    
+
     &.positive {
       color: var(--success-color);
     }
-    
+
     &.negative {
       color: var(--danger-color);
     }
@@ -106,7 +106,7 @@
 // ============================================
 
 .stock-card {
-  background: white;
+  background: var(--bg-white);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
@@ -114,12 +114,12 @@
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
-  
+
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-lg);
   }
-  
+
   &.in-watchlist {
     border-color: var(--success-color);
     box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
@@ -129,11 +129,11 @@
   @media (max-width: 767px) {
     padding: var(--spacing-md);
     border-radius: var(--border-radius-md);
-    
+
     .stock-symbol {
       font-size: var(--font-size-lg);
     }
-    
+
     .stock-name {
       font-size: var(--font-size-sm);
       display: -webkit-box;
@@ -141,17 +141,17 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    
+
     .stock-sector {
       font-size: var(--font-size-xs);
       padding: 0.15rem 0.5rem;
     }
-    
+
     .stock-price {
       font-size: var(--font-size-lg);
       margin-bottom: var(--spacing-sm);
     }
-    
+
     .stock-change {
       font-size: var(--font-size-sm);
     }
@@ -160,25 +160,25 @@
   // Small phones: Compact cards
   @media (max-width: 480px) {
     padding: var(--spacing-sm);
-    
+
     .stock-symbol {
       font-size: var(--font-size-base);
     }
-    
+
     .stock-name {
       font-size: var(--font-size-xs);
       -webkit-line-clamp: 1;
     }
-    
+
     .stock-sector {
       display: none; // Hide sector on very small screens
     }
-    
+
     .stock-price {
       font-size: var(--font-size-base);
       margin-bottom: var(--spacing-xs);
     }
-    
+
     .stock-change {
       font-size: var(--font-size-xs);
     }
@@ -216,38 +216,42 @@
   color: var(--text-primary);
   font-family: 'monospace';
   margin-bottom: 1rem;
-  
+
   &:not(.loaded) {
     color: var(--text-muted);
     opacity: 0.6;
   }
-  
+
   &.loaded {
     animation: priceLoaded 0.3s ease-in;
   }
-  
+
   &.positive {
     color: var(--success-color);
   }
-  
+
   &.negative {
     color: var(--danger-color);
   }
 }
 
 @keyframes priceLoaded {
-  0% { opacity: 0.6; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .stock-change {
   font-size: 0.9rem;
   font-weight: 600;
-  
+
   &.positive {
     color: var(--success-color);
   }
-  
+
   &.negative {
     color: var(--danger-color);
   }
@@ -261,8 +265,8 @@
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: #2c3e50;
-  border: 2px solid #2c3e50;
+  background: var(--bg-dark);
+  border: 2px solid var(--bg-dark);
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -273,22 +277,22 @@
   transition: all 0.3s ease;
   z-index: 10;
   font-size: 1rem;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  
+  color: var(--text-light);
+  box-shadow: var(--shadow-sm);
+
   &:hover {
-    background: #34495e;
-    border-color: #34495e;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
     transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-md);
   }
-  
+
   &.added {
     background: var(--success-color);
     border-color: var(--success-color);
-    color: white;
+    color: var(--text-light);
     box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
-    
+
     &:hover {
       background: #27ae60;
       border-color: #27ae60;
@@ -335,12 +339,12 @@
 .popular-header {
   text-align: center;
   margin-bottom: var(--spacing-xl);
-  
+
   h2 {
     color: var(--primary-color);
     margin-bottom: var(--spacing-sm);
   }
-  
+
   p {
     color: var(--text-secondary);
     margin-bottom: var(--spacing-lg);
@@ -349,11 +353,11 @@
   // Mobile: Smaller header
   @media (max-width: 767px) {
     margin-bottom: var(--spacing-md);
-    
+
     h2 {
       font-size: var(--font-size-xl);
     }
-    
+
     p {
       font-size: var(--font-size-sm);
       margin-bottom: var(--spacing-md);
