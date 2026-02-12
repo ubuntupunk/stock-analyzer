@@ -11,7 +11,7 @@ Globals:
       Variables:
         FACTORS_TABLE: !Ref FactorsTable
         WATCHLIST_TABLE: !Ref WatchlistTable
-        STOCK_UNIVERSE_TABLE: !Ref StockUniverseTable
+        STOCK_UNIVERSE_TABLE: "stock-universe"
         USERS_TABLE: !Ref UsersTable
         FINANCIAL_API_KEY: !Ref FinancialAPIKey
 
@@ -220,7 +220,7 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref FactorsTable
         - DynamoDBReadPolicy:
-            TableName: !Ref StockUniverseTable
+            TableName: "stock-universe"
 
   WatchlistAPIFunction:
     Type: AWS::Serverless::Function
@@ -308,7 +308,7 @@ Resources:
             Method: options
       Policies:
         - DynamoDBReadPolicy:
-            TableName: !Ref StockUniverseTable
+            TableName: "stock-universe"
 
   StockUniverseSeedFunction:
     Type: AWS::Serverless::Function
@@ -370,7 +370,7 @@ Resources:
               }
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref StockUniverseTable
+            TableName: "stock-universe"
 
   # DynamoDB Tables
   FactorsTable:
@@ -405,89 +405,47 @@ Resources:
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
 
-  StockUniverseTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: stock-universe
-      AttributeDefinitions:
-        - AttributeName: symbol
-          AttributeType: S
-        - AttributeName: sector
-          AttributeType: S
-        - AttributeName: marketCapBucket
-          AttributeType: S
-        # Multi-index GSIs - Add these AttributeDefinitions when adding corresponding GSI:
-        # - AttributeName: region
-        #   AttributeType: S
-        # - AttributeName: indexId
-        #   AttributeType: S
-        # - AttributeName: currency
-        #   AttributeType: S
-        # - AttributeName: isActive
-        #   AttributeType: B
-      KeySchema:
-        - AttributeName: symbol
-          KeyType: HASH
-      GlobalSecondaryIndexes:
-        # Existing GSIs
-        - IndexName: sector-index
-          KeySchema:
-            - AttributeName: sector
-              KeyType: HASH
-            - AttributeName: symbol
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-        - IndexName: marketcap-index
-          KeySchema:
-            - AttributeName: marketCapBucket
-              KeyType: HASH
-            - AttributeName: symbol
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-        # Multi-index GSIs - NOTE: Must be added one at a time due to DynamoDB limitations
-        # Uncomment one GSI at a time and redeploy. After each GSI is created, uncomment the next one.
-        #
-        # - IndexName: region-index
-        #   KeySchema:
-        #     - AttributeName: region
-        #       KeyType: HASH
-        #     - AttributeName: symbol
-        #       KeyType: RANGE
-        #   Projection:
-        #     ProjectionType: ALL
-        #
-        # - IndexName: index-id-index
-        #   KeySchema:
-        #      - AttributeName: indexId
-        #        KeyType: HASH
-        #      - AttributeName: symbol
-        #        KeyType: RANGE
-        #   Projection:
-        #      ProjectionType: ALL
-        #
-        # - IndexName: currency-index
-        #   KeySchema:
-        #      - AttributeName: currency
-        #        KeyType: HASH
-        #      - AttributeName: symbol
-        #        KeyType: RANGE
-        #   Projection:
-        #      ProjectionType: ALL
-        #
-        # - IndexName: status-index
-        #   KeySchema:
-        #      - AttributeName: isActive
-        #        KeyType: HASH
-        #      - AttributeName: symbol
-        #        KeyType: RANGE
-        #   Projection:
-        #      ProjectionType: ALL
-      BillingMode: PAY_PER_REQUEST
-      Tags:
-        - Key: Application
-          Value: stock-analyzer
+  # TEMPORARILY COMMENTED OUT: StockUniverseTable
+  # The stock-universe DynamoDB table already exists.
+  # Removed from CloudFormation to avoid "cannot perform more than one GSI creation" error.
+  # New GSIs (region-index, index-id-index, currency-index, status-index) will be added via AWS CLI.
+  # See docs/GSI_MIGRATION_GUIDE.md for AWS CLI commands to add GSIs one at a time.
+  #
+  # StockUniverseTable:
+  #   Type: AWS::DynamoDB::Table
+  #   Properties:
+  #     TableName: stock-universe
+  #     AttributeDefinitions:
+  #       - AttributeName: symbol
+  #         AttributeType: S
+  #       - AttributeName: sector
+  #         AttributeType: S
+  #       - AttributeName: marketCapBucket
+  #         AttributeType: S
+  #     KeySchema:
+  #       - AttributeName: symbol
+  #         KeyType: HASH
+  #     GlobalSecondaryIndexes:
+  #       - IndexName: sector-index
+  #         KeySchema:
+  #           - AttributeName: sector
+  #             KeyType: HASH
+  #           - AttributeName: symbol
+  #             KeyType: RANGE
+  #         Projection:
+  #           ProjectionType: ALL
+  #       - IndexName: marketcap-index
+  #         KeySchema:
+  #           - AttributeName: marketCapBucket
+  #             KeyType: HASH
+  #           - AttributeName: symbol
+  #             KeyType: RANGE
+  #         Projection:
+  #           ProjectionType: ALL
+  #     BillingMode: PAY_PER_REQUEST
+  #     Tags:
+  #       - Key: Application
+  #         Value: stock-analyzer
 
   UsersTable:
     Type: AWS::DynamoDB::Table
