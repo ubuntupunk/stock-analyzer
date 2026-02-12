@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.min.js
+*.min.css
+
+# Configuration
+package-lock.json
+
+# Generated files
+coverage/
+.nyc_output/

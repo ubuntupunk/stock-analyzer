@@ -11,8 +11,8 @@ from .russell_fetcher import Russell3000Fetcher
 from .jse_fetcher import JSEFetcher
 
 __all__ = [
-    'IndexFetcher',
-    'SP500Fetcher',
-    'Russell3000Fetcher',
-    'JSEFetcher',
+    "IndexFetcher",
+    "SP500Fetcher",
+    "Russell3000Fetcher",
+    "JSEFetcher",
 ]

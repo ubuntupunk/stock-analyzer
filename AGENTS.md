@@ -333,6 +333,12 @@ def test_get_stock_metrics_success():
 - Flake8: Checks code for compliance with Python style guides
 - Pre-commit hooks: Run code quality checks before each commit
 
+### JavaScript Code Quality
+- ESLint: Linting tool for identifying problematic patterns in JavaScript code
+- Prettier: Code formatter that enforces consistent code style
+- eslint-config-prettier: Disables ESLint rules that conflict with Prettier
+- Pre-commit hooks: Also run JavaScript linting and formatting before each commit
+
 ### Performance Considerations
 - Cache large datasets to avoid repeated loading
 - Limit expensive computations in main application loop
@@ -491,6 +497,23 @@ const config = {
    ```bash
    flake8 .
    ```
+
+5. For JavaScript files, you can run ESLint and Prettier:
+   ```bash
+   # Lint JavaScript files
+   npm run lint
+
+   # Automatically fix linting issues
+   npm run lint:fix
+
+   # Format all JavaScript files with Prettier
+   npm run format
+
+   # Check if JavaScript files are formatted correctly
+   npm run format:check
+   ```
+
+6. Note that pre-commit hooks will automatically run both Python (black) and JavaScript (ESLint, Prettier) code quality checks before each commit.
 
 ### Adding a New API Endpoint
 1. Add route handler in `lambda_handler.py`

@@ -8,9 +8,4 @@ from .alpha_vantage import AlphaVantageClient
 from .polygon import PolygonClient
 from .alpaca import AlpacaClient
 
-__all__ = [
-    'YahooFinanceClient',
-    'AlphaVantageClient',
-    'PolygonClient',
-    'AlpacaClient'
-]
+__all__ = ["YahooFinanceClient", "AlphaVantageClient", "PolygonClient", "AlpacaClient"]

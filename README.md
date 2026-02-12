@@ -103,6 +103,13 @@ pip install pre-commit
 pre-commit install
 ```
 
+For JavaScript development, install additional code quality tools:
+
+```bash
+# Install ESLint, Prettier, and related packages
+npm install --save-dev eslint prettier eslint-config-prettier eslint-plugin-prettier
+```
+
 ### 3. Set Environment Variables
 ```bash
 # Optional: Set your financial API key

@@ -2,10 +2,11 @@ import yfinance as yf
 import pandas as pd
 import json
 
+
 def diagnose_aapl():
     print("=== Diagnosing AAPL Financials ===")
     ticker = yf.Ticker("AAPL")
-    
+
     print("\n--- Income Statement ---")
     financials = ticker.financials
     if financials is not None and not financials.empty:
@@ -30,6 +31,7 @@ def diagnose_aapl():
         print("Index:", cashflow.index.tolist())
     else:
         print("Cash Flow is EMPTY")
+
 
 if __name__ == "__main__":
     diagnose_aapl()
