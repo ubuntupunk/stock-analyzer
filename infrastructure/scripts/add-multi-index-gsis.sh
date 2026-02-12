@@ -18,10 +18,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Create temporary directory for JSON files
-TMP_DIR=$(mktemp -d)
-trap "rm -rf $TMP_DIR" EXIT
-
 # Function to wait for GSI to become ACTIVE
 wait_for_gsi() {
     local index_name=$1
@@ -39,92 +35,40 @@ wait_for_gsi() {
 
 # GSI #1: region-index
 echo "Step 1/4: Adding region-index"
-cat > $TMP_DIR/region-index.json <<'EOF'
-[
-  {
-    "IndexName": "region-index",
-    "KeySchema": [
-      {"AttributeName": "region", "KeyType": "HASH"},
-      {"AttributeName": "symbol", "KeyType": "RANGE"}
-    ],
-    "Projection": {"ProjectionType": "ALL"}
-  }
-]
-EOF
 aws dynamodb update-table \
   --table-name $TABLE_NAME \
   --attribute-definitions AttributeName=region,AttributeType=S AttributeName=symbol,AttributeType=S \
-  --global-secondary-indexes file://$TMP_DIR/region-index.json \
-  --no-cli-pager || true
+  --global-secondary-index-updates '{"Create":{"IndexName":"region-index","KeySchema":[{"AttributeName":"region","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}}'
 
 wait_for_gsi "region-index"
 echo ""
 
 # GSI #2: index-id-index
 echo "Step 2/4: Adding index-id-index"
-cat > $TMP_DIR/index-id-index.json <<'EOF'
-[
-  {
-    "IndexName": "index-id-index",
-    "KeySchema": [
-      {"AttributeName": "indexId", "KeyType": "HASH"},
-      {"AttributeName": "symbol", "KeyType": "RANGE"}
-    ],
-    "Projection": {"ProjectionType": "ALL"}
-  }
-]
-EOF
 aws dynamodb update-table \
   --table-name $TABLE_NAME \
   --attribute-definitions AttributeName=indexId,AttributeType=S AttributeName=symbol,AttributeType=S \
-  --global-secondary-indexes file://$TMP_DIR/index-id-index.json \
-  --no-cli-pager || true
+  --global-secondary-index-updates '{"Create":{"IndexName":"index-id-index","KeySchema":[{"AttributeName":"indexId","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}}'
 
 wait_for_gsi "index-id-index"
 echo ""
 
 # GSI #3: currency-index
 echo "Step 3/4: Adding currency-index"
-cat > $TMP_DIR/currency-index.json <<'EOF'
-[
-  {
-    "IndexName": "currency-index",
-    "KeySchema": [
-      {"AttributeName": "currency", "KeyType": "HASH"},
-      {"AttributeName": "symbol", "KeyType": "RANGE"}
-    ],
-    "Projection": {"ProjectionType": "ALL"}
-  }
-]
-EOF
 aws dynamodb update-table \
   --table-name $TABLE_NAME \
   --attribute-definitions AttributeName=currency,AttributeType=S AttributeName=symbol,AttributeType=S \
-  --global-secondary-indexes file://$TMP_DIR/currency-index.json \
-  --no-cli-pager || true
+  --global-secondary-index-updates '{"Create":{"IndexName":"currency-index","KeySchema":[{"AttributeName":"currency","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}}'
 
 wait_for_gsi "currency-index"
 echo ""
 
 # GSI #4: status-index
 echo "Step 4/4: Adding status-index"
-cat > $TMP_DIR/status-index.json <<'EOF'
-[
-  {
-    "IndexName": "status-index",
-    "KeySchema": [
-      {"AttributeName": "isActive", "KeyType": "HASH"},
-      {"AttributeName": "symbol", "KeyType": "RANGE"}
-    ],
-    "Projection": {"ProjectionType": "ALL"}
-  }
-]
-EOF
 aws dynamodb update-table \
   --table-name $TABLE_NAME \
   --attribute-definitions AttributeName=isActive,AttributeType=B AttributeName=symbol,AttributeType=S \
-  --global-secondary-indexes file://$TMP_DIR/status-index.json \
-  --no-cli-pager || true
+  --global-secondary-index-updates '{"Create":{"IndexName":"status-index","KeySchema":[{"AttributeName":"isActive","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}}'
 
 wait_for_gsi "status-index"
 echo ""
