@@ -758,6 +758,62 @@ class UIManager {
         this.errorStates.clear();
         console.log('UIManager: Cleaned up');
     }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[UIManager] Initialized');
+        this.isInitialized = true;
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[UIManager] Shown');
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[UIManager] Hidden');
+        this.isVisible = false;
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[UIManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            errorStates: Array.from(this.errorStates.entries())
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[UIManager] Restoring state:', state);
+        this.isVisible = state?.isVisible ?? true;
+        if (state?.errorStates) {
+            this.errorStates = new Map(state.errorStates);
+        }
+    }
 }
 
 // Export for use in other modules
