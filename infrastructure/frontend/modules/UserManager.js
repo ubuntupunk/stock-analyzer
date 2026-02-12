@@ -406,6 +406,62 @@ class UserManager {
         this.currentUser = null;
         console.log('UserManager: Cleaned up');
     }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[UserManager] Initialized');
+        this.isInitialized = true;
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[UserManager] Shown');
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[UserManager] Hidden');
+        this.isVisible = false;
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[UserManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            currentUser: this.currentUser,
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[UserManager] Restoring state:', state);
+        if (state?.currentUser) {
+            this.currentUser = state.currentUser;
+        }
+        this.isVisible = state?.isVisible ?? true;
+    }
 }
 
 // Export for use in other modules

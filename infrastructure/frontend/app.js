@@ -254,6 +254,15 @@ class StockAnalyzer {
             });
         }
 
+        if (this.modules.userManager) {
+            lifecycle.registerModule('userManager', this.modules.userManager, {
+                onInit: () => this.modules.userManager.onInit?.(),
+                onShow: () => this.modules.userManager.onShow?.(),
+                onHide: () => this.modules.userManager.onHide?.(),
+                onDestroy: () => this.modules.userManager.onDestroy?.()
+            });
+        }
+
         console.log('✓ All modules registered with lifecycle manager');
     }
 
