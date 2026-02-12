@@ -35,16 +35,9 @@ wait_for_gsi() {
 
 # GSI #1: region-index
 echo "Step 1/4: Adding region-index"
-aws dynamodb update-table \
-  --table-name $TABLE_NAME \
+aws dynamodb update-table --table-name $TABLE_NAME \
   --attribute-definitions AttributeName=region,AttributeType=S AttributeName=symbol,AttributeType=S \
-  --global-secondary-indexes '[
-    {
-      "IndexName": "region-index",
-      "KeySchema": [{"AttributeName":"region","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],
-      "Projection": {"ProjectionType": "ALL"}
-    }
-  ]' \
+  --global-secondary-indexes '[{"IndexName":"region-index","KeySchema":[{"AttributeName":"region","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}]' \
   --no-cli-pager || true
 
 wait_for_gsi "region-index"
@@ -52,16 +45,9 @@ echo ""
 
 # GSI #2: index-id-index
 echo "Step 2/4: Adding index-id-index"
-aws dynamodb update-table \
-  --table-name $TABLE_NAME \
+aws dynamodb update-table --table-name $TABLE_NAME \
   --attribute-definitions AttributeName=indexId,AttributeType=S AttributeName=symbol,AttributeType=S \
-  --global-secondary-indexes '[
-    {
-      "IndexName": "index-id-index",
-      "KeySchema": [{"AttributeName":"indexId","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],
-      "Projection": {"ProjectionType": "ALL"}
-    }
-  ]' \
+  --global-secondary-indexes '[{"IndexName":"index-id-index","KeySchema":[{"AttributeName":"indexId","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}]' \
   --no-cli-pager || true
 
 wait_for_gsi "index-id-index"
@@ -69,16 +55,9 @@ echo ""
 
 # GSI #3: currency-index
 echo "Step 3/4: Adding currency-index"
-aws dynamodb update-table \
-  --table-name $TABLE_NAME \
+aws dynamodb update-table --table-name $TABLE_NAME \
   --attribute-definitions AttributeName=currency,AttributeType=S AttributeName=symbol,AttributeType=S \
-  --global-secondary-indexes '[
-    {
-      "IndexName": "currency-index",
-      "KeySchema": [{"AttributeName":"currency","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],
-      "Projection": {"ProjectionType": "ALL"}
-    }
-  ]' \
+  --global-secondary-indexes '[{"IndexName":"currency-index","KeySchema":[{"AttributeName":"currency","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}]' \
   --no-cli-pager || true
 
 wait_for_gsi "currency-index"
@@ -86,16 +65,9 @@ echo ""
 
 # GSI #4: status-index
 echo "Step 4/4: Adding status-index"
-aws dynamodb update-table \
-  --table-name $TABLE_NAME \
+aws dynamodb update-table --table-name $TABLE_NAME \
   --attribute-definitions AttributeName=isActive,AttributeType=B AttributeName=symbol,AttributeType=S \
-  --global-secondary-indexes '[
-    {
-      "IndexName": "status-index",
-      "KeySchema": [{"AttributeName":"isActive","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],
-      "Projection": {"ProjectionType": "ALL"}
-    }
-  ]' \
+  --global-secondary-indexes '[{"IndexName":"status-index","KeySchema":[{"AttributeName":"isActive","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}]' \
   --no-cli-pager || true
 
 wait_for_gsi "status-index"
@@ -107,8 +79,7 @@ echo "✓ All GSIs added successfully!"
 echo "=================================="
 echo ""
 echo "Verifying GSIs..."
-aws dynamodb describe-table \
-  --table-name $TABLE_NAME \
+aws dynamodb describe-table --table-name $TABLE_NAME \
   --query 'Table.GlobalSecondaryIndexes[].{Name:IndexName,Status:IndexStatus}' \
   --output table
 
