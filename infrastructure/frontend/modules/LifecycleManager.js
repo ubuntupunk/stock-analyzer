@@ -550,7 +550,7 @@ class LifecycleManager {
      */
     getAllModuleStatuses() {
         const statuses = {};
-        for (const [name, info] of this.modules) {
+        for (const [name] of this.modules) {
             statuses[name] = this.getModuleStatus(name);
         }
         return statuses;

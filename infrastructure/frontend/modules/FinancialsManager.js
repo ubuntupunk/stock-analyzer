@@ -130,7 +130,7 @@ class FinancialsManager {
                         analyserNameElement.textContent !== '-') {
                         companyName = analyserNameElement.textContent;
                     }
-                } catch (e) {
+                } catch {
                     // Ignore errors
                 }
             }
@@ -144,7 +144,7 @@ class FinancialsManager {
                         metricsCompanyNameElement.textContent !== '-') {
                         companyName = metricsCompanyNameElement.textContent;
                     }
-                } catch (e) {
+                } catch {
                     // Ignore errors
                 }
             }

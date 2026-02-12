@@ -55,7 +55,11 @@ export default [
       },
     },
     rules: {
-      "no-unused-vars": ["warn", { args: "none" }],
+      "no-unused-vars": ["warn", { 
+        args: "none",
+        varsIgnorePattern: "^_",
+        argsIgnorePattern: "^_"
+      }],
       "no-console": ["off"],
       "no-undef": ["error"],
     },
@@ -64,6 +68,11 @@ export default [
     files: ["infrastructure/frontend/**/*.js"],
     rules: {
       "no-undef": ["error"],
+      "no-unused-vars": ["warn", { 
+        args: "none",
+        varsIgnorePattern: "^_",
+        argsIgnorePattern: "^_"
+      }],
     },
   },
 ];

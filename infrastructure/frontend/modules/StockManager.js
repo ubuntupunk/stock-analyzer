@@ -566,7 +566,7 @@ class StockManager {
         try {
             // Use batch API to fetch all prices concurrently
             console.log(`StockManager: Fetching batch prices for ${symbols.length} stocks:`, symbols);
-            const batchPrices = await api.getBatchStockPrices(symbols);
+            const batchPrices = await window.api.getBatchStockPrices(symbols);
             console.log('StockManager: Batch price data received:', batchPrices);
 
             // Update each stock with its price data
@@ -615,7 +615,7 @@ class StockManager {
             const stock = this.popularStocks[i];
 
             try {
-                const priceData = await api.getStockPrice(stock.symbol);
+                const priceData = await window.api.getStockPrice(stock.symbol);
                 const price = priceData.price || priceData.currentPrice;
 
                 if (priceData && price) {

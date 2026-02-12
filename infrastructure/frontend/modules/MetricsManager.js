@@ -184,7 +184,7 @@ class MetricsManager {
         // Store in localStorage for persistence
         try {
             localStorage.setItem('metricsView', viewMode);
-        } catch (e) {
+        } catch {
             // localStorage may be disabled
         }
 
@@ -211,7 +211,7 @@ class MetricsManager {
             if (savedView && (savedView === 'grid' || savedView === 'list')) {
                 this.setMetricsView(savedView);
             }
-        } catch (e) {
+        } catch {
             // localStorage may be disabled
         }
     }

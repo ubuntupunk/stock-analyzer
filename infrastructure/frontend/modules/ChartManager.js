@@ -137,7 +137,7 @@ class ChartManager {
      * Destroy all charts
      */
     destroyAllCharts() {
-        for (const [canvasId, chart] of this.charts) {
+        for (const [, chart] of this.charts) {
             chart.destroy();
         }
         this.charts.clear();
