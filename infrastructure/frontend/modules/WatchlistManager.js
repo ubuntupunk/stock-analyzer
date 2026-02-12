@@ -1616,6 +1616,108 @@ class WatchlistManager {
             lastUpdated: new Date().toISOString()
         };
     }
+
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        this.stopPriceUpdates();
+        this.watchlist = [];
+        this._watchlistRendered = false;
+        console.log('WatchlistManager: Cleaned up');
+    }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[WatchlistManager] Initialized');
+        this.isInitialized = true;
+        this.isVisible = false;
+        this.savedScrollPosition = 0;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[WatchlistManager] Shown - resuming price updates and restoring scroll');
+        this.isVisible = true;
+        this.startPriceUpdates();
+        this.restoreScrollPosition();
+        // Refresh watchlist if needed
+        if (!this._watchlistRendered && this.watchlist.length > 0) {
+            this.renderWatchlist();
+        }
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[WatchlistManager] Hidden - pausing price updates and saving scroll');
+        this.isVisible = false;
+        this.saveScrollPosition();
+        this.stopPriceUpdates();
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[WatchlistManager] Destroyed - complete cleanup');
+        this.stopPriceUpdates();
+        this.cleanup();
+        this.isInitialized = false;
+    }
+
+    /**
+     * Save scroll position of watchlist grid
+     */
+    saveScrollPosition() {
+        const grid = document.getElementById('watchlistGrid');
+        if (grid) {
+            this.savedScrollPosition = grid.scrollTop;
+            console.log('[WatchlistManager] Scroll position saved:', this.savedScrollPosition);
+        }
+    }
+
+    /**
+     * Restore scroll position of watchlist grid
+     */
+    restoreScrollPosition() {
+        const grid = document.getElementById('watchlistGrid');
+        if (grid && this.savedScrollPosition > 0) {
+            grid.scrollTop = this.savedScrollPosition;
+            console.log('[WatchlistManager] Scroll position restored:', this.savedScrollPosition);
+        }
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            watchlist: this.watchlist,
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible,
+            savedScrollPosition: this.savedScrollPosition,
+            _watchlistRendered: this._watchlistRendered
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[WatchlistManager] Restoring state:', state);
+        if (state?.watchlist) {
+            this.watchlist = state.watchlist;
+        }
+        this.isVisible = state?.isVisible ?? true;
+        this.savedScrollPosition = state?.savedScrollPosition ?? 0;
+        this._watchlistRendered = state?._watchlistRendered ?? false;
+    }
 }
 
 // Export for use in other modules

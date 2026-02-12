@@ -193,10 +193,10 @@ class StockAnalyzer {
 
         if (this.modules.watchlistManager) {
             lifecycle.registerModule('watchlistManager', this.modules.watchlistManager, {
-                onInit: () => this.modules.watchlistManager.initialize?.(),
-                onShow: () => console.log('WatchlistManager shown'),
-                onHide: () => this.modules.watchlistManager.cleanup?.(),
-                onDestroy: () => this.modules.watchlistManager.cleanup?.()
+                onInit: () => this.modules.watchlistManager.onInit?.(),
+                onShow: () => this.modules.watchlistManager.onShow?.(),
+                onHide: () => this.modules.watchlistManager.onHide?.(),
+                onDestroy: () => this.modules.watchlistManager.onDestroy?.()
             });
         }
 
