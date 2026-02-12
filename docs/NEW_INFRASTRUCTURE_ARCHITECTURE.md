@@ -10,13 +10,20 @@ graph TB
 
     subgraph "API Gateway Layer"
         APIGW[Amazon API Gateway<br/>REST API]
-        APIGW --> |GET| SEARCH[Stock Search<br/>/api/stocks/search]
-        APIGW --> |GET| FILTER[Stock Filter<br/>/api/stocks/filter]
-        APIGW --> |GET| POPULAR[Popular Stocks<br/>/api/stocks/popular]
-        APIGW --> |GET| INDICES[Multi-Index<br/>/api/stocks/indices]
-        APIGW --> |GET| INDEX_DETAIL[Index Details<br/>/api/stocks/indices/{id}]
-        APIGW --> |GET| INDEX_STOCKS[Index Stocks<br/>/api/stocks/indices/{id}/stocks]
+        SEARCH["Stock Search<br/>/api/stocks/search"]
+        FILTER["Stock Filter<br/>/api/stocks/filter"]
+        POPULAR["Popular Stocks<br/>/api/stocks/popular"]
+        INDICES["Multi-Index<br/>/api/stocks/indices"]
+        INDEX_DETAIL["Index Details<br/>/api/stocks/indices/ID"]
+        INDEX_STOCKS["Index Stocks<br/>/api/stocks/indices/ID/stocks"]
     end
+    
+    APIGW -->|GET| SEARCH
+    APIGW -->|GET| FILTER
+    APIGW -->|GET| POPULAR
+    APIGW -->|GET| INDICES
+    APIGW -->|GET| INDEX_DETAIL
+    APIGW -->|GET| INDEX_STOCKS
 
     subgraph "Lambda Functions"
         STOCKAPI[Stock API<br/>Lambda Handler]
@@ -92,10 +99,10 @@ graph TB
     UNIVERSESEED --> METRICS
 
     subgraph "EventBridge Schedules"
-        E1[SP500Weekly<br/>rate(7 days)]
-        E2[RussellWeekly<br/>rate(7 days)]
-        E3[JSEWeekly<br/>rate(7 days)]
-        E4[DailyValidation<br/>rate(1 day)]
+        E1["SP500Weekly<br/>rate 7 days"]
+        E2["RussellWeekly<br/>rate 7 days"]
+        E3["JSEWeekly<br/>rate 7 days"]
+        E4["DailyValidation<br/>rate 1 day"]
     end
 
     E1 --> UNIVERSESEED
@@ -143,46 +150,46 @@ erDiagram
         string sector
         string subSector
         string industry
-        string region "NEW"
+        string region
         string currency
         string exchange
-        string exchangeSuffix "NEW"
-        string indexId "NEW"
-        array indexIds "NEW"
+        string exchangeSuffix
+        string indexId
+        array indexIds
         decimal marketCap
-        decimal marketCapUSD "NEW"
+        decimal marketCapUSD
         string marketCapBucket
         timestamp lastUpdated
-        timestamp lastValidated "NEW"
-        boolean isActive "NEW"
-        string dataSource "NEW"
+        timestamp lastValidated
+        string isActive  # "true" or "false" strings (DynamoDB doesn't support Boolean for keys)
+        string dataSource
         string country
         string headquarters
     }
 
-    STOCK_UNIVERSE }|--|| REGION_INDEX : "region-index GSI"
-    STOCK_UNIVERSE }|--|| INDEX_ID_INDEX : "index-id-index GSI"
-    STOCK_UNIVERSE }|--|| CURRENCY_INDEX : "currency-index GSI"
-    STOCK_UNIVERSE }|--|| STATUS_INDEX : "status-index GSI"
+    STOCK_UNIVERSE }|--|| REGIONINDEX : "region-index GSI"
+    STOCK_UNIVERSE }|--|| INDEXIDINDEX : "index-id-index GSI"
+    STOCK_UNIVERSE }|--|| CURRENCYINDEX : "currency-index GSI"
+    STOCK_UNIVERSE }|--|| STATUSINDEX : "status-index GSI"
 
-    REGION_INDEX {
-        string region PK "NEW"
-        string symbol SK
+    REGIONINDEX {
+        string region "PK"
+        string symbol "SK"
     }
 
-    INDEX_ID_INDEX {
-        string indexId PK "NEW"
-        string symbol SK
+    INDEXIDINDEX {
+        string indexId "PK"
+        string symbol "SK"
     }
 
-    CURRENCY_INDEX {
-        string currency PK "NEW"
-        string symbol SK
+    CURRENCYINDEX {
+        string currency "PK"
+        string symbol "SK"
     }
 
-    STATUS_INDEX {
-        boolean isActive PK "NEW"
-        string symbol SK
+    STATUSINDEX {
+        string isActive "PK"  # "true" or "false" strings
+        string symbol "SK"
     }
 ```
 
@@ -244,11 +251,11 @@ graph LR
     Q4 --> GSI4[status-index]
     Q5 --> SCAN[Scan with filters<br/>until GSIs available]
 
-    GSI1 --> RESULT1[Fast O(log n)]
-    GSI2 --> RESULT2[Fast O(log n)]
-    GSI3 --> RESULT3[Fast O(log n)]
-    GSI4 --> RESULT4[Fast O(log n)]
-    SCAN --> RESULT5[Slower O(n) -<br/>fallback until multi-key GSI]
+    GSI1 --> RESULT1["Fast O log n"]
+    GSI2 --> RESULT2["Fast O log n"]
+    GSI3 --> RESULT3["Fast O log n"]
+    GSI4 --> RESULT4["Fast O log n"]
+    SCAN --> RESULT5["Slower O n -<br/>fallback until multi-key GSI"]
 ```
 
 ---
@@ -356,13 +363,13 @@ mindmap
       limit=10
     /api/stocks/indices
       GET - List all indices
-    /api/stocks/indices/{id}
+    /api/stocks/indices/ID
       GET - Index details
       id=SP500|RUSSELL3000|JSE_ALSI
-    /api/stocks/indices/{id}/stocks
+    /api/stocks/indices/ID/stocks
       GET - Stocks in index
       limit=100
-    /api/stocks/symbol/{symbol}
+    /api/stocks/symbol/SYMBOL
       GET - Single stock
 ```
 
@@ -371,6 +378,7 @@ mindmap
 ## Key Changes Summary
 
 ### New Components
+
 | Component | Purpose |
 |-----------|---------|
 | `index_config.py` | Central registry for 3 indices |
@@ -381,6 +389,7 @@ mindmap
 | 4 EventBridge schedules | Staggered seeding + daily validation |
 
 ### New DynamoDB Fields
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `region` | string | Geographic region (US, ZA) |

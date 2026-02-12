@@ -140,7 +140,7 @@ class StockUniverseSeeder:
                                 'exchange': info.get('exchange', index_config['exchange']),
                                 'country': info.get('country', index_config['region']),
                                 'industry': info.get('industry', ''),
-                                'isActive': True,  # Will validate separately
+                                'isActive': 'true',  # String for DynamoDB GSI compatibility
                             }
 
                             if not market_cap:
@@ -215,7 +215,7 @@ class StockUniverseSeeder:
                         'marketCapBucket': market_cap_bucket,
                         'lastUpdated': datetime.utcnow().isoformat(),
                         'lastValidated': datetime.utcnow().isoformat(),
-                        'isActive': md.get('isActive', True),
+                        'isActive': 'true' if md.get('isActive') not in [False, 'false'] else 'false',  # String for DynamoDB GSI compatibility
                         'dataSource': 'yfinance',
                         'country': md.get('country', index_config['region'])
                     }

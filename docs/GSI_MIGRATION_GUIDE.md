@@ -138,7 +138,7 @@ aws dynamodb update-table \
 # Create status-index
 aws dynamodb update-table \
   --table-name $TABLE_NAME \
-  --attribute-definitions AttributeName=isActive,AttributeType=B AttributeName=symbol,AttributeType=S \
+  --attribute-definitions AttributeName=isActive,AttributeType=S AttributeName=symbol,AttributeType=S \
   --global-secondary-indexes \
     '[
       {

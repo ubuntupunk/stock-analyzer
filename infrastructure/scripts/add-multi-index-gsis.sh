@@ -67,7 +67,7 @@ echo ""
 echo "Step 4/4: Adding status-index"
 aws dynamodb update-table \
   --table-name $TABLE_NAME \
-  --attribute-definitions AttributeName=isActive,AttributeType=B AttributeName=symbol,AttributeType=S \
+  --attribute-definitions AttributeName=isActive,AttributeType=S AttributeName=symbol,AttributeType=S \
   --global-secondary-index-updates '{"Create":{"IndexName":"status-index","KeySchema":[{"AttributeName":"isActive","KeyType":"HASH"},{"AttributeName":"symbol","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}}'
 
 wait_for_gsi "status-index"
