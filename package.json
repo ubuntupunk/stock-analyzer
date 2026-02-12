@@ -11,7 +11,11 @@
     "clean": "rm -rf infrastructure/.aws-sam",
     "test-api": "curl $(aws cloudformation describe-stacks --stack-name stock-analyzer-stack --query 'Stacks[0].Outputs[?OutputKey==`APIEndpoint`].OutputValue' --output text)/api/stock/metrics?symbol=AAPL",
     "build:css": "cd infrastructure/frontend && sass --no-source-map scss/main.scss:styles.css --style=compressed",
-    "watch:css": "cd infrastructure/frontend && sass --no-source-map --watch scss:."
+    "watch:css": "cd infrastructure/frontend && sass --no-source-map --watch scss:.",
+    "lint": "eslint infrastructure/frontend/**/*.js",
+    "lint:fix": "eslint --fix infrastructure/frontend/**/*.js",
+    "format": "prettier --write infrastructure/frontend/**/*.js",
+    "format:check": "prettier --check infrastructure/frontend/**/*.js"
   },
   "keywords": [
     "stock",
@@ -33,6 +37,12 @@
     "node": ">=14.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.3.0",
+    "prettier": "^3.8.1",
     "sass": "^1.97.3"
   },
   "dependencies": {

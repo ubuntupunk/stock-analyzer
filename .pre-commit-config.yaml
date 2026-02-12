@@ -11,3 +11,15 @@ repos:
   #     - id: flake8
   #       language_version: python3.12
   #       files: \.py$
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.57.0
+    hooks:
+      - id: eslint
+        files: \.(js|jsx|mjs)$
+        types: [file]
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: \.(js|jsx|mjs|json|md)$
+        types: [file]
