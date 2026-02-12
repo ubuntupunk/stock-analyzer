@@ -275,6 +275,62 @@ class HealthManager {
 
         console.log('HealthManager: Cleanup complete');
     }
+
+    /**
+     * Lifecycle: Initialize module (called once)
+     */
+    onInit() {
+        console.log('[HealthManager] Initialized');
+        this.isInitialized = true;
+        this.isVisible = true;
+    }
+
+    /**
+     * Lifecycle: Show module (resume operations)
+     */
+    onShow() {
+        console.log('[HealthManager] Shown - resuming health checks');
+        this.isVisible = true;
+        this.startHealthChecks();
+    }
+
+    /**
+     * Lifecycle: Hide module (pause operations)
+     */
+    onHide() {
+        console.log('[HealthManager] Hidden - pausing health checks');
+        this.isVisible = false;
+        this.stopHealthChecks();
+    }
+
+    /**
+     * Lifecycle: Destroy module (complete cleanup)
+     */
+    onDestroy() {
+        console.log('[HealthManager] Destroyed - complete cleanup');
+        this.cleanup();
+        this.isInitialized = false;
+    }
+
+    /**
+     * Get module state for lifecycle manager
+     */
+    getState() {
+        return {
+            isHealthy: this.isHealthy,
+            degradedSources: Array.from(this.degradedSources),
+            isInitialized: this.isInitialized,
+            isVisible: this.isVisible
+        };
+    }
+
+    /**
+     * Set module state from lifecycle manager
+     */
+    setState(state) {
+        console.log('[HealthManager] Restoring state:', state);
+        this.isVisible = state?.isVisible ?? true;
+    }
 }
 
 // Export for use in other modules
