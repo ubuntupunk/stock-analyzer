@@ -29,7 +29,7 @@
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--primary-color);
-  
+
   img {
     max-height: 40px;
     width: auto;
@@ -41,7 +41,7 @@
   max-width: 600px;
   margin: 0 var(--spacing-xl);
   position: relative;
-  
+
   input {
     width: 100%;
     padding: var(--spacing-sm) var(--spacing-xl) var(--spacing-sm) var(--spacing-lg);
@@ -50,25 +50,25 @@
     font-size: var(--font-size-base);
     background-color: var(--bg-white);
     transition: all var(--transition-fast);
-    
+
     &:hover {
       border-color: #8dc5e3;
       box-shadow: 0 2px 8px rgba(91, 163, 208, 0.1);
     }
-    
+
     &:focus {
       outline: none;
       border-color: var(--primary-color);
       box-shadow: 0 4px 12px rgba(91, 163, 208, 0.2);
       transform: translateY(-1px);
     }
-    
+
     // Active typing state (has value)
     &:not(:placeholder-shown) {
       background-color: #fafcfe;
       border-color: var(--primary-color);
     }
-    
+
     // Loading state for input
     &.loading {
       background-color: #f8fcff;
@@ -77,7 +77,7 @@
       box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
     }
   }
-  
+
   i {
     position: absolute;
     right: var(--spacing-lg);
@@ -85,24 +85,26 @@
     transform: translateY(-50%);
     color: var(--text-secondary);
     pointer-events: none;
-    transition: color var(--transition-fast), transform var(--transition-fast);
+    transition:
+      color var(--transition-fast),
+      transform var(--transition-fast);
   }
-  
+
   // Icon interactions
   input:hover + i {
     color: var(--primary-color);
     transform: translateY(-50%) scale(1.1);
   }
-  
+
   input:focus + i {
     color: var(--primary-color);
     transform: translateY(-50%) scale(1.15);
   }
-  
+
   input:not(:placeholder-shown) + i {
     color: var(--primary-color);
   }
-  
+
   // Loading state for search icon
   input.loading + i {
     color: var(--info-color);
@@ -126,7 +128,8 @@
 
 // Subtle pulse animation for loading input
 @keyframes pulseInput {
-  0%, 100% {
+  0%,
+  100% {
     background-color: #f8fcff;
   }
   50% {
@@ -151,19 +154,21 @@
   margin-top: var(--spacing-xs);
   max-height: 400px;
   overflow-y: auto;
-  
+
   // Animation states
   opacity: 0;
   transform: translateY(-10px);
   pointer-events: none;
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
-  
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast);
+
   &.show {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
   }
-  
+
   // Smooth scrolling
   scroll-behavior: smooth;
 }
@@ -174,22 +179,24 @@
   padding: var(--spacing-sm) var(--spacing-md);
   cursor: pointer;
   border-bottom: 1px solid var(--border-color);
-  transition: background-color var(--transition-fast), transform var(--transition-fast);
-  
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+
   // Staggered fade-in animation
   opacity: 0;
   animation: fadeInItem 0.3s ease-out forwards;
-  
+
   @for $i from 1 through 10 {
     &:nth-child(#{$i}) {
       animation-delay: #{$i * 0.03}s;
     }
   }
-  
+
   &:last-child {
     border-bottom: none;
   }
-  
+
   &:hover,
   &.selected {
     background-color: var(--bg-hover);
@@ -247,7 +254,7 @@
   text-align: center;
   color: var(--text-secondary);
   animation: pulseFade 1.5s ease-in-out infinite;
-  
+
   &::after {
     content: '...';
     animation: dots 1.5s steps(4, end) infinite;
@@ -256,7 +263,8 @@
 
 // Pulsing fade animation for loading text
 @keyframes pulseFade {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.6;
   }
   50% {
@@ -266,7 +274,8 @@
 
 // Animated dots for loading
 @keyframes dots {
-  0%, 20% {
+  0%,
+  20% {
     content: '';
   }
   40% {
@@ -275,7 +284,8 @@
   60% {
     content: '..';
   }
-  80%, 100% {
+  80%,
+  100% {
     content: '...';
   }
 }
@@ -294,9 +304,34 @@
   color: var(--text-primary);
   padding: var(--spacing-sm);
   transition: color var(--transition-fast);
-  
+
   &:hover {
     color: var(--primary-color);
+  }
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  color: var(--text-primary);
+  padding: var(--spacing-sm);
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-fast);
+
+  &:hover {
+    color: var(--primary-color);
+    transform: scale(1.1);
+  }
+}
+
+[data-theme='dark'] .theme-toggle {
+  color: var(--text-primary);
+
+  &:hover {
+    color: var(--warning-color);
   }
 }
 
@@ -308,7 +343,7 @@
   background: var(--bg-light);
   border-radius: 25px;
   border: 1px solid var(--border-color);
-  
+
   span {
     font-weight: var(--font-weight-medium);
     color: var(--text-primary);
@@ -327,7 +362,7 @@
   .navbar {
     padding: var(--spacing-sm) var(--spacing-md);
   }
-  
+
   .nav-container {
     display: flex;
     align-items: center;
@@ -335,49 +370,49 @@
     gap: var(--spacing-sm);
     width: 100%;
   }
-  
+
   .logo {
     flex-shrink: 0;
     font-size: var(--font-size-lg);
-    
+
     img {
       max-height: 32px;
       width: auto;
     }
   }
-  
+
   .nav-search {
     flex: 0 1 150px; // Don't grow, max 150px
     margin: 0 var(--spacing-sm);
     position: relative;
-    
+
     input {
       width: 100%;
       padding: var(--spacing-xs) var(--spacing-lg) var(--spacing-xs) var(--spacing-md);
       font-size: var(--font-size-sm);
     }
-    
+
     i {
       right: var(--spacing-md);
     }
   }
-  
+
   .nav-menu {
     flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
   }
-  
+
   .menu-btn {
     font-size: var(--font-size-base);
     padding: var(--spacing-xs);
   }
-  
+
   .user-menu {
     padding: var(--spacing-xs);
     gap: var(--spacing-xs);
-    
+
     span {
       font-size: var(--font-size-sm);
       max-width: 60px;
@@ -393,51 +428,51 @@
   .navbar {
     padding: var(--spacing-xs) var(--spacing-sm);
   }
-  
+
   .nav-container {
     gap: 4px;
   }
-  
+
   .logo {
     flex: 0 0 auto;
     font-size: var(--font-size-base);
-    
+
     img {
       max-height: 28px;
       width: auto;
     }
   }
-  
+
   .nav-search {
     flex: 1;
     max-width: 120px; // Small phones get smaller search
     margin: 0 4px;
     position: relative;
     z-index: 10;
-    
+
     input {
       padding: 4px 24px 4px 8px;
       font-size: var(--font-size-xs);
       background-color: var(--bg-light);
       border-radius: 12px;
     }
-    
+
     i {
       right: 8px;
       font-size: 0.7rem;
     }
   }
-  
+
   .nav-menu {
     flex: 0 0 auto;
     gap: 2px;
   }
-  
+
   .menu-btn {
     font-size: var(--font-size-sm);
     padding: 4px;
   }
-  
+
   .user-menu {
     display: none;
   }

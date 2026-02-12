@@ -14,6 +14,7 @@ from flask import (
     g,
     abort,
 )
+from flask_cors import CORS
 from functools import wraps
 
 # Add backend to path
@@ -47,6 +48,7 @@ class SafeJSONProvider(DefaultJSONProvider):
 
 app = Flask(__name__, template_folder="../frontend")
 app.json = SafeJSONProvider(app)
+CORS(app)  # Enable CORS for all routes
 
 # --- Authentication Logic for Local Development ---
 LOCAL_DEV_TOKEN = "local-dev-token"  # This token will be sent by the frontend for authenticated requests

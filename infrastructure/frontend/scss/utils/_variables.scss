@@ -39,7 +39,9 @@
   --shadow-lg: 0 8px 15px rgba(0, 0, 0, 0.2);
 
   // Typography
-  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-family-base:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+    sans-serif;
   --font-family-mono: 'Courier New', monospace;
 
   --font-size-xs: 0.75rem;
@@ -89,6 +91,34 @@
   --z-tooltip: 1070;
 }
 
+// Dark Mode
+[data-theme='dark'] {
+  --primary-color: #6bb3e0;
+  --secondary-color: #b8e0c8;
+  --accent-color: #ffb3ba;
+  --success-color: #2ecc71;
+  --danger-color: #e74c3c;
+  --warning-color: #f39c12;
+  --info-color: #5dade2;
+
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --text-muted: #888;
+  --text-light: #fff;
+
+  --bg-light: #1a1a2e;
+  --bg-stripe: #16213e;
+  --bg-white: #0f0f1a;
+  --bg-dark: #0a0a12;
+  --bg-hover: #1e2a3a;
+
+  --border-color: #333;
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 15px rgba(0, 0, 0, 0.5);
+}
+
 // Sass variables (for compile-time use)
 $primary-color: #5ba3d0;
 $secondary-color: #a8d5ba;
@@ -118,7 +148,9 @@ $shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
 $shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
 $shadow-lg: 0 8px 15px rgba(0, 0, 0, 0.2);
 
-$font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+$font-family-base:
+  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+  sans-serif;
 $font-family-mono: 'Courier New', monospace;
 
 $font-size-xs: 0.75rem;

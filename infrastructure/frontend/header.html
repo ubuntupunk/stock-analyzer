@@ -1,50 +1,82 @@
 <nav class="navbar">
-    <div class="nav-container">
-        <a href="#" class="logo" onclick="app.goHome(); return false;">
-            <img src="./logo-full.jpg" alt="Netbones Quantstat Logo" width="200" height="40">
-        </a>
-        <div class="nav-search">
-            <input type="text" id="stockSearch" placeholder="Search stocks (e.g., AAPL, Microsoft...)">
-            <i class="fas fa-search"></i>
-            <div id="searchResults" class="search-results"></div>
-        </div>
-        <div class="nav-menu">
-            <div class="auth-dropdown-container">
-                <button class="btn-auth" id="authButton" onclick="app.toggleAuthDropdown()">
-                    <i class="fas fa-user"></i> Sign In
-                </button>
-                
-                <!-- Authentication Dropdown -->
-                <div class="auth-dropdown" id="authDropdown">
-                    <div class="auth-dropdown-header">
-                        <h3>Sign In</h3>
-                    </div>
-                    <div class="auth-dropdown-body">
-                        <form class="quick-signin-form" onsubmit="return app.handleQuickSignIn(event)">
-                            <div class="form-group">
-                                <label>Email</label>
-                                <input type="email" id="quickSignInEmail" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Password</label>
-                                <input type="password" id="quickSignInPassword" required>
-                            </div>
-                            <div class="h-captcha" data-sitekey="9262bc4c-bcb8-4702-98a4-a0702b7e75b6" data-callback="onHCaptchaReady" data-size="invisible"></div>
-                            <button type="submit" class="auth-btn quick-signin-btn">Sign In</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="user-menu" id="userMenu" style="display: none;">
-                <span id="userName">User</span>
-                <button class="btn-logout" onclick="app.handleLogout()">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </div>
-            <button class="menu-btn" id="menuBtn">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
+  <div class="nav-container">
+    <a
+      href="#"
+      class="logo"
+      onclick="
+        app.goHome();
+        return false;
+      "
+    >
+      <img
+        src="./logo-full.jpg"
+        alt="Netbones Quantstat Logo"
+        width="200"
+        height="40"
+      />
+    </a>
+    <div class="nav-search">
+      <input
+        type="text"
+        id="stockSearch"
+        placeholder="Search stocks (e.g., AAPL, Microsoft...)"
+      />
+      <i class="fas fa-search"></i>
+      <div id="searchResults" class="search-results"></div>
     </div>
+    <div class="nav-menu">
+      <div class="auth-dropdown-container">
+        <button class="btn-auth" id="authButton" onclick="app.toggleAuthDropdown()">
+          <i class="fas fa-user"></i> Sign In
+        </button>
+
+        <!-- Authentication Dropdown -->
+        <div class="auth-dropdown" id="authDropdown">
+          <div class="auth-dropdown-header">
+            <h3>Sign In</h3>
+          </div>
+          <div class="auth-dropdown-body">
+            <form
+              class="quick-signin-form"
+              onsubmit="return app.handleQuickSignIn(event);"
+            >
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="quickSignInEmail" required />
+              </div>
+              <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="quickSignInPassword" required />
+              </div>
+              <div
+                class="h-captcha"
+                data-sitekey="9262bc4c-bcb8-4702-98a4-a0702b7e75b6"
+                data-callback="onHCaptchaReady"
+                data-size="invisible"
+              ></div>
+              <button type="submit" class="auth-btn quick-signin-btn">Sign In</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="user-menu" id="userMenu" style="display: none">
+        <span id="userName">User</span>
+        <button class="btn-logout" onclick="app.handleLogout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+      <button
+        class="theme-toggle"
+        id="themeToggle"
+        onclick="app.toggleTheme()"
+        title="Toggle dark mode"
+      >
+        <i class="fas fa-moon"></i>
+      </button>
+      <button class="menu-btn" id="menuBtn">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  </div>
 </nav>
