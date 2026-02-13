@@ -1037,8 +1037,6 @@ class StockDataAPI:
             years=assumptions.get(DCF_KEY_YEARS),
             tax_rate=assumptions.get(DCF_KEY_TAX_RATE),
         )
-            tax_rate=assumptions.get(DCF_KEY_TAX_RATE),
-        )
 
 
 from constants import (
