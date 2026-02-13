@@ -349,16 +349,14 @@ class StockUniverseSeeder:
 
         logger.info("%d stocks belong to multiple indices", updated)
 
-    def update_market_data(self, symbols: list = None, index_id: str = None):
+    def _fetch_symbols_from_db(
+        self, symbols: list = None, index_id: str = None
+    ) -> tuple:
         """
-        Update only market data for specified symbols or all symbols
-
-        Args:
-            symbols: List of symbols to update, or None for all
-            index_id: Optional index ID to filter stocks
+        Fetch symbols and their data from DynamoDB
 
         Returns:
-            Dict with update results
+            Tuple of (symbols list, symbols_data list)
         """
         symbols_data = []
 
@@ -371,7 +369,6 @@ class StockUniverseSeeder:
                 "ExpressionAttributeNames": {"#rg": "region"},
             }
             if index_id:
-                # Filter by index ID
                 scan_kwargs["FilterExpression"] = "contains(indexIds, :idxId)"
                 scan_kwargs["ExpressionAttributeValues"] = {":idxId": index_id}
 
@@ -393,6 +390,160 @@ class StockUniverseSeeder:
                 except Exception as err:
                     logger.warning("Error fetching %s: %s", symbol, err)
 
+        return symbols, symbols_data
+
+    def _get_fx_rate_for_currency(self, currency: str, currency_symbols: list) -> float:
+        """Get FX rate for non-USD currency"""
+        if currency == "USD":
+            return None
+
+        index_id_for_currency = currency_symbols[0].get("indexIds", ["SP500"])[0]
+        index_config = self.index_config.get_index(index_id_for_currency)
+        if not index_config:
+            return None
+
+        fetcher_class = self.fetchers.get(index_id_for_currency)
+        if not fetcher_class:
+            return None
+
+        fetcher = fetcher_class(index_config)
+        fx_rate = fetcher.get_fx_rate()
+        logger.info("  FX rate for %s/USD: %s", currency, fx_rate)
+        return fx_rate
+
+    def _determine_market_cap_bucket(self, market_cap_usd: float) -> str:
+        """Determine market cap bucket based on USD value"""
+        if market_cap_usd <= 0:
+            return "unknown"
+        if market_cap_usd >= MARKET_CAP_MEGA_MIN:
+            return MARKET_CAP_MEGA
+        if market_cap_usd >= MARKET_CAP_LARGE_MIN:
+            return MARKET_CAP_LARGE
+        if market_cap_usd >= MARKET_CAP_MID_MIN:
+            return MARKET_CAP_MID
+        return MARKET_CAP_SMALL
+
+    def _update_symbol_market_data(
+        self, symbol: str, ticker, fx_rate: float, currency: str
+    ) -> tuple:
+        """
+        Update market data for a single symbol
+
+        Returns:
+            Tuple of (success: bool, skipped: bool, error_msg: str)
+        """
+        if not ticker:
+            return False, True, "No ticker data"
+
+        info = ticker.info
+        market_cap = info.get("marketCap", 0) or 0
+
+        if not market_cap:
+            return False, True, "No market cap"
+
+        # Apply FX conversion if needed
+        market_cap_usd = market_cap
+        if fx_rate and currency != "USD":
+            market_cap_usd = market_cap * fx_rate
+
+        # Determine market cap bucket
+        market_cap_bucket = self._determine_market_cap_bucket(market_cap_usd)
+
+        # Update item with new market data
+        update_expr = "SET marketCap = :mc, marketCapUSD = :mcusd, marketCapBucket = :bucket, lastUpdated = :updated"
+        expr_values = {
+            ":mc": Decimal(str(market_cap)),
+            ":mcusd": Decimal(str(market_cap_usd)),
+            ":bucket": market_cap_bucket,
+            ":updated": datetime.utcnow().isoformat(),
+        }
+
+        # Optionally update industry if available
+        industry = info.get("industry")
+        if industry:
+            update_expr += ", industry = :ind"
+            expr_values[":ind"] = industry
+
+        self.table.update_item(
+            Key={"symbol": symbol},
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_values,
+        )
+        return True, False, None
+
+    def _process_currency_batch(
+        self, currency: str, currency_symbols: list, batch_size: int = 100
+    ) -> dict:
+        """Process a batch of symbols for a specific currency"""
+        updated = 0
+        failed = 0
+        skipped = 0
+
+        # Get FX rate for non-USD currencies
+        fx_rate = self._get_fx_rate_for_currency(currency, currency_symbols)
+
+        # Process in batches
+        symbol_list = [item["symbol"] for item in currency_symbols]
+
+        for idx in range(0, len(symbol_list), batch_size):
+            batch_symbols = symbol_list[idx : idx + batch_size]
+            logger.info(
+                "  Batch %d/%d: %d symbols",
+                idx // batch_size + 1,
+                (len(symbol_list) + batch_size - 1) // batch_size,
+                len(batch_symbols),
+            )
+
+            try:
+                tickers = yf.Tickers(" ".join(batch_symbols))
+
+                for symbol in batch_symbols:
+                    try:
+                        ticker = tickers.tickers.get(symbol)
+                        success, skip, error_msg = self._update_symbol_market_data(
+                            symbol, ticker, fx_rate, currency
+                        )
+
+                        if success:
+                            updated += 1
+                        elif skip:
+                            logger.warning("%s for %s", error_msg, symbol)
+                            skipped += 1
+                        else:
+                            failed += 1
+
+                    except Exception as err:
+                        logger.warning("Error updating %s: %s", symbol, str(err)[:50])
+                        failed += 1
+
+            except Exception as err:
+                logger.warning("Batch error: %s", err)
+                failed += len(batch_symbols)
+
+            if updated % 50 == 0 and updated > 0:
+                logger.info(
+                    "  Progress: %d updated, %d failed, %d skipped",
+                    updated,
+                    failed,
+                    skipped,
+                )
+
+        return {"updated": updated, "failed": failed, "skipped": skipped}
+
+    def update_market_data(self, symbols: list = None, index_id: str = None):
+        """
+        Update only market data for specified symbols or all symbols
+
+        Args:
+            symbols: List of symbols to update, or None for all
+            index_id: Optional index ID to filter stocks
+
+        Returns:
+            Dict with update results
+        """
+        # Fetch symbols from database
+        symbols, symbols_data = self._fetch_symbols_from_db(symbols, index_id)
+
         if not symbols:
             logger.info("No symbols to update")
             return {"updated": 0, "failed": 0, "skipped": 0}
@@ -407,129 +558,29 @@ class StockUniverseSeeder:
 
         logger.info("Updating market data for %d symbols...", len(symbols))
 
-        updated = 0
-        failed = 0
-        skipped = 0
-        batch_size = 100
+        # Process each currency group separately
+        total_updated = 0
+        total_failed = 0
+        total_skipped = 0
 
-        # Process each currency group separately for FX handling
         for currency, currency_symbols in symbols_by_currency.items():
             logger.info("Processing %d symbols in %s...", len(currency_symbols), currency)
 
-            # Get FX rate for non-USD currencies
-            fx_rate = None
-            if currency != "USD":
-                # Get index config for this currency to use fetcher
-                index_id_for_currency = currency_symbols[0].get("indexIds", ["SP500"])[
-                    0
-                ]
-                index_config = self.index_config.get_index(index_id_for_currency)
-                if index_config:
-                    fetcher_class = self.fetchers.get(index_id_for_currency)
-                    if fetcher_class:
-                        fetcher = fetcher_class(index_config)
-                        fx_rate = fetcher.get_fx_rate()
-                        logger.info("  FX rate for %s/USD: %s", currency, fx_rate)
-
-            # Process in batches
-            symbol_list = [item["symbol"] for item in currency_symbols]
-
-            for idx in range(0, len(symbol_list), batch_size):
-                batch_symbols = symbol_list[idx : idx + batch_size]
-                logger.info(
-                    "  Batch %d/%d: %d symbols",
-                    idx // batch_size + 1,
-                    (len(symbol_list) + batch_size - 1) // batch_size,
-                    len(batch_symbols),
-                )
-
-                try:
-                    tickers = yf.Tickers(" ".join(batch_symbols))
-
-                    with self.table.batch_writer() as batch:
-                        for symbol in batch_symbols:
-                            try:
-                                ticker = tickers.tickers.get(symbol)
-                                if not ticker:
-                                    logger.warning("No ticker data for %s", symbol)
-                                    skipped += 1
-                                    continue
-
-                                info = ticker.info
-                                market_cap = info.get("marketCap", 0) or 0
-
-                                if not market_cap:
-                                    logger.warning("No market cap for %s", symbol)
-                                    skipped += 1
-                                    continue
-
-                                # Apply FX conversion if needed
-                                market_cap_usd = market_cap
-                                if fx_rate and currency != "USD":
-                                    market_cap_usd = market_cap * fx_rate
-
-                                # Determine market cap bucket
-                                market_cap_bucket = "unknown"
-                                if market_cap_usd > 0:
-                                    if market_cap_usd >= MARKET_CAP_MEGA_MIN:
-                                        market_cap_bucket = MARKET_CAP_MEGA
-                                    elif market_cap_usd >= MARKET_CAP_LARGE_MIN:
-                                        market_cap_bucket = MARKET_CAP_LARGE
-                                    elif market_cap_usd >= MARKET_CAP_MID_MIN:
-                                        market_cap_bucket = MARKET_CAP_MID
-                                    else:
-                                        market_cap_bucket = MARKET_CAP_SMALL
-
-                                # Update item with new market data
-                                update_expr = "SET marketCap = :mc, marketCapUSD = :mcusd, marketCapBucket = :bucket, lastUpdated = :updated"
-                                expr_values = {
-                                    ":mc": Decimal(str(market_cap)),
-                                    ":mcusd": Decimal(str(market_cap_usd)),
-                                    ":bucket": market_cap_bucket,
-                                    ":updated": datetime.utcnow().isoformat(),
-                                }
-
-                                # Optionally update industry if available
-                                industry = info.get("industry")
-                                if industry:
-                                    update_expr += ", industry = :ind"
-                                    expr_values[":ind"] = industry
-
-                                self.table.update_item(
-                                    Key={"symbol": symbol},
-                                    UpdateExpression=update_expr,
-                                    ExpressionAttributeValues=expr_values,
-                                )
-                                updated += 1
-
-                            except Exception as err:
-                                logger.warning(
-                                    "Error updating %s: %s", symbol, str(err)[:50]
-                                )
-                                failed += 1
-
-                except Exception as err:
-                    logger.warning("Batch error: %s", err)
-                    failed += len(batch_symbols)
-
-                if updated % 50 == 0 and updated > 0:
-                    logger.info(
-                        "  Progress: %d updated, %d failed, %d skipped",
-                        updated,
-                        failed,
-                        skipped,
-                    )
+            results = self._process_currency_batch(currency, currency_symbols)
+            total_updated += results["updated"]
+            total_failed += results["failed"]
+            total_skipped += results["skipped"]
 
         logger.info(
             "Update complete: %d updated, %d failed, %d skipped",
-            updated,
-            failed,
-            skipped,
+            total_updated,
+            total_failed,
+            total_skipped,
         )
         return {
-            "updated": updated,
-            "failed": failed,
-            "skipped": skipped,
+            "updated": total_updated,
+            "failed": total_failed,
+            "skipped": total_skipped,
             "total": len(symbols),
         }
 
