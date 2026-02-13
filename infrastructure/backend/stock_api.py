@@ -20,6 +20,68 @@ from api_clients import (
     AlpacaClient,
 )
 from circuit_breaker import CircuitBreakerManager, get_circuit_breaker
+from constants import (
+    CONFIG_KEY_CACHE_TIMEOUT,
+    CONFIG_KEY_PRIORITIES,
+    CONFIG_KEY_TIMEOUT,
+    DEFAULT_PRIORITIES,
+    DELIMITER_COMMA,
+    ERROR_METHOD_NOT_ALLOWED,
+    ERROR_NOT_FOUND,
+    ERROR_SYMBOL_REQUIRED,
+    ERROR_SYMBOLS_REQUIRED,
+    HTTP_BAD_REQUEST,
+    HTTP_METHOD_GET,
+    HTTP_METHOD_NOT_ALLOWED,
+    HTTP_METHOD_POST,
+    HTTP_NOT_FOUND,
+    HTTP_OK,
+    HTTP_SERVER_ERROR,
+    KEY_BODY,
+    KEY_ERROR,
+    KEY_STATUS_CODE,
+    METRICS_KEY_AVG_MS,
+    METRICS_KEY_CALLS,
+    METRICS_KEY_COUNT,
+    METRICS_KEY_ERRORS,
+    METRICS_KEY_FAILED,
+    METRICS_KEY_LATENCY,
+    METRICS_KEY_RATE_LIMITS,
+    METRICS_KEY_REQUESTS,
+    METRICS_KEY_SOURCES,
+    METRICS_KEY_SUCCESS,
+    METRICS_KEY_SUCCESS_RATE,
+    METRICS_KEY_TIMEOUTS,
+    METRICS_KEY_TOTAL,
+    METRICS_KEY_TOTAL_MS,
+    PATH_ALL,
+    PATH_BATCH_ESTIMATES,
+    PATH_BATCH_FINANCIALS,
+    PATH_BATCH_METRICS,
+    PATH_BATCH_PRICES,
+    PATH_ESTIMATES,
+    PATH_FINANCIALS,
+    PATH_HEALTH,
+    PATH_METRICS,
+    PATH_PRICE,
+    QUERY_PARAM_PERIOD,
+    QUERY_PARAM_SYMBOL,
+    QUERY_PARAM_SYMBOLS,
+    REQUEST_KEY_BODY,
+    REQUEST_KEY_HTTP_METHOD,
+    REQUEST_KEY_PATH,
+    REQUEST_KEY_QUERY_STRING_PARAMS,
+    RESPONSE_FORMAT_NA,
+    RESPONSE_FORMAT_SUCCESS_RATE,
+    RESPONSE_KEY_CIRCUIT_BREAKER,
+    RESPONSE_KEY_METRICS,
+    RESPONSE_KEY_STATUS,
+    RESPONSE_STATUS_HEALTHY,
+    STOCK_API_DEFAULT_CACHE_TIMEOUT,
+    STOCK_API_DEFAULT_PERIOD,
+    STOCK_API_DEFAULT_TIMEOUT,
+    STOCK_API_MAX_WORKERS,
+)
 
 
 def decimal_default(obj):
@@ -34,90 +96,108 @@ class APIMetrics:
 
     def __init__(self):
         self.metrics = {
-            "requests": {"total": 0, "success": 0, "failed": 0},
-            "sources": {},
-            "latency": {"total_ms": 0, "count": 0, "avg_ms": 0},
-            "rate_limits": 0,
-            "timeouts": 0,
-            "errors": {},
+            METRICS_KEY_REQUESTS: {
+                METRICS_KEY_TOTAL: 0,
+                METRICS_KEY_SUCCESS: 0,
+                METRICS_KEY_FAILED: 0,
+            },
+            METRICS_KEY_SOURCES: {},
+            METRICS_KEY_LATENCY: {
+                METRICS_KEY_TOTAL_MS: 0,
+                METRICS_KEY_COUNT: 0,
+                METRICS_KEY_AVG_MS: 0,
+            },
+            METRICS_KEY_RATE_LIMITS: 0,
+            METRICS_KEY_TIMEOUTS: 0,
+            METRICS_KEY_ERRORS: {},
         }
         self._lock = asyncio.Lock()
+
+    def _init_source_metrics(self, source: str):
+        """Initialize metrics for a new source"""
+        if source not in self.metrics[METRICS_KEY_SOURCES]:
+            self.metrics[METRICS_KEY_SOURCES][source] = {
+                METRICS_KEY_CALLS: 0,
+                METRICS_KEY_SUCCESS: 0,
+                METRICS_KEY_FAILED: 0,
+            }
+
+    def _init_error_metrics(self, source: str):
+        """Initialize error metrics for a source"""
+        if source not in self.metrics[METRICS_KEY_ERRORS]:
+            self.metrics[METRICS_KEY_ERRORS][source] = {
+                METRICS_KEY_RATE_LIMITS: 0,
+                METRICS_KEY_TIMEOUTS: 0,
+                "other": 0,
+            }
 
     async def record_request(self, source: str, success: bool, latency_ms: float):
         """Record an API request"""
         async with self._lock:
-            self.metrics["requests"]["total"] += 1
+            self.metrics[METRICS_KEY_REQUESTS][METRICS_KEY_TOTAL] += 1
             if success:
-                self.metrics["requests"]["success"] += 1
+                self.metrics[METRICS_KEY_REQUESTS][METRICS_KEY_SUCCESS] += 1
             else:
-                self.metrics["requests"]["failed"] += 1
+                self.metrics[METRICS_KEY_REQUESTS][METRICS_KEY_FAILED] += 1
 
             # Source-specific tracking
-            if source not in self.metrics["sources"]:
-                self.metrics["sources"][source] = {
-                    "calls": 0,
-                    "success": 0,
-                    "failed": 0,
-                }
-            self.metrics["sources"][source]["calls"] += 1
+            self._init_source_metrics(source)
+            self.metrics[METRICS_KEY_SOURCES][source][METRICS_KEY_CALLS] += 1
             if success:
-                self.metrics["sources"][source]["success"] += 1
+                self.metrics[METRICS_KEY_SOURCES][source][METRICS_KEY_SUCCESS] += 1
             else:
-                self.metrics["sources"][source]["failed"] += 1
+                self.metrics[METRICS_KEY_SOURCES][source][METRICS_KEY_FAILED] += 1
 
             # Latency tracking
-            self.metrics["latency"]["total_ms"] += latency_ms
-            self.metrics["latency"]["count"] += 1
-            self.metrics["latency"]["avg_ms"] = (
-                self.metrics["latency"]["total_ms"] / self.metrics["latency"]["count"]
+            self.metrics[METRICS_KEY_LATENCY][METRICS_KEY_TOTAL_MS] += latency_ms
+            self.metrics[METRICS_KEY_LATENCY][METRICS_KEY_COUNT] += 1
+            self.metrics[METRICS_KEY_LATENCY][METRICS_KEY_AVG_MS] = (
+                self.metrics[METRICS_KEY_LATENCY][METRICS_KEY_TOTAL_MS]
+                / self.metrics[METRICS_KEY_LATENCY][METRICS_KEY_COUNT]
             )
 
     def record_rate_limit(self, source: str):
         """Record a rate limit hit"""
-        self.metrics["rate_limits"] += 1
-        if source not in self.metrics["errors"]:
-            self.metrics["errors"][source] = {
-                "rate_limits": 0,
-                "timeouts": 0,
-                "other": 0,
-            }
-        self.metrics["errors"][source]["rate_limits"] += 1
+        self.metrics[METRICS_KEY_RATE_LIMITS] += 1
+        self._init_error_metrics(source)
+        self.metrics[METRICS_KEY_ERRORS][source][METRICS_KEY_RATE_LIMITS] += 1
 
     def record_timeout(self, source: str):
         """Record a timeout"""
-        self.metrics["timeouts"] += 1
-        if source not in self.metrics["errors"]:
-            self.metrics["errors"][source] = {
-                "rate_limits": 0,
-                "timeouts": 0,
-                "other": 0,
-            }
-        self.metrics["errors"][source]["timeouts"] += 1
+        self.metrics[METRICS_KEY_TIMEOUTS] += 1
+        self._init_error_metrics(source)
+        self.metrics[METRICS_KEY_ERRORS][source][METRICS_KEY_TIMEOUTS] += 1
 
     def get_metrics(self) -> Dict:
         """Get current metrics"""
-        return {
-            **self.metrics,
-            "success_rate": (
-                f"{(self.metrics['requests']['success'] / self.metrics['requests']['total'] * 100):.1f}%"
-                if self.metrics["requests"]["total"] > 0
-                else "N/A"
-            ),
-        }
+        total_requests = self.metrics[METRICS_KEY_REQUESTS][METRICS_KEY_TOTAL]
+        success_requests = self.metrics[METRICS_KEY_REQUESTS][METRICS_KEY_SUCCESS]
+
+        if total_requests > 0:
+            success_rate = RESPONSE_FORMAT_SUCCESS_RATE.format(
+                (success_requests / total_requests) * 100
+            )
+        else:
+            success_rate = RESPONSE_FORMAT_NA
+
+        return {**self.metrics, METRICS_KEY_SUCCESS_RATE: success_rate}
 
     def get_source_stats(self, source: str) -> Dict:
         """Get stats for a specific source"""
-        if source not in self.metrics["sources"]:
-            return {"calls": 0, "success": 0, "failed": 0}
+        if source not in self.metrics[METRICS_KEY_SOURCES]:
+            return {METRICS_KEY_CALLS: 0, METRICS_KEY_SUCCESS: 0, METRICS_KEY_FAILED: 0}
 
-        source_data = self.metrics["sources"][source]
-        total = source_data["calls"]
-        return {
-            **source_data,
-            "success_rate": f"{(source_data['success'] / total * 100):.1f}%"
-            if total > 0
-            else "N/A",
-        }
+        source_data = self.metrics[METRICS_KEY_SOURCES][source]
+        total_calls = source_data[METRICS_KEY_CALLS]
+
+        if total_calls > 0:
+            success_rate = RESPONSE_FORMAT_SUCCESS_RATE.format(
+                (source_data[METRICS_KEY_SUCCESS] / total_calls) * 100
+            )
+        else:
+            success_rate = RESPONSE_FORMAT_NA
+
+        return {**source_data, METRICS_KEY_SUCCESS_RATE: success_rate}
 
 
 class StockDataAPI:
@@ -140,7 +220,7 @@ class StockDataAPI:
     def __init__(self, config: Optional[Dict] = None):
         # Configuration
         cfg = config or {}
-        self.timeout = cfg.get("timeout", 10)
+        self.timeout = cfg.get(CONFIG_KEY_TIMEOUT, STOCK_API_DEFAULT_TIMEOUT)
 
         # Initialize API clients
         self.yahoo = YahooFinanceClient(timeout_seconds=self.timeout)
@@ -156,16 +236,15 @@ class StockDataAPI:
 
         # Cache for reducing API calls
         self.cache = {}
-        self.cache_timeout = cfg.get("cache_timeout", 300)  # 5 minutes
-
-        # Configurable priorities
-        self.priorities = cfg.get(
-            "priorities",
-            [("yahoo_finance", 1), ("alpaca", 2), ("polygon", 3), ("alpha_vantage", 4)],
+        self.cache_timeout = cfg.get(
+            CONFIG_KEY_CACHE_TIMEOUT, STOCK_API_DEFAULT_CACHE_TIMEOUT
         )
 
+        # Configurable priorities
+        self.priorities = cfg.get(CONFIG_KEY_PRIORITIES, DEFAULT_PRIORITIES)
+
         # Thread pool for sync fallback
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.executor = ThreadPoolExecutor(max_workers=STOCK_API_MAX_WORKERS)
 
     # ========================================================================
     # CACHE MANAGEMENT
@@ -840,166 +919,229 @@ class StockDataAPI:
         }
 
 
+from constants import (
+    DELIMITER_COMMA,
+    ERROR_METHOD_NOT_ALLOWED,
+    ERROR_NOT_FOUND,
+    ERROR_SYMBOL_REQUIRED,
+    ERROR_SYMBOLS_REQUIRED,
+    HTTP_BAD_REQUEST,
+    HTTP_METHOD_NOT_ALLOWED,
+    HTTP_NOT_FOUND,
+    HTTP_OK,
+    HTTP_SERVER_ERROR,
+    KEY_BODY,
+    KEY_ERROR,
+    KEY_STATUS_CODE,
+    PATH_ALL,
+    PATH_BATCH_ESTIMATES,
+    PATH_BATCH_FINANCIALS,
+    PATH_BATCH_METRICS,
+    PATH_BATCH_PRICES,
+    PATH_ESTIMATES,
+    PATH_FINANCIALS,
+    PATH_HEALTH,
+    PATH_METRICS,
+    PATH_PRICE,
+    QUERY_PARAM_PERIOD,
+    QUERY_PARAM_SYMBOL,
+    QUERY_PARAM_SYMBOLS,
+    REQUEST_KEY_BODY,
+    REQUEST_KEY_HTTP_METHOD,
+    REQUEST_KEY_PATH,
+    REQUEST_KEY_QUERY_STRING_PARAMS,
+    RESPONSE_KEY_CIRCUIT_BREAKER,
+    RESPONSE_KEY_METRICS,
+    RESPONSE_KEY_STATUS,
+    RESPONSE_STATUS_HEALTHY,
+    STOCK_API_DEFAULT_PERIOD,
+)
+
+
+def _create_error_response(status_code: int, error_message: str) -> Dict:
+    """Create standardized error response"""
+    return {
+        KEY_STATUS_CODE: status_code,
+        KEY_BODY: json.dumps({KEY_ERROR: error_message}),
+    }
+
+
+def _create_success_response(api_result: Dict) -> Dict:
+    """Create standardized success response"""
+    return {
+        KEY_STATUS_CODE: HTTP_OK,
+        KEY_BODY: json.dumps(api_result, default=decimal_default),
+    }
+
+
+def _validate_symbol(query_params: Dict) -> Optional[str]:
+    """Validate and extract symbol from query parameters"""
+    return query_params.get(QUERY_PARAM_SYMBOL)
+
+
+def _validate_symbols(query_params: Dict) -> Optional[List[str]]:
+    """Validate and extract symbols list from query parameters"""
+    symbols_str = query_params.get(QUERY_PARAM_SYMBOLS)
+    if symbols_str:
+        return symbols_str.split(DELIMITER_COMMA)
+    return None
+
+
+def _handle_metrics_request(api: StockDataAPI, query_params: Dict) -> Dict:
+    """Handle /metrics endpoint"""
+    stock_symbol = _validate_symbol(query_params)
+    if not stock_symbol:
+        return _create_error_response(HTTP_BAD_REQUEST, ERROR_SYMBOL_REQUIRED)
+
+    api_result = api.get_stock_metrics(stock_symbol)
+    return _create_success_response(api_result)
+
+
+def _handle_price_request(api: StockDataAPI, query_params: Dict) -> Dict:
+    """Handle /price endpoint"""
+    stock_symbol = _validate_symbol(query_params)
+    if not stock_symbol:
+        return _create_error_response(HTTP_BAD_REQUEST, ERROR_SYMBOL_REQUIRED)
+
+    period = query_params.get(QUERY_PARAM_PERIOD, STOCK_API_DEFAULT_PERIOD)
+    api_result = api.get_stock_price(stock_symbol, period)
+    return _create_success_response(api_result)
+
+
+def _handle_estimates_request(api: StockDataAPI, query_params: Dict) -> Dict:
+    """Handle /estimates endpoint"""
+    stock_symbol = _validate_symbol(query_params)
+    if not stock_symbol:
+        return _create_error_response(HTTP_BAD_REQUEST, ERROR_SYMBOL_REQUIRED)
+
+    api_result = api.get_analyst_estimates(stock_symbol)
+    return _create_success_response(api_result)
+
+
+def _handle_financials_request(api: StockDataAPI, query_params: Dict) -> Dict:
+    """Handle /financials endpoint"""
+    stock_symbol = _validate_symbol(query_params)
+    if not stock_symbol:
+        return _create_error_response(HTTP_BAD_REQUEST, ERROR_SYMBOL_REQUIRED)
+
+    api_result = api.get_financial_statements(stock_symbol)
+    return _create_success_response(api_result)
+
+
+def _handle_health_request(api: StockDataAPI) -> Dict:
+    """Handle /health endpoint"""
+    health_result = {
+        RESPONSE_KEY_STATUS: RESPONSE_STATUS_HEALTHY,
+        RESPONSE_KEY_CIRCUIT_BREAKER: api.cb.get_health_report(),
+        RESPONSE_KEY_METRICS: api.metrics.get_metrics(),
+    }
+    return _create_success_response(health_result)
+
+
+def _handle_batch_prices_request(api: StockDataAPI, query_params: Dict) -> Dict:
+    """Handle /batch/prices endpoint"""
+    symbol_list = _validate_symbols(query_params)
+    if not symbol_list:
+        return _create_error_response(HTTP_BAD_REQUEST, ERROR_SYMBOLS_REQUIRED)
+
+    api_result = api.get_batch_prices(symbol_list)
+    return _create_success_response(api_result)
+
+
+def _handle_batch_metrics_request(api: StockDataAPI, query_params: Dict) -> Dict:
+    """Handle /batch/metrics endpoint"""
+    symbol_list = _validate_symbols(query_params)
+    if not symbol_list:
+        return _create_error_response(HTTP_BAD_REQUEST, ERROR_SYMBOLS_REQUIRED)
+
+    api_result = api.get_batch_metrics(symbol_list)
+    return _create_success_response(api_result)
+
+
+def _handle_batch_estimates_request(api: StockDataAPI, query_params: Dict) -> Dict:
+    """Handle /batch/estimates endpoint"""
+    symbol_list = _validate_symbols(query_params)
+    if not symbol_list:
+        return _create_error_response(HTTP_BAD_REQUEST, ERROR_SYMBOLS_REQUIRED)
+
+    api_result = api.get_batch_estimates(symbol_list)
+    return _create_success_response(api_result)
+
+
+def _handle_batch_financials_request(api: StockDataAPI, query_params: Dict) -> Dict:
+    """Handle /batch/financials endpoint"""
+    symbol_list = _validate_symbols(query_params)
+    if not symbol_list:
+        return _create_error_response(HTTP_BAD_REQUEST, ERROR_SYMBOLS_REQUIRED)
+
+    api_result = api.get_batch_financials(symbol_list)
+    return _create_success_response(api_result)
+
+
+def _handle_all_data_request(api: StockDataAPI, request_body: str) -> Dict:
+    """Handle /all endpoint (POST)"""
+    request_data = json.loads(request_body) if request_body else {}
+    stock_symbol = request_data.get(QUERY_PARAM_SYMBOL)
+    if not stock_symbol:
+        return _create_error_response(HTTP_BAD_REQUEST, ERROR_SYMBOL_REQUIRED)
+
+    api_result = api.get_all_data(stock_symbol)
+    return _create_success_response(api_result)
+
+
+def _route_get_request(api: StockDataAPI, path: str, query_params: Dict) -> Dict:
+    """Route GET requests to appropriate handlers"""
+    if PATH_METRICS in path:
+        return _handle_metrics_request(api, query_params)
+    if PATH_PRICE in path:
+        return _handle_price_request(api, query_params)
+    if PATH_ESTIMATES in path:
+        return _handle_estimates_request(api, query_params)
+    if PATH_FINANCIALS in path:
+        return _handle_financials_request(api, query_params)
+    if PATH_HEALTH in path:
+        return _handle_health_request(api)
+    if PATH_BATCH_PRICES in path:
+        return _handle_batch_prices_request(api, query_params)
+    if PATH_BATCH_METRICS in path:
+        return _handle_batch_metrics_request(api, query_params)
+    if PATH_BATCH_ESTIMATES in path:
+        return _handle_batch_estimates_request(api, query_params)
+    if PATH_BATCH_FINANCIALS in path:
+        return _handle_batch_financials_request(api, query_params)
+
+    return _create_error_response(HTTP_NOT_FOUND, ERROR_NOT_FOUND)
+
+
+def _route_post_request(api: StockDataAPI, path: str, request_body: str) -> Dict:
+    """Route POST requests to appropriate handlers"""
+    if PATH_ALL in path:
+        return _handle_all_data_request(api, request_body)
+
+    return _create_error_response(HTTP_NOT_FOUND, ERROR_NOT_FOUND)
+
+
 def lambda_handler(event, context):
-    """
-    AWS Lambda handler for stock API requests
-    """
+    """AWS Lambda handler for stock API requests"""
     try:
         # Parse request
-        http_method = event.get("httpMethod", "GET")
-        path = event.get("path", "/")
-        params = event.get("queryStringParameters") or {}
-        body = event.get("body")
+        http_method = event.get(REQUEST_KEY_HTTP_METHOD, HTTP_METHOD_GET)
+        path = event.get(REQUEST_KEY_PATH, "/")
+        query_params = event.get(REQUEST_KEY_QUERY_STRING_PARAMS) or {}
+        request_body = event.get(REQUEST_KEY_BODY)
 
         # Create API instance
         api = StockDataAPI()
 
-        # Route request
-        if http_method == "GET":
-            if "/metrics" in path:
-                symbol = params.get("symbol")
-                if not symbol:
-                    return {
-                        "statusCode": 400,
-                        "body": json.dumps({"error": "symbol required"}),
-                    }
-                result = api.get_stock_metrics(symbol)
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(result, default=decimal_default),
-                }
+        # Route request based on HTTP method
+        if http_method == HTTP_METHOD_GET:
+            return _route_get_request(api, path, query_params)
 
-            elif "/price" in path:
-                symbol = params.get("symbol")
-                if not symbol:
-                    return {
-                        "statusCode": 400,
-                        "body": json.dumps({"error": "symbol required"}),
-                    }
-                period = params.get("period", "1mo")
-                result = api.get_stock_price(symbol, period)
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(result, default=decimal_default),
-                }
+        if http_method == HTTP_METHOD_POST:
+            return _route_post_request(api, path, request_body)
 
-            elif "/estimates" in path:
-                symbol = params.get("symbol")
-                if not symbol:
-                    return {
-                        "statusCode": 400,
-                        "body": json.dumps({"error": "symbol required"}),
-                    }
-                result = api.get_analyst_estimates(symbol)
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(result, default=decimal_default),
-                }
+        return _create_error_response(HTTP_METHOD_NOT_ALLOWED, ERROR_METHOD_NOT_ALLOWED)
 
-            elif "/financials" in path:
-                symbol = params.get("symbol")
-                if not symbol:
-                    return {
-                        "statusCode": 400,
-                        "body": json.dumps({"error": "symbol required"}),
-                    }
-                result = api.get_financial_statements(symbol)
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(result, default=decimal_default),
-                }
-
-            elif "/health" in path:
-                result = {
-                    "status": "healthy",
-                    "circuit_breaker": api.cb.get_health_report(),
-                    "metrics": api.metrics.get_metrics(),
-                }
-                return {"statusCode": 200, "body": json.dumps(result)}
-
-            elif "/batch/prices" in path:
-                symbols = params.get("symbols")
-                if not symbols:
-                    return {
-                        "statusCode": 400,
-                        "body": json.dumps({"error": "symbols required"}),
-                    }
-                symbol_list = symbols.split(",")
-                result = api.get_batch_prices(symbol_list)
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(result, default=decimal_default),
-                }
-
-            elif "/batch/metrics" in path:
-                symbols = params.get("symbols")
-                if not symbols:
-                    return {
-                        "statusCode": 400,
-                        "body": json.dumps({"error": "symbols required"}),
-                    }
-                symbol_list = symbols.split(",")
-                result = api.get_batch_metrics(symbol_list)
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(result, default=decimal_default),
-                }
-
-            elif "/batch/estimates" in path:
-                symbols = params.get("symbols")
-                if not symbols:
-                    return {
-                        "statusCode": 400,
-                        "body": json.dumps({"error": "symbols required"}),
-                    }
-                symbol_list = symbols.split(",")
-                result = api.get_batch_estimates(symbol_list)
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(result, default=decimal_default),
-                }
-
-            elif "/batch/financials" in path:
-                symbols = params.get("symbols")
-                if not symbols:
-                    return {
-                        "statusCode": 400,
-                        "body": json.dumps({"error": "symbols required"}),
-                    }
-                symbol_list = symbols.split(",")
-                result = api.get_batch_financials(symbol_list)
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(result, default=decimal_default),
-                }
-
-            else:
-                return {"statusCode": 404, "body": json.dumps({"error": "not found"})}
-
-        elif http_method == "POST":
-            if "/all" in path:
-                data = json.loads(body) if body else {}
-                symbol = data.get("symbol")
-                if not symbol:
-                    return {
-                        "statusCode": 400,
-                        "body": json.dumps({"error": "symbol required"}),
-                    }
-                result = api.get_all_data(symbol)
-                return {
-                    "statusCode": 200,
-                    "body": json.dumps(result, default=decimal_default),
-                }
-
-            else:
-                return {"statusCode": 404, "body": json.dumps({"error": "not found"})}
-
-        else:
-            return {
-                "statusCode": 405,
-                "body": json.dumps({"error": "method not allowed"}),
-            }
-
-    except Exception as err:
-        print(f"Error: {str(err)}")
-        return {"statusCode": 500, "body": json.dumps({"error": str(err)})}
+    except Exception as handler_error:
+        print(f"Error: {str(handler_error)}")
+        return _create_error_response(HTTP_SERVER_ERROR, str(handler_error))

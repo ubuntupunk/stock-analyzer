@@ -338,3 +338,104 @@ PARAM_APIKEY = "apikey"
 # String Values
 STRING_NONE = "None"
 STRING_PERCENT = "%"
+
+
+# Stock API Specific Constants
+STOCK_API_DEFAULT_TIMEOUT = 10
+STOCK_API_DEFAULT_CACHE_TIMEOUT = 300  # 5 minutes
+STOCK_API_DEFAULT_PERIOD = "1mo"
+STOCK_API_MAX_WORKERS = 4
+
+# Stock API Paths
+PATH_METRICS = "/metrics"
+PATH_PRICE = "/price"
+PATH_ESTIMATES = "/estimates"
+PATH_FINANCIALS = "/financials"
+PATH_HEALTH = "/health"
+PATH_BATCH_PRICES = "/batch/prices"
+PATH_BATCH_METRICS = "/batch/metrics"
+PATH_BATCH_ESTIMATES = "/batch/estimates"
+PATH_BATCH_FINANCIALS = "/batch/financials"
+PATH_ALL = "/all"
+PATH_NOT_FOUND = "/not-found"
+
+# Stock API Error Messages
+ERROR_SYMBOL_REQUIRED = "symbol required"
+ERROR_SYMBOLS_REQUIRED = "symbols required"
+ERROR_NOT_FOUND = "not found"
+ERROR_METHOD_NOT_ALLOWED = "method not allowed"
+
+# Stock API Response Keys
+RESPONSE_KEY_STATUS = "status"
+RESPONSE_KEY_CIRCUIT_BREAKER = "circuit_breaker"
+RESPONSE_KEY_METRICS = "metrics"
+RESPONSE_STATUS_HEALTHY = "healthy"
+
+# Stock API Source Names
+SOURCE_YAHOO_FINANCE = "yahoo_finance"
+SOURCE_ALPACA = "alpaca"
+SOURCE_POLYGON = "polygon"
+SOURCE_ALPHA_VANTAGE = "alpha_vantage"
+
+# Stock API Metrics Keys
+METRICS_KEY_REQUESTS = "requests"
+METRICS_KEY_TOTAL = "total"
+METRICS_KEY_SUCCESS = "success"
+METRICS_KEY_FAILED = "failed"
+METRICS_KEY_SOURCES = "sources"
+METRICS_KEY_LATENCY = "latency"
+METRICS_KEY_TOTAL_MS = "total_ms"
+METRICS_KEY_COUNT = "count"
+METRICS_KEY_AVG_MS = "avg_ms"
+METRICS_KEY_RATE_LIMITS = "rate_limits"
+METRICS_KEY_TIMEOUTS = "timeouts"
+METRICS_KEY_ERRORS = "errors"
+METRICS_KEY_CALLS = "calls"
+METRICS_KEY_SUCCESS_RATE = "success_rate"
+METRICS_KEY_OTHER = "other"
+
+# Stock API Cache Keys
+CACHE_KEY_TIMESTAMP = "timestamp"
+CACHE_KEY_DATA = "data"
+
+# Stock API Config Keys
+CONFIG_KEY_TIMEOUT = "timeout"
+CONFIG_KEY_CACHE_TIMEOUT = "cache_timeout"
+CONFIG_KEY_PRIORITIES = "priorities"
+
+# Stock API Default Priorities
+DEFAULT_PRIORITIES = [
+    (SOURCE_YAHOO_FINANCE, 1),
+    (SOURCE_ALPACA, 2),
+    (SOURCE_POLYGON, 3),
+    (SOURCE_ALPHA_VANTAGE, 4),
+]
+
+# Stock API Messages
+MSG_CIRCUIT_OPEN = "Circuit OPEN for {}, skipping"
+MSG_ALL_CIRCUITS_OPEN = "All circuits OPEN for {}"
+MSG_PARALLEL_FETCH_SUCCESS = "Parallel fetch succeeded in {}ms"
+MSG_TASK_FAILED = "Task failed: {}"
+MSG_PARALLEL_FETCH_ERROR = "Parallel fetch error: {}"
+
+# HTTP Request Keys
+REQUEST_KEY_HTTP_METHOD = "httpMethod"
+REQUEST_KEY_PATH = "path"
+REQUEST_KEY_QUERY_STRING_PARAMS = "queryStringParameters"
+REQUEST_KEY_BODY = "body"
+
+# Query Parameter Keys
+QUERY_PARAM_SYMBOL = "symbol"
+QUERY_PARAM_SYMBOLS = "symbols"
+QUERY_PARAM_PERIOD = "period"
+
+# Response Format
+RESPONSE_FORMAT_SUCCESS_RATE = "{:.1f}%"
+RESPONSE_FORMAT_NA = "N/A"
+
+# Delimiters
+DELIMITER_COMMA = ","
+DELIMITER_COLON = ":"
+
+# Alpha Vantage Price Key (for checking data validity)
+AV_PRICE_KEY = "05. price"
