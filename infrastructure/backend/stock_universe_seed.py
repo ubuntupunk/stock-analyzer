@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime
 from decimal import Decimal
@@ -39,6 +40,9 @@ from constants import (
 from index_config import get_default_config
 from index_fetchers import JSEFetcher, Russell3000Fetcher, SP500Fetcher
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 
 class StockUniverseSeeder:
     """
@@ -78,9 +82,12 @@ class StockUniverseSeeder:
         if not fetcher_class:
             return {KEY_ERROR: SEED_MSG_NO_FETCHER.format(index_id)}
 
-        print(f"\n{SEPARATOR_LINE}")
-        print(SEED_MSG_SEEDING_INDEX.format(index_config["name"], index_config["id"]))
-        print(SEPARATOR_LINE)
+        logger.info("")
+        logger.info(SEPARATOR_LINE)
+        logger.info(
+            SEED_MSG_SEEDING_INDEX.format(index_config["name"], index_config["id"])
+        )
+        logger.info(SEPARATOR_LINE)
 
         # Fetch constituents using the fetcher
         fetcher = fetcher_class(index_config)
@@ -93,7 +100,7 @@ class StockUniverseSeeder:
                 SEED_RESULT_FAILED: 0,
             }
 
-        print(SEED_MSG_FOUND_STOCKS.format(len(stocks)))
+        logger.info(SEED_MSG_FOUND_STOCKS.format(len(stocks)))
 
         # Add index-specific metadata
         for stock in stocks:
@@ -143,7 +150,7 @@ class StockUniverseSeeder:
             Dict mapping symbol -> market data
         """
         symbols = [stock["symbol"] for stock in stocks]
-        print(f"\nFetching market data for {len(symbols)} symbols...")
+        logger.info("Fetching market data for %d symbols...", len(symbols))
 
         # Use yfinance in batches to avoid timeouts
         market_data = {}
@@ -151,8 +158,11 @@ class StockUniverseSeeder:
 
         for idx in range(0, len(symbols), batch_size):
             batch_symbols = symbols[idx : idx + batch_size]
-            print(
-                f"  Batch {idx//batch_size + 1}/{(len(symbols) + batch_size - 1)//batch_size}: {len(batch_symbols)} symbols"
+            logger.info(
+                "  Batch %d/%d: %d symbols",
+                idx // batch_size + 1,
+                (len(symbols) + batch_size - 1) // batch_size,
+                len(batch_symbols),
             )
 
             try:
@@ -186,16 +196,17 @@ class StockUniverseSeeder:
                             }
 
                             if not market_cap:
-                                print(f"    ⚠️  No market cap for {symbol}")
+                                logger.warning("No market cap for %s", symbol)
                     except Exception as err:
-                        print(f"    ⚠️  Error fetching {symbol}: {str(err)[:50]}")
+                        logger.warning("Error fetching %s: %s", symbol, str(err)[:50])
                         market_data[symbol] = {}
 
             except Exception as err:
-                print(f"  ⚠️  Batch error: {err}")
+                logger.warning("Batch error: %s", err)
 
-        print(
-            f"✅ Successfully fetched data for {len([data for data in market_data.values() if data])} symbols"
+        logger.info(
+            "Successfully fetched data for %d symbols",
+            len([data for data in market_data.values() if data]),
         )
         return market_data
 
@@ -216,7 +227,7 @@ class StockUniverseSeeder:
         seeded = 0
         failed = 0
 
-        print(f"\nSeeding to DynamoDB...")
+        logger.info("Seeding to DynamoDB...")
 
         with self.table.batch_writer() as batch:
             for stock in stocks:
@@ -284,13 +295,13 @@ class StockUniverseSeeder:
                     seeded += 1
 
                     if seeded % 50 == 0:
-                        print(f"  {seeded}/{len(stocks)} stocks seeded...")
+                        logger.info("  %d/%d stocks seeded...", seeded, len(stocks))
 
                 except Exception as err:
-                    print(f"  ⚠️  Failed to seed {symbol}: {str(err)[:50]}")
+                    logger.warning("Failed to seed %s: %s", symbol, str(err)[:50])
                     failed += 1
 
-        print(f"✅ Seeding complete: {seeded} succeeded, {failed} failed")
+        logger.info("Seeding complete: %d succeeded, %d failed", seeded, failed)
         return {"seeded": seeded, "failed": failed, "total": len(stocks)}
 
     def _merge_index_memberships(self):
@@ -300,7 +311,7 @@ class StockUniverseSeeder:
         E.g., AAPL exists in both SP500 and RUSSELL3000
         Updates the indexIds list to include all index memberships
         """
-        print(f"\nMerging index memberships...")
+        logger.info("Merging index memberships...")
 
         # Scan all stocks and group by symbol
         response = self.table.scan(
@@ -323,7 +334,7 @@ class StockUniverseSeeder:
 
                 if len(merged_ids) > 1:
                     existing["indexIds"] = sorted(list(merged_ids))
-                    print(f"  Merging {symbol}: {sorted(list(merged_ids))}")
+                    logger.info("  Merging %s: %s", symbol, sorted(list(merged_ids)))
 
         # Update merged items
         updated = 0
@@ -334,9 +345,9 @@ class StockUniverseSeeder:
                         batch.put_item(Item=item)
                         updated += 1
                     except Exception as err:
-                        print(f"  ⚠️  Failed to merge {symbol}: {err}")
+                        logger.warning("Failed to merge %s: %s", symbol, err)
 
-        print(f"✅ {updated} stocks belong to multiple indices")
+        logger.info("%d stocks belong to multiple indices", updated)
 
     def update_market_data(self, symbols: list = None, index_id: str = None):
         """
@@ -353,7 +364,7 @@ class StockUniverseSeeder:
 
         if symbols is None:
             # Fetch all symbols from DynamoDB
-            print("Fetching all symbols from DynamoDB...")
+            logger.info("Fetching all symbols from DynamoDB...")
 
             scan_kwargs = {
                 "ProjectionExpression": "symbol, #rg, currency, indexIds",
@@ -369,7 +380,7 @@ class StockUniverseSeeder:
             symbols = [item["symbol"] for item in symbols_data]
         else:
             # Fetch existing data for provided symbols
-            print(f"Fetching data for {len(symbols)} symbols from DynamoDB...")
+            logger.info("Fetching data for %d symbols from DynamoDB...", len(symbols))
             for symbol in symbols:
                 try:
                     response = self.table.get_item(
@@ -380,10 +391,10 @@ class StockUniverseSeeder:
                     if "Item" in response:
                         symbols_data.append(response["Item"])
                 except Exception as err:
-                    print(f"  ⚠️  Error fetching {symbol}: {err}")
+                    logger.warning("Error fetching %s: %s", symbol, err)
 
         if not symbols:
-            print("No symbols to update")
+            logger.info("No symbols to update")
             return {"updated": 0, "failed": 0, "skipped": 0}
 
         # Group by currency for FX conversion
@@ -394,7 +405,7 @@ class StockUniverseSeeder:
                 symbols_by_currency[currency] = []
             symbols_by_currency[currency].append(item)
 
-        print(f"Updating market data for {len(symbols)} symbols...")
+        logger.info("Updating market data for %d symbols...", len(symbols))
 
         updated = 0
         failed = 0
@@ -403,7 +414,7 @@ class StockUniverseSeeder:
 
         # Process each currency group separately for FX handling
         for currency, currency_symbols in symbols_by_currency.items():
-            print(f"\nProcessing {len(currency_symbols)} symbols in {currency}...")
+            logger.info("Processing %d symbols in %s...", len(currency_symbols), currency)
 
             # Get FX rate for non-USD currencies
             fx_rate = None
@@ -418,15 +429,18 @@ class StockUniverseSeeder:
                     if fetcher_class:
                         fetcher = fetcher_class(index_config)
                         fx_rate = fetcher.get_fx_rate()
-                        print(f"  FX rate for {currency}/USD: {fx_rate}")
+                        logger.info("  FX rate for %s/USD: %s", currency, fx_rate)
 
             # Process in batches
             symbol_list = [item["symbol"] for item in currency_symbols]
 
             for idx in range(0, len(symbol_list), batch_size):
                 batch_symbols = symbol_list[idx : idx + batch_size]
-                print(
-                    f"  Batch {idx//batch_size + 1}/{(len(symbol_list) + batch_size - 1)//batch_size}: {len(batch_symbols)} symbols"
+                logger.info(
+                    "  Batch %d/%d: %d symbols",
+                    idx // batch_size + 1,
+                    (len(symbol_list) + batch_size - 1) // batch_size,
+                    len(batch_symbols),
                 )
 
                 try:
@@ -437,7 +451,7 @@ class StockUniverseSeeder:
                             try:
                                 ticker = tickers.tickers.get(symbol)
                                 if not ticker:
-                                    print(f"    ⚠️  No ticker data for {symbol}")
+                                    logger.warning("No ticker data for %s", symbol)
                                     skipped += 1
                                     continue
 
@@ -445,7 +459,7 @@ class StockUniverseSeeder:
                                 market_cap = info.get("marketCap", 0) or 0
 
                                 if not market_cap:
-                                    print(f"    ⚠️  No market cap for {symbol}")
+                                    logger.warning("No market cap for %s", symbol)
                                     skipped += 1
                                     continue
 
@@ -489,22 +503,28 @@ class StockUniverseSeeder:
                                 updated += 1
 
                             except Exception as err:
-                                print(
-                                    f"    ⚠️  Error updating {symbol}: {str(err)[:50]}"
+                                logger.warning(
+                                    "Error updating %s: %s", symbol, str(err)[:50]
                                 )
                                 failed += 1
 
                 except Exception as err:
-                    print(f"  ⚠️  Batch error: {err}")
+                    logger.warning("Batch error: %s", err)
                     failed += len(batch_symbols)
 
                 if updated % 50 == 0 and updated > 0:
-                    print(
-                        f"  Progress: {updated} updated, {failed} failed, {skipped} skipped"
+                    logger.info(
+                        "  Progress: %d updated, %d failed, %d skipped",
+                        updated,
+                        failed,
+                        skipped,
                     )
 
-        print(
-            f"\n✅ Update complete: {updated} updated, {failed} failed, {skipped} skipped"
+        logger.info(
+            "Update complete: %d updated, %d failed, %d skipped",
+            updated,
+            failed,
+            skipped,
         )
         return {
             "updated": updated,
@@ -571,7 +591,7 @@ def lambda_handler(event, context):
     # For scheduled updates, always enrich
     enrich = event.get("enrich", is_scheduled)
 
-    print(f"Starting stock universe {operation} (enrich={enrich})...")
+    logger.info("Starting stock universe %s (enrich=%s)...", operation, enrich)
 
     try:
         seeder = StockUniverseSeeder()
@@ -597,7 +617,7 @@ def lambda_handler(event, context):
         }
 
     except Exception as err:
-        print(f"Error: {str(err)}")
+        logger.error("Error: %s", str(err))
         return {
             "statusCode": 500,
             "body": json.dumps(
