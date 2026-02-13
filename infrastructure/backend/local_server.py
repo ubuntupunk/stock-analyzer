@@ -38,8 +38,8 @@ from constants import (
     LOCAL_SERVER_HOST,
     LOCAL_SERVER_PORT,
     PARAM_END_DATE,
-    PARAM_PERIOD,
     PARAM_START_DATE,
+    QUERY_PARAM_PERIOD,
     QUERY_PARAM_SYMBOL,
     QUERY_PARAM_SYMBOLS,
     ROUTE_API_HEALTH,
@@ -289,7 +289,7 @@ def get_price_history():
     if error_response:
         return error_response
 
-    period = request.args.get(PARAM_PERIOD, STOCK_API_DEFAULT_PERIOD)
+    period = request.args.get(QUERY_PARAM_PERIOD, STOCK_API_DEFAULT_PERIOD)
     start_date = request.args.get(PARAM_START_DATE)
     end_date = request.args.get(PARAM_END_DATE)
 
