@@ -593,3 +593,37 @@ SEED_MSG_MERGED = "Merged {} stocks with multiple index memberships"
 
 # Separator
 SEPARATOR_LINE = "=" * 60
+
+
+# Watchlist API Constants
+WATCHLIST_DEFAULT_TABLE = "stock-watchlist"
+ENV_WATCHLIST_TABLE = "WATCHLIST_TABLE"
+
+# Watchlist Keys
+WATCHLIST_KEY_USER_ID = "userId"
+WATCHLIST_KEY_SYMBOL = "symbol"
+WATCHLIST_KEY_ADDED_AT = "addedAt"
+WATCHLIST_KEY_NOTES = "notes"
+WATCHLIST_KEY_ALERT_PRICE = "alertPrice"
+WATCHLIST_KEY_TAGS = "tags"
+
+# Watchlist Response Keys
+WATCHLIST_RESULT_SUCCESS = "success"
+WATCHLIST_RESULT_ITEM = "item"
+
+# Watchlist Routes
+WATCHLIST_ROUTE_BASE = "/api/watchlist"
+
+# Watchlist Expression Keys
+WATCHLIST_EXPR_UID = ":uid"
+WATCHLIST_EXPR_NOTES = ":notes"
+WATCHLIST_EXPR_ALERT = ":alert"
+WATCHLIST_EXPR_TAGS = ":tags"
+
+# Watchlist Update Expressions
+WATCHLIST_UPDATE_NOTES = "notes = :notes"
+WATCHLIST_UPDATE_ALERT = "alertPrice = :alert"
+WATCHLIST_UPDATE_TAGS = "tags = :tags"
+
+# Watchlist Query Expression
+WATCHLIST_QUERY_USER_ID = "userId = :uid"

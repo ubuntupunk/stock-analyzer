@@ -1,9 +1,33 @@
 import json
-import boto3
-from decimal import Decimal
-from datetime import datetime, timezone
-import uuid
 import os
+import uuid
+from datetime import datetime, timezone
+from decimal import Decimal
+
+import boto3
+
+from constants import (
+    ENV_WATCHLIST_TABLE,
+    KEY_ERROR,
+    KEY_ITEMS,
+    WATCHLIST_DEFAULT_TABLE,
+    WATCHLIST_EXPR_ALERT,
+    WATCHLIST_EXPR_NOTES,
+    WATCHLIST_EXPR_TAGS,
+    WATCHLIST_EXPR_UID,
+    WATCHLIST_KEY_ADDED_AT,
+    WATCHLIST_KEY_ALERT_PRICE,
+    WATCHLIST_KEY_NOTES,
+    WATCHLIST_KEY_SYMBOL,
+    WATCHLIST_KEY_TAGS,
+    WATCHLIST_KEY_USER_ID,
+    WATCHLIST_QUERY_USER_ID,
+    WATCHLIST_RESULT_ITEM,
+    WATCHLIST_RESULT_SUCCESS,
+    WATCHLIST_UPDATE_ALERT,
+    WATCHLIST_UPDATE_NOTES,
+    WATCHLIST_UPDATE_TAGS,
+)
 
 
 def decimal_default(obj):
@@ -17,47 +41,47 @@ class WatchlistManager:
 
     def __init__(self):
         self.dynamodb = boto3.resource("dynamodb")
-        self.watchlist_table = self.dynamodb.Table(
-            os.environ.get("WATCHLIST_TABLE", "stock-watchlist")
-        )
+        table_name = os.environ.get(ENV_WATCHLIST_TABLE, WATCHLIST_DEFAULT_TABLE)
+        self.watchlist_table = self.dynamodb.Table(table_name)
 
     def add_to_watchlist(self, user_id: str, stock_data: dict) -> dict:
         """Add a stock to user's watchlist"""
         try:
+            alert_price = stock_data.get(WATCHLIST_KEY_ALERT_PRICE)
             item = {
-                "userId": user_id,
-                "symbol": stock_data.get("symbol"),
-                "addedAt": datetime.now(timezone.utc).isoformat(),
-                "notes": stock_data.get("notes", ""),
-                "alertPrice": Decimal(str(stock_data.get("alertPrice")))
-                if stock_data.get("alertPrice") is not None
-                else None,
-                "tags": stock_data.get("tags", []),
+                WATCHLIST_KEY_USER_ID: user_id,
+                WATCHLIST_KEY_SYMBOL: stock_data.get(WATCHLIST_KEY_SYMBOL),
+                WATCHLIST_KEY_ADDED_AT: datetime.now(timezone.utc).isoformat(),
+                WATCHLIST_KEY_NOTES: stock_data.get(WATCHLIST_KEY_NOTES, ""),
+                WATCHLIST_KEY_ALERT_PRICE: Decimal(str(alert_price)) if alert_price is not None else None,
+                WATCHLIST_KEY_TAGS: stock_data.get(WATCHLIST_KEY_TAGS, []),
             }
 
             self.watchlist_table.put_item(Item=item)
-            return {"success": True, "item": item}
-        except Exception as err:
-            return {"success": False, "error": str(err)}
+            return {WATCHLIST_RESULT_SUCCESS: True, WATCHLIST_RESULT_ITEM: item}
+        except Exception as add_error:
+            return {WATCHLIST_RESULT_SUCCESS: False, KEY_ERROR: str(add_error)}
 
     def remove_from_watchlist(self, user_id: str, symbol: str) -> dict:
         """Remove a stock from watchlist"""
         try:
-            self.watchlist_table.delete_item(Key={"userId": user_id, "symbol": symbol})
-            return {"success": True}
-        except Exception as err:
-            return {"success": False, "error": str(err)}
+            self.watchlist_table.delete_item(
+                Key={WATCHLIST_KEY_USER_ID: user_id, WATCHLIST_KEY_SYMBOL: symbol}
+            )
+            return {WATCHLIST_RESULT_SUCCESS: True}
+        except Exception as remove_error:
+            return {WATCHLIST_RESULT_SUCCESS: False, KEY_ERROR: str(remove_error)}
 
     def get_watchlist(self, user_id: str) -> list:
         """Get user's watchlist"""
         try:
             response = self.watchlist_table.query(
-                KeyConditionExpression="userId = :uid",
-                ExpressionAttributeValues={":uid": user_id},
+                KeyConditionExpression=WATCHLIST_QUERY_USER_ID,
+                ExpressionAttributeValues={WATCHLIST_EXPR_UID: user_id},
             )
-            return response.get("Items", [])
-        except Exception as err:
-            return {"success": False, "error": str(err)}
+            return response.get(KEY_ITEMS, [])
+        except Exception as get_error:
+            return {WATCHLIST_RESULT_SUCCESS: False, KEY_ERROR: str(get_error)}
 
     def update_watchlist_item(self, user_id: str, symbol: str, updates: dict) -> dict:
         """Update watchlist item"""
