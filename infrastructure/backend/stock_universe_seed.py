@@ -345,36 +345,161 @@ class StockUniverseSeeder:
         Returns:
             Dict with update results
         """
+        symbols_data = []
+        
         if symbols is None:
             # Fetch all symbols from DynamoDB
             print("Fetching all symbols from DynamoDB...")
 
-            scan_kwargs = {"ProjectionExpression": "symbol, region, currency"}
+            scan_kwargs = {
+                "ProjectionExpression": "symbol, #rg, currency, indexIds",
+                "ExpressionAttributeNames": {"#rg": "region"}
+            }
             if index_id:
-                # Filter by index ID (require index-id-index GSI when deployed)
+                # Filter by index ID
                 scan_kwargs["FilterExpression"] = "contains(indexIds, :idxId)"
                 scan_kwargs["ExpressionAttributeValues"] = {":idxId": index_id}
 
             response = self.table.scan(**scan_kwargs)
             symbols_data = response.get("Items", [])
-
-            # Group by region/currency for FX conversion
-            symbols_by_currency = {}
-            for item in symbols_data:
-                currency = item.get("currency", "USD")
-                if currency not in symbols_by_currency:
-                    symbols_by_currency[currency] = []
-                symbols_by_currency[currency].append(item["symbol"])
-
-            # Flatten all symbols
             symbols = [item["symbol"] for item in symbols_data]
+        else:
+            # Fetch existing data for provided symbols
+            print(f"Fetching data for {len(symbols)} symbols from DynamoDB...")
+            for symbol in symbols:
+                try:
+                    response = self.table.get_item(
+                        Key={"symbol": symbol},
+                        ProjectionExpression="symbol, #rg, currency, indexIds",
+                        ExpressionAttributeNames={"#rg": "region"}
+                    )
+                    if "Item" in response:
+                        symbols_data.append(response["Item"])
+                except Exception as err:
+                    print(f"  ⚠️  Error fetching {symbol}: {err}")
+
+        if not symbols:
+            print("No symbols to update")
+            return {"updated": 0, "failed": 0, "skipped": 0}
+
+        # Group by currency for FX conversion
+        symbols_by_currency = {}
+        for item in symbols_data:
+            currency = item.get("currency", "USD")
+            if currency not in symbols_by_currency:
+                symbols_by_currency[currency] = []
+            symbols_by_currency[currency].append(item)
 
         print(f"Updating market data for {len(symbols)} symbols...")
+        
+        updated = 0
+        failed = 0
+        skipped = 0
+        batch_size = 100
 
-        # TODO: Implement batch update with proper currency handling
-        # This is a placeholder for the full implementation
+        # Process each currency group separately for FX handling
+        for currency, currency_symbols in symbols_by_currency.items():
+            print(f"\nProcessing {len(currency_symbols)} symbols in {currency}...")
+            
+            # Get FX rate for non-USD currencies
+            fx_rate = None
+            if currency != "USD":
+                # Get index config for this currency to use fetcher
+                index_id_for_currency = currency_symbols[0].get("indexIds", ["SP500"])[0]
+                index_config = self.index_config.get_index(index_id_for_currency)
+                if index_config:
+                    fetcher_class = self.fetchers.get(index_id_for_currency)
+                    if fetcher_class:
+                        fetcher = fetcher_class(index_config)
+                        fx_rate = fetcher.get_fx_rate()
+                        print(f"  FX rate for {currency}/USD: {fx_rate}")
 
-        return {"updated": 0}
+            # Process in batches
+            symbol_list = [item["symbol"] for item in currency_symbols]
+            
+            for idx in range(0, len(symbol_list), batch_size):
+                batch_symbols = symbol_list[idx : idx + batch_size]
+                print(
+                    f"  Batch {idx//batch_size + 1}/{(len(symbol_list) + batch_size - 1)//batch_size}: {len(batch_symbols)} symbols"
+                )
+
+                try:
+                    tickers = yf.Tickers(" ".join(batch_symbols))
+
+                    with self.table.batch_writer() as batch:
+                        for symbol in batch_symbols:
+                            try:
+                                ticker = tickers.tickers.get(symbol)
+                                if not ticker:
+                                    print(f"    ⚠️  No ticker data for {symbol}")
+                                    skipped += 1
+                                    continue
+
+                                info = ticker.info
+                                market_cap = info.get("marketCap", 0) or 0
+
+                                if not market_cap:
+                                    print(f"    ⚠️  No market cap for {symbol}")
+                                    skipped += 1
+                                    continue
+
+                                # Apply FX conversion if needed
+                                market_cap_usd = market_cap
+                                if fx_rate and currency != "USD":
+                                    market_cap_usd = market_cap * fx_rate
+
+                                # Determine market cap bucket
+                                market_cap_bucket = "unknown"
+                                if market_cap_usd > 0:
+                                    if market_cap_usd >= MARKET_CAP_MEGA_MIN:
+                                        market_cap_bucket = MARKET_CAP_MEGA
+                                    elif market_cap_usd >= MARKET_CAP_LARGE_MIN:
+                                        market_cap_bucket = MARKET_CAP_LARGE
+                                    elif market_cap_usd >= MARKET_CAP_MID_MIN:
+                                        market_cap_bucket = MARKET_CAP_MID
+                                    else:
+                                        market_cap_bucket = MARKET_CAP_SMALL
+
+                                # Update item with new market data
+                                update_expr = "SET marketCap = :mc, marketCapUSD = :mcusd, marketCapBucket = :bucket, lastUpdated = :updated"
+                                expr_values = {
+                                    ":mc": Decimal(str(market_cap)),
+                                    ":mcusd": Decimal(str(market_cap_usd)),
+                                    ":bucket": market_cap_bucket,
+                                    ":updated": datetime.utcnow().isoformat(),
+                                }
+
+                                # Optionally update industry if available
+                                industry = info.get("industry")
+                                if industry:
+                                    update_expr += ", industry = :ind"
+                                    expr_values[":ind"] = industry
+
+                                self.table.update_item(
+                                    Key={"symbol": symbol},
+                                    UpdateExpression=update_expr,
+                                    ExpressionAttributeValues=expr_values,
+                                )
+                                updated += 1
+
+                            except Exception as err:
+                                print(f"    ⚠️  Error updating {symbol}: {str(err)[:50]}")
+                                failed += 1
+
+                except Exception as err:
+                    print(f"  ⚠️  Batch error: {err}")
+                    failed += len(batch_symbols)
+
+                if updated % 50 == 0 and updated > 0:
+                    print(f"  Progress: {updated} updated, {failed} failed, {skipped} skipped")
+
+        print(f"\n✅ Update complete: {updated} updated, {failed} failed, {skipped} skipped")
+        return {
+            "updated": updated,
+            "failed": failed,
+            "skipped": skipped,
+            "total": len(symbols)
+        }
 
     # ============================================================
     # Legacy Methods (for backward compatibility)
