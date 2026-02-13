@@ -6,6 +6,7 @@ Centralizes repeated strings, magic numbers, and configuration values.
 # HTTP Status Codes
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400
+HTTP_NOT_FOUND = 404
 HTTP_METHOD_NOT_ALLOWED = 405
 HTTP_RATE_LIMIT = 429
 HTTP_SERVER_ERROR = 500
