@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
@@ -28,6 +29,9 @@ from constants import (
     WATCHLIST_UPDATE_NOTES,
     WATCHLIST_UPDATE_TAGS,
 )
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 def decimal_default(obj):

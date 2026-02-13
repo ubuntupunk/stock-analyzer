@@ -5,10 +5,14 @@ Tracks and reports stock universe health metrics.
 Sends data to CloudWatch for monitoring and alerting.
 """
 
+import logging
 import boto3
 from datetime import datetime
 from typing import Dict, List
 from decimal import Decimal
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class StockUniverseMetrics:
@@ -92,7 +96,9 @@ class StockUniverseMetrics:
                 }
             )
 
-        print(f"📊 Logged metrics for {index_id}: {seeded} seeded, {failed} failed")
+        logger.info(
+            "Logged metrics for %s: %d seeded, %d failed", index_id, seeded, failed
+        )
 
     def send_to_cloudwatch(self, async_mode: bool = True) -> bool:
         """
@@ -105,7 +111,7 @@ class StockUniverseMetrics:
             True if successful, False otherwise
         """
         if not self.metrics_buffer:
-            print("⚠️  No metrics to send")
+            logger.warning("No metrics to send")
             return True
 
         try:
@@ -120,14 +126,14 @@ class StockUniverseMetrics:
                 )
 
             count = len(self.metrics_buffer)
-            print(
-                f"✅ Sent {count} metrics to CloudWatch (namespace: {self.namespace})"
+            logger.info(
+                "Sent %d metrics to CloudWatch (namespace: %s)", count, self.namespace
             )
             self.metrics_buffer = []
             return True
 
         except Exception as err:
-            print(f"❌ Error sending metrics to CloudWatch: {err}")
+            logger.error("Error sending metrics to CloudWatch: %s", err)
             return False
 
     def calculate_freshness_score(self, stocks: List[Dict]) -> Dict:
@@ -290,7 +296,7 @@ class StockUniverseMetrics:
         quality_score = stock_universe_data.get("quality_score", 0)
         self.create_custom_metric("DataQualityScore", quality_score, [], "Percent")
 
-        print("📊 Health summary metrics buffered")
+        logger.info("Health summary metrics buffered")
 
     def detect_health_issues(self, stock_universe_data: Dict) -> List[Dict]:
         """

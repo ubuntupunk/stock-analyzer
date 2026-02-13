@@ -7,9 +7,13 @@ Validates stock data quality and detects issues like:
 - Data anomalies (sudden market cap drops, etc.)
 """
 
+import logging
 import yfinance as yf
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class StockValidator:

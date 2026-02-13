@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from decimal import Decimal
 
@@ -66,6 +67,9 @@ from constants import (
     SORT_PRIORITY_STARTS_WITH,
 )
 from index_config import get_default_config
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 def decimal_default(obj):
@@ -198,7 +202,7 @@ class StockUniverseManager:
 
             return filtered_stocks[:limit]
         except Exception as search_error:
-            print(f"Error searching stocks: {str(search_error)}")
+            logger.error("Error searching stocks: %s", str(search_error))
             return []
 
     def get_popular_stocks(self, limit: int = DEFAULT_POPULAR_LIMIT) -> list:
@@ -218,7 +222,7 @@ class StockUniverseManager:
 
             return stock_items[:limit]
         except Exception as fetch_error:
-            print(f"Error getting popular stocks: {str(fetch_error)}")
+            logger.error("Error getting popular stocks: %s", str(fetch_error))
             return []
 
     def get_sectors(self) -> list:
@@ -246,7 +250,7 @@ class StockUniverseManager:
 
             return sorted_sectors
         except Exception as fetch_error:
-            print(f"Error getting sectors: {str(fetch_error)}")
+            logger.error("Error getting sectors: %s", str(fetch_error))
             return []
 
     def _get_market_cap_value(self, stock_item: dict) -> float:
@@ -337,7 +341,7 @@ class StockUniverseManager:
 
             return stock_items
         except Exception as filter_error:
-            print(f"Error filtering stocks: {str(filter_error)}")
+            logger.error("Error filtering stocks: %s", str(filter_error))
             return []
 
     def get_stock_by_symbol(self, symbol: str) -> dict:
@@ -346,7 +350,7 @@ class StockUniverseManager:
             response = self.table.get_item(Key={KEY_SYMBOL: symbol.upper()})
             return response.get("Item", {})
         except Exception as fetch_error:
-            print(f"Error getting stock {symbol}: {str(fetch_error)}")
+            logger.error("Error getting stock %s: %s", symbol, str(fetch_error))
             return {}
 
     def _count_index_stocks(self, index_id: str) -> int:
@@ -408,7 +412,7 @@ class StockUniverseManager:
             return indices
 
         except Exception as fetch_error:
-            print(f"Error getting indices: {str(fetch_error)}")
+            logger.error("Error getting indices: %s", str(fetch_error))
             return []
 
     def get_index_details(self, index_id: str) -> dict:
@@ -428,7 +432,7 @@ class StockUniverseManager:
             }
 
         except Exception as fetch_error:
-            print(f"Error getting index details: {str(fetch_error)}")
+            logger.error("Error getting index details: %s", str(fetch_error))
             return {KEY_ERROR: str(fetch_error)}
 
     def get_index_stocks(
@@ -451,7 +455,7 @@ class StockUniverseManager:
             return response.get(KEY_ITEMS, [])
 
         except Exception as fetch_error:
-            print(f"Error getting index stocks: {str(fetch_error)}")
+            logger.error("Error getting index stocks: %s", str(fetch_error))
             return []
 
 
@@ -602,7 +606,7 @@ def lambda_handler(event, context):
         return _create_response(HTTP_OK, api_result)
 
     except Exception as request_error:
-        print(f"Error processing request: {str(request_error)}")
+        logger.error("Error processing request: %s", str(request_error))
         return _create_response(
             HTTP_SERVER_ERROR,
             {KEY_ERROR: ERROR_INTERNAL_SERVER, KEY_MESSAGE: str(request_error)},
