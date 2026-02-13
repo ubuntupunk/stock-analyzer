@@ -439,3 +439,67 @@ DELIMITER_COLON = ":"
 
 # Alpha Vantage Price Key (for checking data validity)
 AV_PRICE_KEY = "05. price"
+
+
+# Local Server Specific Constants
+LOCAL_DEV_TOKEN = "local-dev-token"
+LOCAL_DEV_USER_ID = "local-dev-user"
+LOCAL_SERVER_PORT = 5000
+LOCAL_SERVER_HOST = "0.0.0.0"
+
+# Flask Route Paths
+ROUTE_INDEX = "/"
+ROUTE_STATIC = "/<path:filename>"
+ROUTE_API_STOCK_PRICE = "/api/stock/price"
+ROUTE_API_STOCK_PRICE_HISTORY = "/api/stock/price/history"
+ROUTE_API_STOCK_METRICS = "/api/stock/metrics"
+ROUTE_API_STOCK_ESTIMATES = "/api/stock/estimates"
+ROUTE_API_STOCK_FINANCIALS = "/api/stock/financials"
+ROUTE_API_STOCK_NEWS = "/api/stock/news"
+ROUTE_API_STOCK_FACTORS = "/api/stock/factors"
+ROUTE_API_STOCKS_SEARCH = "/api/stocks/search"
+ROUTE_API_STOCKS_POPULAR = "/api/stocks/popular"
+ROUTE_API_STOCK_BATCH_PRICES = "/api/stock/batch/prices"
+ROUTE_API_STOCK_BATCH_METRICS = "/api/stock/batch/metrics"
+ROUTE_API_STOCK_BATCH_ESTIMATES = "/api/stock/batch/estimates"
+ROUTE_API_STOCK_BATCH_FINANCIALS = "/api/stock/batch/financials"
+ROUTE_API_WATCHLIST = "/api/watchlist"
+ROUTE_API_WATCHLIST_ITEM = "/api/watchlist/<symbol>"
+ROUTE_API_SCREENER_SCREEN = "/api/screener/screen"
+ROUTE_API_SCREENER_DCF = "/api/screener/dcf"
+ROUTE_API_HEALTH = "/api/health"
+
+# Flask Request Parameters
+PARAM_START_DATE = "startDate"
+PARAM_END_DATE = "endDate"
+PARAM_MIN_PRICE = "minPrice"
+PARAM_MAX_PRICE = "maxPrice"
+PARAM_MIN_MARKET_CAP = "minMarketCap"
+PARAM_MAX_MARKET_CAP = "maxMarketCap"
+PARAM_MIN_PE = "minPE"
+PARAM_MAX_PE = "maxPE"
+PARAM_MIN_DIVIDEND_YIELD = "minDividendYield"
+
+# Flask Response Keys
+RESPONSE_KEY_STOCKS = "stocks"
+RESPONSE_KEY_TOTAL = "total"
+RESPONSE_KEY_FILTERED = "filtered"
+
+# HTTP Headers
+HEADER_AUTHORIZATION = "Authorization"
+HEADER_BEARER_PREFIX = "Bearer "
+
+# Error Messages
+ERROR_AUTH_REQUIRED = "Authentication required for this resource."
+ERROR_INVALID_TOKEN = "Warning: Invalid local dev token received: {}"
+ERROR_SYMBOL_PARAM_REQUIRED = "symbol parameter is required"
+ERROR_SYMBOLS_PARAM_REQUIRED = "symbols parameter is required"
+
+# Flask Template Folder
+TEMPLATE_FOLDER_FRONTEND = "../frontend"
+
+# User Context Key
+CONTEXT_KEY_USER_ID = "user_id"
+
+# HTTP Status Codes (additional)
+HTTP_UNAUTHORIZED = 401

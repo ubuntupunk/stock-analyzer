@@ -5,6 +5,7 @@
 Stock Analyzer is a comprehensive stock analysis platform built on AWS serverless infrastructure. It provides tools for DCF valuation, factor-based stock screening, watchlist management, and financial metrics visualization.
 
 **Key Features:**
+
 - Stock Metrics Dashboard (P/E, ROI, ROE, Revenue Growth, etc.)
 - DCF (Discounted Cash Flow) Valuation Tool with customizable assumptions
 - Factor Screener for custom stock screening criteria
@@ -18,6 +19,7 @@ Stock Analyzer is a comprehensive stock analysis platform built on AWS serverles
 ## Technology Stack
 
 ### Backend
+
 - **Runtime**: Python 3.12
 - **Platform**: AWS Lambda (Serverless)
 - **API**: Amazon API Gateway (REST)
@@ -26,6 +28,7 @@ Stock Analyzer is a comprehensive stock analysis platform built on AWS serverles
 - **Infrastructure**: AWS SAM (Serverless Application Model)
 
 ### Frontend
+
 - **Type**: Static Website (HTML5, CSS3, Vanilla JavaScript)
 - **Hosting**: Amazon S3 + CloudFront CDN
 - **Styling**: SCSS/Sass (compiled to CSS)
@@ -33,6 +36,7 @@ Stock Analyzer is a comprehensive stock analysis platform built on AWS serverles
 - **Build Tool**: npm scripts with Sass compiler
 
 ### External APIs (Data Sources)
+
 - Yahoo Finance (primary)
 - Alpha Vantage
 - Polygon.io
@@ -107,18 +111,21 @@ stock-analyzer/
 ## Build & Deployment Commands
 
 ### Prerequisites
+
 - AWS CLI (v2+)
 - AWS SAM CLI
 - Python 3.11+
 - Node.js 14+ (for Sass compilation)
 
 ### Full Deployment
+
 ```bash
 # Deploy entire application (backend + frontend)
 ./deploy.sh
 ```
 
 ### Backend Only
+
 ```bash
 cd infrastructure
 sam build
@@ -126,6 +133,7 @@ sam deploy --guided
 ```
 
 ### Frontend Only
+
 ```bash
 # Compile SCSS to CSS
 npm run build:css
@@ -139,6 +147,7 @@ aws s3 sync . s3://<bucket-name>/ --delete
 ```
 
 ### Available npm Scripts
+
 ```bash
 npm run deploy              # Run deploy.sh
 npm run deploy-backend      # Deploy SAM backend only
@@ -156,6 +165,7 @@ npm run watch:css           # Watch SCSS changes
 ## Testing
 
 ### Unit Tests (Python)
+
 ```bash
 # Run from project root
 pytest tests/unit/
@@ -165,10 +175,12 @@ pytest tests/unit/ --cov=infrastructure/backend
 ```
 
 **Test Files:**
+
 - `tests/unit/test_stock_api.py` - Tests for StockDataAPI, APIMetrics
 - `tests/unit/test_circuit_breaker.py` - Tests for CircuitBreaker pattern
 
 ### Integration Tests (JavaScript)
+
 ```bash
 cd tests/integration
 npm install
@@ -178,6 +190,7 @@ npm run test:watchlist      # Test specific file
 ```
 
 **Test Files:**
+
 - `watchlist.test.js` - Watchlist functionality
 - `datamanager.test.js` - Data management
 - `circuitbreaker.test.js` - Circuit breaker behavior
@@ -187,6 +200,7 @@ npm run test:watchlist      # Test specific file
 ## API Endpoints
 
 ### Stock Data (GET)
+
 - `/api/stock/metrics?symbol=AAPL` - Financial metrics
 - `/api/stock/price?symbol=AAPL&period=1mo` - Price & historical data
 - `/api/stock/estimates?symbol=AAPL` - Analyst estimates
@@ -195,26 +209,31 @@ npm run test:watchlist      # Test specific file
 - `/api/stock/news?symbol=AAPL` - Stock news
 
 ### Batch Operations (GET)
+
 - `/api/stock/batch/prices?symbols=AAPL,MSFT,GOOGL`
 - `/api/stock/batch/metrics?symbols=AAPL,MSFT,GOOGL`
 - `/api/stock/batch/estimates?symbols=AAPL,MSFT,GOOGL`
 - `/api/stock/batch/financials?symbols=AAPL,MSFT,GOOGL`
 
 ### Screening & Analysis (POST)
+
 - `/api/screen` - Screen stocks by criteria
 - `/api/dcf` - DCF valuation calculation
 
 ### Factors (Auth Required for POST)
+
 - `GET /api/factors` - Get saved factors
 - `POST /api/factors` - Save new factor (requires Cognito auth)
 
 ### Watchlist (CRUD)
+
 - `GET /api/watchlist` - Get user's watchlist
 - `POST /api/watchlist` - Add stock
 - `PUT /api/watchlist` - Update stock
 - `DELETE /api/watchlist?symbol=AAPL` - Remove stock
 
 ### Stock Universe
+
 - `GET /api/stocks/search?q=apple` - Search stocks
 - `GET /api/stocks/popular` - Popular stocks
 - `GET /api/stocks/sectors` - List sectors
@@ -230,6 +249,7 @@ npm run test:watchlist      # Test specific file
 Based on our project's .windsurfrules configuration, we follow these specific Python coding standards:
 
 #### Language Standards
+
 - Python version: 3.8+
 - Style guide: PEP 8
 - Maximum line length: 88 characters
@@ -238,28 +258,40 @@ Based on our project's .windsurfrules configuration, we follow these specific Py
 - All code must pass minimum flake8 standards
 
 #### Type Hints
+
 - Use type hints for all function parameters and return values
 - Use type hints for class attributes and variables when beneficial for clarity
 - Import necessary types from `typing` module when needed (e.g., `List`, `Dict`, `Optional`)
 
 #### String Formatting
+
 - Use f-strings for string formatting (e.g., `f"Hello {name}"`)
 - Avoid `.format()` method and `%` formatting
 - Use single quotes for strings unless double quotes are necessary (e.g., when the string contains single quotes)
 
 #### Comments and Documentation
+
 - Avoid inline comments; use descriptive variable and function names instead
 - Require docstrings for all functions, classes, and modules using Google style
 - Document complex logic with comments, but avoid excessive comments (maximum 30% of lines should be comments)
 - Use meaningful variable names that make code self-documenting
 
 #### Code Structure
+
 - Limit function length to 50 lines for improved readability
 - Encourage modular code with separate files for utilities, models, and data handling
 - Avoid complex list comprehensions; use loops for readability when comprehension exceeds 50 characters
 - Organize imports in three groups: standard library, third-party, and local application imports
 
+#### Constants
+
+- Use the global `constants.py` module for all application constants
+- Never hardcode constants (e.g., API endpoints, timeout values, retry counts, status codes) in other files
+- Import constants using `from constants import CONSTANT_NAME` or `from constants import *`
+- Group related constants as module-level variables or use a class/dataclass for structured constants
+
 #### Example:
+
 ```python
 from typing import Dict, Optional
 import logging
@@ -294,12 +326,14 @@ def calculate_metrics(
 ```
 
 ### Testing Standards
+
 - Unit tests are recommended using pytest framework
 - Place all tests in a dedicated `tests/` directory
 - Name test files with `test_` prefix (e.g., `test_stock_api.py`)
 - Use descriptive test function names that explain what is being tested
 
 #### Example:
+
 ```python
 import pytest
 from backend.stock_api import StockAPI
@@ -314,11 +348,13 @@ def test_get_stock_metrics_success():
 ```
 
 ### Logging Standards
+
 - Use INFO level for general application flow
 - Use ERROR level for exceptions and unexpected behavior
 - Format: `%(asctime)s - %(name)s - %(levelname)s - %(message)s`
 
 ### Dependencies
+
 - Maintain a `requirements.txt` file for reproducibility
 - Pin dependency versions for stability
 - Recommended libraries include:
@@ -329,36 +365,44 @@ def test_get_stock_metrics_success():
   - pytest>=7.4.0
 
 ### Code Quality Tools
+
 - Black formatter: Automatically formats Python code to ensure consistent style
 - Flake8: Checks code for compliance with Python style guides
 - Pre-commit hooks: Run code quality checks before each commit
 
 ### JavaScript Code Quality
+
 - ESLint: Linting tool for identifying problematic patterns in JavaScript code
 - Prettier: Code formatter that enforces consistent code style
 - eslint-config-prettier: Disables ESLint rules that conflict with Prettier
 - Pre-commit hooks: Also run JavaScript linting and formatting before each commit
 
 ### Performance Considerations
+
 - Cache large datasets to avoid repeated loading
 - Limit expensive computations in main application loop
 - Use efficient data structures (NumPy arrays over lists when appropriate)
 - Use pandas DataFrames for data manipulation tasks
 
 ### Security Practices
+
 - Do not hardcode sensitive information (API keys, passwords)
 - Store sensitive information in environment variables or secure configuration systems
 - Validate all user inputs from form fields or file uploads
 - Sanitize any user-provided data before processing
 
 ### JavaScript (Frontend)
+
 - Use ES6+ class syntax for modules
 - Use async/await for asynchronous operations
 - Document public methods with JSDoc comments
 - Use camelCase for variables and methods
 - Use PascalCase for class names
+- Use a centralized `constants.js` file for all application constants (e.g., API endpoints, timeouts, status codes, UI thresholds)
+- Never hardcode values that could change across environments; use `config.js` for environment-specific values and `constants.js` for static values
 
 **Example:**
+
 ```javascript
 /**
  * Load stock metrics for the given symbol
@@ -377,6 +421,7 @@ async loadMetrics(symbol) {
 ```
 
 ### SCSS/CSS
+
 - Use Sass modules (`@use` instead of `@import`)
 - Organize styles by component/section
 - Use CSS custom properties for theming
@@ -387,7 +432,9 @@ async loadMetrics(symbol) {
 ## Configuration
 
 ### Environment Variables (Backend)
+
 Set in Lambda environment or SAM template:
+
 - `FINANCIAL_API_KEY` - Alpha Vantage API key (or other provider)
 - `FACTORS_TABLE` - DynamoDB table name for factors
 - `WATCHLIST_TABLE` - DynamoDB table name for watchlist
@@ -395,17 +442,18 @@ Set in Lambda environment or SAM template:
 - `USERS_TABLE` - DynamoDB table name for users
 
 ### Frontend Configuration (`infrastructure/frontend/config.js`)
+
 ```javascript
 const config = {
-    apiEndpoint: 'https://xxx.execute-api.region.amazonaws.com/prod',
-    frontendUrl: 'https://xxx.cloudfront.net',
-    cognito: {
-        region: 'us-east-1',
-        userPoolId: 'us-east-1_xxx',
-        userPoolClientId: 'xxx'
-    },
-    isDevelopment: false,
-    debug: false
+  apiEndpoint: 'https://xxx.execute-api.region.amazonaws.com/prod',
+  frontendUrl: 'https://xxx.cloudfront.net',
+  cognito: {
+    region: 'us-east-1',
+    userPoolId: 'us-east-1_xxx',
+    userPoolClientId: 'xxx',
+  },
+  isDevelopment: false,
+  debug: false,
 };
 ```
 
@@ -414,22 +462,26 @@ const config = {
 ## DynamoDB Schema
 
 ### stock-factors Table
+
 - **PK**: userId (String)
 - **SK**: factorId (String)
 - Stores user-defined screening criteria
 
 ### stock-watchlist Table
+
 - **PK**: userId (String)
 - **SK**: symbol (String)
 - Stores user's watchlist with notes/tags
 
 ### stock-universe Table
+
 - **PK**: symbol (String)
 - **GSI1**: sector-index (sector + symbol)
 - **GSI2**: marketcap-index (marketCapBucket + symbol)
 - Stores comprehensive stock information
 
 ### stock-users Table
+
 - **PK**: PK (String)
 - **SK**: SK (String)
 - Generic user data storage
@@ -439,11 +491,13 @@ const config = {
 ## Security Considerations
 
 1. **API Keys**: Never commit API keys to version control. Use:
+
    - Environment variables
    - AWS SSM Parameter Store (referenced in SAM template)
    - Lambda environment variables
 
-2. **Authentication**: 
+2. **Authentication**:
+
    - AWS Cognito for user authentication
    - JWT tokens for API authorization
    - Some endpoints (factors POST) require authentication
@@ -459,13 +513,16 @@ const config = {
 ## Development Workflow
 
 ### Local Development
+
 1. Backend can be tested locally using SAM local:
+
    ```bash
    cd infrastructure
    sam local start-api
    ```
 
 2. Frontend can be served locally:
+
    ```bash
    cd infrastructure/frontend
    python -m http.server 8000
@@ -476,11 +533,13 @@ const config = {
 ### Setting Up Development Environment
 
 1. Install project dependencies:
+
    ```bash
    pip install -r infrastructure/backend/requirements.txt
    ```
 
 2. Install and set up pre-commit hooks:
+
    ```bash
    pip install pre-commit
    pre-commit install
@@ -489,16 +548,19 @@ const config = {
    This will ensure that black automatically formats your Python code before each commit.
 
 3. You can also run black manually on the entire codebase:
+
    ```bash
    black .
    ```
 
 4. To run flake8 checks manually:
+
    ```bash
    flake8 .
    ```
 
 5. For JavaScript files, you can run ESLint and Prettier:
+
    ```bash
    # Lint JavaScript files
    npm run lint
@@ -516,6 +578,7 @@ const config = {
 6. Note that pre-commit hooks will automatically run both Python (black) and JavaScript (ESLint, Prettier) code quality checks before each commit.
 
 ### Adding a New API Endpoint
+
 1. Add route handler in `lambda_handler.py`
 2. Implement business logic in appropriate module (e.g., `stock_api.py`)
 3. Add API Gateway event in `template.yaml`
@@ -523,6 +586,7 @@ const config = {
 5. Add tests
 
 ### Adding a New Frontend Module
+
 1. Create module in `infrastructure/frontend/modules/`
 2. Register in `app.js` `initializeModules()` method
 3. Add corresponding section HTML in `infrastructure/frontend/sections/`
@@ -536,21 +600,26 @@ const config = {
 ### Common Issues
 
 **"AWS CLI not configured"**
+
 - Run `aws configure` and enter credentials
 
 **"CORS errors"**
+
 - Verify API Gateway CORS configuration in template.yaml
 - Check that `Access-Control-Allow-Origin` header is set
 
 **"Stock data not loading"**
+
 - Check Financial API key is set correctly
 - Verify API rate limits haven't been exceeded
 - Check Lambda logs in CloudWatch
 
 **"DynamoDB access denied"**
+
 - Verify Lambda execution role has appropriate DynamoDB permissions
 
 ### Viewing Logs
+
 ```bash
 # Lambda logs via SAM
 sam logs -n StockAPIFunction --stack-name stock-analyzer --tail
@@ -595,6 +664,7 @@ This project is licensed under the Non-Commercial Software License Agreement. Se
 7. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
+
 - Work is NOT complete until `git push` succeeds
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
@@ -606,11 +676,10 @@ This project uses **bd (beads)** for issue tracking.
 Run `bd prime` for workflow context, or install hooks (`bd hooks install`) for auto-injection.
 
 **Quick reference:**
+
 - `bd ready` - Find unblocked work
 - `bd create "Title" --type task --priority 2` - Create issue
 - `bd close <id>` - Complete work
 - `bd sync` - Sync with git (run at session end)
 
 For full workflow details: `bd prime`
-
-

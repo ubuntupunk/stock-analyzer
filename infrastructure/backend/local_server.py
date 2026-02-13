@@ -3,83 +3,146 @@ Local Development Flask Server for Stock Analyzer
 Serves the frontend and provides API endpoints
 """
 
+import json
+import math
 import os
 import sys
+
 from flask import (
     Flask,
+    abort,
+    g,
     jsonify,
+    render_template,
     request,
     send_from_directory,
-    render_template,
-    g,
-    abort,
 )
+from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from functools import wraps
 
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from constants import (
+    CONTEXT_KEY_USER_ID,
+    ERROR_AUTH_REQUIRED,
+    ERROR_INVALID_TOKEN,
+    ERROR_SYMBOL_PARAM_REQUIRED,
+    ERROR_SYMBOLS_PARAM_REQUIRED,
+    HEADER_AUTHORIZATION,
+    HEADER_BEARER_PREFIX,
+    HTTP_UNAUTHORIZED,
+    LOCAL_DEV_TOKEN,
+    LOCAL_DEV_USER_ID,
+    LOCAL_SERVER_HOST,
+    LOCAL_SERVER_PORT,
+    PARAM_END_DATE,
+    PARAM_PERIOD,
+    PARAM_START_DATE,
+    QUERY_PARAM_SYMBOL,
+    QUERY_PARAM_SYMBOLS,
+    ROUTE_API_HEALTH,
+    ROUTE_API_SCREENER_DCF,
+    ROUTE_API_SCREENER_SCREEN,
+    ROUTE_API_STOCK_BATCH_ESTIMATES,
+    ROUTE_API_STOCK_BATCH_FINANCIALS,
+    ROUTE_API_STOCK_BATCH_METRICS,
+    ROUTE_API_STOCK_BATCH_PRICES,
+    ROUTE_API_STOCK_ESTIMATES,
+    ROUTE_API_STOCK_FACTORS,
+    ROUTE_API_STOCK_FINANCIALS,
+    ROUTE_API_STOCK_METRICS,
+    ROUTE_API_STOCK_NEWS,
+    ROUTE_API_STOCK_PRICE,
+    ROUTE_API_STOCK_PRICE_HISTORY,
+    ROUTE_API_STOCKS_POPULAR,
+    ROUTE_API_STOCKS_SEARCH,
+    ROUTE_API_WATCHLIST,
+    ROUTE_API_WATCHLIST_ITEM,
+    ROUTE_INDEX,
+    ROUTE_STATIC,
+    TEMPLATE_FOLDER_FRONTEND,
+)
+from screener_api import StockScreener
 from stock_api import StockDataAPI
 from watchlist_api import WatchlistManager
-from screener_api import StockScreener
-import math
-import json
-
-from flask.json.provider import DefaultJSONProvider
 
 
 # Custom JSON provider to handle NaN and Infinity values
 class SafeJSONProvider(DefaultJSONProvider):
-    def dumps(self, obj, **kwargs):
-        # Handle NaN/Inf at the object level before dumping
-        def sanitize(obj):
-            if isinstance(obj, float):
-                if math.isnan(obj) or math.isinf(obj):
-                    return None
-            elif isinstance(obj, dict):
-                return {key: sanitize(value) for key, value in obj.items()}
-            elif isinstance(obj, list):
-                return [sanitize(item) for item in obj]
-            return obj
+    def dumps(self, json_obj, **kwargs):
+        """Dump JSON with NaN/Inf sanitization"""
+        return super().dumps(self._sanitize_value(json_obj), **kwargs)
 
-        return super().dumps(sanitize(sanitize(obj)), **kwargs)
+    def _sanitize_value(self, value):
+        """Recursively sanitize NaN and Inf values"""
+        if isinstance(value, float):
+            if math.isnan(value) or math.isinf(value):
+                return None
+        elif isinstance(value, dict):
+            return {key: self._sanitize_value(val) for key, val in value.items()}
+        elif isinstance(value, list):
+            return [self._sanitize_value(item) for item in value]
+        return value
 
 
-app = Flask(__name__, template_folder="../frontend")
+app = Flask(__name__, template_folder=TEMPLATE_FOLDER_FRONTEND)
 app.json = SafeJSONProvider(app)
 CORS(app)  # Enable CORS for all routes
-
-# --- Authentication Logic for Local Development ---
-LOCAL_DEV_TOKEN = "local-dev-token"  # This token will be sent by the frontend for authenticated requests
 
 
 @app.before_request
 def before_request():
-    g.user_id = None  # Initialize user_id for each request
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
+    """Initialize user context for each request"""
+    setattr(g, CONTEXT_KEY_USER_ID, None)
+    auth_header = request.headers.get(HEADER_AUTHORIZATION)
+
+    if auth_header and auth_header.startswith(HEADER_BEARER_PREFIX):
         token = auth_header.split(" ")[1]
         if token == LOCAL_DEV_TOKEN:
-            g.user_id = (
-                "local-dev-user"  # Assign a mock user ID for authenticated requests
-            )
+            setattr(g, CONTEXT_KEY_USER_ID, LOCAL_DEV_USER_ID)
         else:
-            print(f"Warning: Invalid local dev token received: {token}")
+            print(ERROR_INVALID_TOKEN.format(token))
 
 
-def auth_required(f):
-    @wraps(f)
+def auth_required(handler_func):
+    """Decorator to require authentication for routes"""
+
+    @wraps(handler_func)
     def decorated_function(*args, **kwargs):
-        if not g.user_id:
-            abort(401, description="Authentication required for this resource.")
-        return f(*args, **kwargs)
+        if not getattr(g, CONTEXT_KEY_USER_ID, None):
+            abort(HTTP_UNAUTHORIZED, description=ERROR_AUTH_REQUIRED)
+        return handler_func(*args, **kwargs)
 
     return decorated_function
 
 
 # Initialize the Stock Data API
 stock_api = StockDataAPI()
+
+
+def _validate_symbol_param() -> tuple:
+    """Validate and extract symbol parameter from request"""
+    stock_symbol = request.args.get(QUERY_PARAM_SYMBOL)
+    if not stock_symbol:
+        return None, (
+            jsonify({KEY_ERROR: ERROR_SYMBOL_PARAM_REQUIRED}),
+            HTTP_BAD_REQUEST,
+        )
+    return stock_symbol.upper(), None
+
+
+def _validate_symbols_param() -> tuple:
+    """Validate and extract symbols parameter from request"""
+    symbols_str = request.args.get(QUERY_PARAM_SYMBOLS)
+    if not symbols_str:
+        return None, (
+            jsonify({KEY_ERROR: ERROR_SYMBOLS_PARAM_REQUIRED}),
+            HTTP_BAD_REQUEST,
+        )
+    return symbols_str.split(DELIMITER_COMMA), None
+
 
 # Popular stocks fallback for local development (when DynamoDB is unavailable)
 LOCAL_POPULAR_STOCKS = [
@@ -208,78 +271,91 @@ def serve_static(filename):
 
 
 # Stock Data API Endpoints
-@app.route("/api/stock/price")
+@app.route(ROUTE_API_STOCK_PRICE)
 def get_price():
-    symbol = request.args.get("symbol")
-    if not symbol:
-        return jsonify({"error": "Symbol required"}), 400
-    result = stock_api.get_stock_price(symbol.upper())
-    return jsonify(result)
+    """Get stock price endpoint"""
+    stock_symbol, error_response = _validate_symbol_param()
+    if error_response:
+        return error_response
+
+    api_result = stock_api.get_stock_price(stock_symbol)
+    return jsonify(api_result)
 
 
-@app.route("/api/stock/price/history")
+@app.route(ROUTE_API_STOCK_PRICE_HISTORY)
 def get_price_history():
-    symbol = request.args.get("symbol")
-    period = request.args.get("period", "1mo")
-    startDate = request.args.get("startDate")
-    endDate = request.args.get("endDate")
+    """Get stock price history endpoint"""
+    stock_symbol, error_response = _validate_symbol_param()
+    if error_response:
+        return error_response
 
-    if not symbol:
-        return jsonify({"error": "Symbol required"}), 400
+    period = request.args.get(PARAM_PERIOD, STOCK_API_DEFAULT_PERIOD)
+    start_date = request.args.get(PARAM_START_DATE)
+    end_date = request.args.get(PARAM_END_DATE)
 
-    if startDate and endDate:
-        result = stock_api.get_stock_price(
-            symbol.upper(), startDate=startDate, endDate=endDate
+    if start_date and end_date:
+        api_result = stock_api.get_stock_price(
+            stock_symbol, startDate=start_date, endDate=end_date
         )
     else:
-        result = stock_api.get_stock_price(symbol.upper(), period=period)
+        api_result = stock_api.get_stock_price(stock_symbol, period=period)
 
-    return jsonify(result)
+    return jsonify(api_result)
 
 
-@app.route("/api/stock/metrics")
+@app.route(ROUTE_API_STOCK_METRICS)
 def get_metrics():
-    symbol = request.args.get("symbol")
-    if not symbol:
-        return jsonify({"error": "Symbol required"}), 400
-    result = stock_api.get_stock_metrics(symbol.upper())
-    return jsonify(result)
+    """Get stock metrics endpoint"""
+    stock_symbol, error_response = _validate_symbol_param()
+    if error_response:
+        return error_response
+
+    api_result = stock_api.get_stock_metrics(stock_symbol)
+    return jsonify(api_result)
 
 
-@app.route("/api/stock/estimates")
+@app.route(ROUTE_API_STOCK_ESTIMATES)
 def get_estimates():
-    symbol = request.args.get("symbol")
-    if not symbol:
-        return jsonify({"error": "Symbol required"}), 400
-    result = stock_api.get_analyst_estimates(symbol.upper())
-    return jsonify(result)
+    """Get analyst estimates endpoint"""
+    stock_symbol, error_response = _validate_symbol_param()
+    if error_response:
+        return error_response
+
+    api_result = stock_api.get_analyst_estimates(stock_symbol)
+    return jsonify(api_result)
 
 
-@app.route("/api/stock/financials")
+@app.route(ROUTE_API_STOCK_FINANCIALS)
 def get_financials():
-    symbol = request.args.get("symbol")
-    if not symbol:
-        return jsonify({"error": "Symbol required"}), 400
-    result = stock_api.get_financial_statements(symbol.upper())
-    return jsonify(result)
+    """Get financial statements endpoint"""
+    stock_symbol, error_response = _validate_symbol_param()
+    if error_response:
+        return error_response
+
+    api_result = stock_api.get_financial_statements(stock_symbol)
+    return jsonify(api_result)
 
 
-@app.route("/api/stock/news")
+@app.route(ROUTE_API_STOCK_NEWS)
 def get_news():
-    symbol = request.args.get("symbol")
-    if not symbol:
-        return jsonify({"error": "Symbol required"}), 400
-    result = stock_api.get_stock_news(symbol.upper())
-    return jsonify(result)
+    """Get stock news endpoint"""
+    stock_symbol, error_response = _validate_symbol_param()
+    if error_response:
+        return error_response
+
+    api_result = stock_api.get_stock_news(stock_symbol)
+    return jsonify(api_result)
 
 
-@app.route("/api/stock/factors")
+@app.route(ROUTE_API_STOCK_FACTORS)
 def get_factors():
-    symbol = request.args.get("symbol")
-    if not symbol:
-        return jsonify({"error": "Symbol required"}), 400
-    result = stock_api.get_stock_factors(symbol.upper())
-    return jsonify(result)
+    """Get stock factors endpoint"""
+    stock_symbol, error_response = _validate_symbol_param()
+    if error_response:
+        return error_response
+
+    api_result = stock_api.get_stock_factors(stock_symbol)
+    return jsonify(api_result)
 
 
 @app.route("/api/stocks/search")
