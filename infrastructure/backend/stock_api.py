@@ -488,6 +488,71 @@ class StockDataAPI:
         self._set_cache(cache_key, price_data)
         return price_data
 
+    def _fetch_from_yahoo(self, symbol: str, metrics: Dict) -> bool:
+        """Fetch metrics from Yahoo Finance. Returns True if successful."""
+        try:
+            start = time.time()
+            yf_data = self.yahoo.fetch_data(symbol)
+            latency_ms = (time.time() - start) * 1000
+
+            if yf_data:
+                metrics.update(self.yahoo.parse_metrics(yf_data))
+                metrics["source"] = "yahoo_finance"
+                self.metrics.record_request("yahoo_finance", True, latency_ms)
+                return True
+
+            self.metrics.record_request("yahoo_finance", False, latency_ms)
+            return False
+
+        except Exception as err:
+            self.metrics.record_request("yahoo_finance", False, 0)
+            logger.warning("Yahoo metrics error for %s: %s", symbol, str(err))
+            return False
+
+    def _fetch_from_alpha_vantage(self, symbol: str, metrics: Dict) -> bool:
+        """Fetch metrics from Alpha Vantage. Returns True if successful."""
+        try:
+            start = time.time()
+            av_data = self.alpha_vantage.fetch_overview(symbol)
+            latency_ms = (time.time() - start) * 1000
+
+            if av_data:
+                metrics.update(self.alpha_vantage.parse_metrics(av_data))
+                metrics["source"] = "alpha_vantage"
+                self.metrics.record_request("alpha_vantage", True, latency_ms)
+                return True
+
+            self.metrics.record_request("alpha_vantage", False, latency_ms)
+            return False
+
+        except Exception as err:
+            self.metrics.record_request("alpha_vantage", False, 0)
+            return False
+
+    def _fetch_from_polygon(self, symbol: str, metrics: Dict) -> bool:
+        """Fetch metrics from Polygon. Returns True if successful."""
+        if not self.polygon.api_key:
+            return False
+
+        try:
+            start = time.time()
+            poly_data = self.polygon.fetch_ticker(symbol)
+            latency_ms = (time.time() - start) * 1000
+
+            if poly_data:
+                metrics.update(self.polygon.parse_metrics(poly_data))
+                if metrics["source"] == "unknown":
+                    metrics["source"] = "polygon"
+                self.metrics.record_request("polygon", True, latency_ms)
+                return True
+
+            self.metrics.record_request("polygon", False, latency_ms)
+            return False
+
+        except Exception as err:
+            self.metrics.record_request("polygon", False, 0)
+            return False
+
     def get_stock_metrics(self, symbol: str) -> Dict:
         """
         Get comprehensive stock metrics
@@ -504,55 +569,10 @@ class StockDataAPI:
             "source": "unknown",
         }
 
-        # Try Yahoo Finance FIRST (fastest, most complete)
-        try:
-            start = time.time()
-            yf_data = self.yahoo.fetch_data(symbol)
-            latency_ms = (time.time() - start) * 1000
-
-            if yf_data:
-                metrics.update(self.yahoo.parse_metrics(yf_data))
-                metrics["source"] = "yahoo_finance"
-                self.metrics.record_request("yahoo_finance", True, latency_ms)
-            else:
-                self.metrics.record_request("yahoo_finance", False, latency_ms)
-
-        except Exception as err:
-            self.metrics.record_request("yahoo_finance", False, 0)
-            logger.warning("Yahoo metrics error for %s: %s", symbol, str(err))
-
-        # Fallback to Alpha Vantage if needed
-        if metrics["source"] == "unknown":
-            try:
-                start = time.time()
-                av_data = self.alpha_vantage.fetch_overview(symbol)
-                latency_ms = (time.time() - start) * 1000
-
-                if av_data:
-                    metrics.update(self.alpha_vantage.parse_metrics(av_data))
-                    metrics["source"] = "alpha_vantage"
-                    self.metrics.record_request("alpha_vantage", True, latency_ms)
-                else:
-                    self.metrics.record_request("alpha_vantage", False, latency_ms)
-            except Exception as err:
-                self.metrics.record_request("alpha_vantage", False, 0)
-
-        # Enhance with Polygon data if available
-        if self.polygon.api_key and metrics["source"] == "unknown":
-            try:
-                start = time.time()
-                poly_data = self.polygon.fetch_ticker(symbol)
-                latency_ms = (time.time() - start) * 1000
-
-                if poly_data:
-                    metrics.update(self.polygon.parse_metrics(poly_data))
-                    if metrics["source"] == "unknown":
-                        metrics["source"] = "polygon"
-                    self.metrics.record_request("polygon", True, latency_ms)
-                else:
-                    self.metrics.record_request("polygon", False, latency_ms)
-            except Exception as err:
-                self.metrics.record_request("polygon", False, 0)
+        # Try sources in priority order
+        if not self._fetch_from_yahoo(symbol, metrics):
+            if not self._fetch_from_alpha_vantage(symbol, metrics):
+                self._fetch_from_polygon(symbol, metrics)
 
         self._set_cache(cache_key, metrics)
         return metrics
@@ -666,6 +686,72 @@ class StockDataAPI:
         self._set_cache(cache_key, news_data)
         return news_data
 
+    def _compute_value_factors(self, metrics: Dict) -> Dict:
+        """Extract value factors from metrics"""
+        return {
+            "pe_ratio": metrics.get("pe_ratio", 0),
+            "forward_pe": metrics.get("forward_pe", 0),
+            "peg_ratio": metrics.get("peg_ratio", 0),
+            "price_to_book": metrics.get("price_to_book", 0),
+            "dividend_yield": metrics.get("dividend_yield", 0),
+        }
+
+    def _compute_growth_factors(self, metrics: Dict) -> Dict:
+        """Extract growth factors from metrics"""
+        return {
+            "revenue_growth": metrics.get("revenue_growth", 0),
+            "earnings_growth": metrics.get("earnings_growth", 0),
+            "eps_growth_5y": 0,  # Would need historical data
+            "revenue_growth_5y": 0,  # Would need historical data
+        }
+
+    def _compute_quality_factors(self, metrics: Dict) -> Dict:
+        """Extract quality factors from metrics"""
+        return {
+            "roe": metrics.get("roe", 0),
+            "roa": metrics.get("roa", 0),
+            "profit_margin": metrics.get("profit_margin", 0),
+            "operating_margin": metrics.get("operating_margin", 0),
+            "debt_to_equity": metrics.get("debt_to_equity", 0),
+            "current_ratio": metrics.get("current_ratio", 0),
+        }
+
+    def _compute_momentum_factors(self, price_data: Dict) -> Dict:
+        """Compute momentum factors from historical price data"""
+        if not price_data or "historicalData" not in price_data:
+            return {}
+
+        hist_data = price_data["historicalData"]
+        if not hist_data:
+            return {}
+
+        dates = sorted(hist_data.keys())
+        if len(dates) < 2:
+            return {}
+
+        # Get first and last prices
+        first_price = (
+            hist_data[dates[0]].get("4. close", 0)
+            if isinstance(hist_data[dates[0]], dict)
+            else 0
+        )
+        last_price = (
+            hist_data[dates[-1]].get("4. close", 0)
+            if isinstance(hist_data[dates[-1]], dict)
+            else 0
+        )
+
+        if not first_price or first_price <= 0:
+            return {}
+
+        # Calculate 52-week return
+        period_return = ((last_price - first_price) / first_price) * 100
+        return {
+            "52_week_return": period_return,
+            "near_52_week_high": 0,  # Would need more data
+            "near_52_week_low": 0,  # Would need more data
+        }
+
     def get_stock_factors(self, symbol: str) -> Dict:
         """
         Get stock factors for screening (value, growth, momentum, quality metrics)
@@ -688,70 +774,20 @@ class StockDataAPI:
             "quality_factors": {},
         }
 
-        # Get metrics first
+        # Get metrics and compute factors
         try:
             metrics = self.get_stock_metrics(symbol)
             if metrics:
-                # Value factors
-                factors["value_factors"] = {
-                    "pe_ratio": metrics.get("pe_ratio", 0),
-                    "forward_pe": metrics.get("forward_pe", 0),
-                    "peg_ratio": metrics.get("peg_ratio", 0),
-                    "price_to_book": metrics.get("price_to_book", 0),
-                    "dividend_yield": metrics.get("dividend_yield", 0),
-                }
-
-                # Growth factors
-                factors["growth_factors"] = {
-                    "revenue_growth": metrics.get("revenue_growth", 0),
-                    "earnings_growth": metrics.get("earnings_growth", 0),
-                    "eps_growth_5y": 0,  # Would need historical data
-                    "revenue_growth_5y": 0,  # Would need historical data
-                }
-
-                # Quality factors
-                factors["quality_factors"] = {
-                    "roe": metrics.get("roe", 0),
-                    "roa": metrics.get("roa", 0),
-                    "profit_margin": metrics.get("profit_margin", 0),
-                    "operating_margin": metrics.get("operating_margin", 0),
-                    "debt_to_equity": metrics.get("debt_to_equity", 0),
-                    "current_ratio": metrics.get("current_ratio", 0),
-                }
-
+                factors["value_factors"] = self._compute_value_factors(metrics)
+                factors["growth_factors"] = self._compute_growth_factors(metrics)
+                factors["quality_factors"] = self._compute_quality_factors(metrics)
         except Exception as err:
             logger.warning("Error computing factors for %s: %s", symbol, str(err))
 
-        # Momentum factors require historical price data
+        # Compute momentum factors from historical data
         try:
             price_data = self.get_stock_price(symbol, period="1y")
-            if price_data and "historicalData" in price_data:
-                hist_data = price_data["historicalData"]
-                if hist_data:
-                    dates = sorted(hist_data.keys())
-                    if len(dates) >= 2:
-                        # Get first and last prices for momentum calculation
-                        first_price = (
-                            hist_data[dates[0]].get("4. close", 0)
-                            if isinstance(hist_data[dates[0]], dict)
-                            else 0
-                        )
-                        last_price = (
-                            hist_data[dates[-1]].get("4. close", 0)
-                            if isinstance(hist_data[dates[-1]], dict)
-                            else 0
-                        )
-
-                        if first_price and first_price > 0:
-                            # 52-week return (or available period)
-                            period_return = (
-                                (last_price - first_price) / first_price
-                            ) * 100
-                            factors["momentum_factors"] = {
-                                "52_week_return": period_return,
-                                "near_52_week_high": 0,  # Would need more data
-                                "near_52_week_low": 0,  # Would need more data
-                            }
+            factors["momentum_factors"] = self._compute_momentum_factors(price_data)
         except Exception as err:
             logger.warning("Error computing momentum factors for %s: %s", symbol, str(err))
 
