@@ -4,6 +4,7 @@ Coordinates multiple API clients with fallback mechanisms, circuit breaker, and 
 """
 
 import json
+import logging
 import os
 import asyncio
 import aiohttp
@@ -83,6 +84,9 @@ from constants import (
     STOCK_API_DEFAULT_TIMEOUT,
     STOCK_API_MAX_WORKERS,
 )
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 def decimal_default(obj):
@@ -290,7 +294,7 @@ class StockDataAPI:
 
         for source_name, priority in self.priorities:
             if not self.cb.can_call(source_name):
-                print(f"Circuit OPEN for {source_name}, skipping")
+                logger.debug("Circuit OPEN for %s, skipping", source_name)
                 continue
 
             if source_name == "yahoo_finance":
@@ -307,7 +311,7 @@ class StockDataAPI:
                 sources_to_try.append("alpha_vantage")
 
         if not tasks:
-            print(f"All circuits OPEN for {symbol}")
+            logger.warning("All circuits OPEN for %s", symbol)
             return None
 
         # Wait for first successful result using asyncio.as_completed
@@ -317,13 +321,13 @@ class StockDataAPI:
                     result = await coro
                     if result:
                         latency_ms = (time.time() - start_time) * 1000
-                        print(f"Parallel fetch succeeded in {latency_ms:.0f}ms")
+                        logger.debug("Parallel fetch succeeded in %.0fms", latency_ms)
                         return result
                 except Exception as err:
-                    print(f"Task failed: {err}")
+                    logger.debug("Task failed: %s", err)
                     continue
         except Exception as err:
-            print(f"Parallel fetch error: {err}")
+            logger.warning("Parallel fetch error: %s", err)
 
         # All failed
         return None
@@ -454,7 +458,7 @@ class StockDataAPI:
 
         except Exception as err:
             self.metrics.record_request("yahoo_finance", False, 0)
-            print(f"Yahoo price/metrics error for {symbol}: {str(err)}")
+            logger.warning("Yahoo price/metrics error for %s: %s", symbol, str(err))
 
         # Fallback to other sources if needed
         if price_data["source"] == "unknown":
@@ -515,7 +519,7 @@ class StockDataAPI:
 
         except Exception as err:
             self.metrics.record_request("yahoo_finance", False, 0)
-            print(f"Yahoo metrics error for {symbol}: {str(err)}")
+            logger.warning("Yahoo metrics error for %s: %s", symbol, str(err))
 
         # Fallback to Alpha Vantage if needed
         if metrics["source"] == "unknown":
@@ -575,7 +579,7 @@ class StockDataAPI:
                 estimates.update(self.yahoo.parse_estimates(yf_data))
                 estimates["source"] = "yahoo_finance"
         except Exception as err:
-            print(f"Yahoo estimates error for {symbol}: {str(err)}")
+            logger.warning("Yahoo estimates error for %s: %s", symbol, str(err))
 
         # Fallback to Alpha Vantage
         if estimates["source"] == "unknown":
@@ -585,7 +589,7 @@ class StockDataAPI:
                     estimates.update(self.alpha_vantage.parse_estimates(av_earnings))
                     estimates["source"] = "alpha_vantage"
             except Exception as err:
-                print(f"Alpha Vantage estimates error for {symbol}: {str(err)}")
+                logger.warning("Alpha Vantage estimates error for %s: %s", symbol, str(err))
 
         self._set_cache(cache_key, estimates)
         return estimates
@@ -617,7 +621,7 @@ class StockDataAPI:
                 financials.update(yf_financials)
                 financials["source"] = "yahoo_finance"
         except Exception as err:
-            print(f"Yahoo financials error for {symbol}: {str(err)}")
+            logger.warning("Yahoo financials error for %s: %s", symbol, str(err))
 
         self._set_cache(cache_key, financials)
         return financials
@@ -657,7 +661,7 @@ class StockDataAPI:
                 self.metrics.record_request("yahoo_finance", False, latency_ms)
         except Exception as err:
             self.metrics.record_request("yahoo_finance", False, 0)
-            print(f"Yahoo news error for {symbol}: {str(err)}")
+            logger.warning("Yahoo news error for %s: %s", symbol, str(err))
 
         self._set_cache(cache_key, news_data)
         return news_data
@@ -716,7 +720,7 @@ class StockDataAPI:
                 }
 
         except Exception as err:
-            print(f"Error computing factors for {symbol}: {str(err)}")
+            logger.warning("Error computing factors for %s: %s", symbol, str(err))
 
         # Momentum factors require historical price data
         try:
@@ -749,7 +753,7 @@ class StockDataAPI:
                                 "near_52_week_low": 0,  # Would need more data
                             }
         except Exception as err:
-            print(f"Error computing momentum factors for {symbol}: {str(err)}")
+            logger.warning("Error computing momentum factors for %s: %s", symbol, str(err))
 
         self._set_cache(cache_key, factors)
         return factors
@@ -773,7 +777,7 @@ class StockDataAPI:
             if price:
                 data["price"] = price
         except Exception as err:
-            print(f"Error fetching price for {symbol}: {str(err)}")
+            logger.warning("Error fetching price for %s: %s", symbol, str(err))
 
         # Get metrics
         try:
@@ -781,7 +785,7 @@ class StockDataAPI:
             if metrics:
                 data["metrics"] = metrics
         except Exception as err:
-            print(f"Error fetching metrics for {symbol}: {str(err)}")
+            logger.warning("Error fetching metrics for %s: %s", symbol, str(err))
 
         # Get analyst estimates
         try:
@@ -789,7 +793,7 @@ class StockDataAPI:
             if estimates and estimates.get("earnings_estimates"):
                 data["estimates"] = estimates
         except Exception as err:
-            print(f"Error fetching estimates for {symbol}: {str(err)}")
+            logger.warning("Error fetching estimates for %s: %s", symbol, str(err))
 
         # Get financials
         try:
@@ -799,7 +803,7 @@ class StockDataAPI:
             ):
                 data["financials"] = financials
         except Exception as err:
-            print(f"Error fetching financials for {symbol}: {str(err)}")
+            logger.warning("Error fetching financials for %s: %s", symbol, str(err))
 
         # Add cache metadata
         data["cached"] = False
@@ -914,7 +918,7 @@ class StockDataAPI:
             if cash_flow_data and len(cash_flow_data) > 0:
                 latest_cf = cash_flow_data[0]
                 base_fcf = latest_cf.get("free_cash_flow", 0)
-                print(DCF_MSG_USING_REAL_DATA.format("cash flow statements"))
+                logger.info(DCF_MSG_USING_REAL_DATA.format("cash flow statements"))
 
             # Get cash and debt from balance sheet
             total_cash = 0
@@ -930,7 +934,7 @@ class StockDataAPI:
 
             # If no real FCF data, estimate from operating cash flow
             if base_fcf == 0:
-                print(DCF_MSG_MISSING_DATA.format(stock_symbol))
+                logger.info(DCF_MSG_MISSING_DATA.format(stock_symbol))
                 operating_cf = metrics.get("operating_cash_flow", 0)
                 if operating_cf > 0:
                     base_fcf = operating_cf * 0.8  # Estimate FCF as 80% of operating CF
@@ -940,7 +944,7 @@ class StockDataAPI:
                     base_fcf = market_cap * 0.05  # Estimate 5% FCF yield
 
         except Exception as data_error:
-            print(f"Error fetching financial data: {str(data_error)}")
+            logger.warning("Error fetching financial data: %s", str(data_error))
             # Use fallback estimates
             current_price = assumptions.get(DCF_KEY_CURRENT_PRICE, 100.0)
             base_fcf = current_price * 10  # Rough estimate
@@ -1193,5 +1197,5 @@ def lambda_handler(event, context):
         return _create_error_response(HTTP_METHOD_NOT_ALLOWED, ERROR_METHOD_NOT_ALLOWED)
 
     except Exception as handler_error:
-        print(f"Error: {str(handler_error)}")
+        logger.error("Error: %s", str(handler_error))
         return _create_error_response(HTTP_SERVER_ERROR, str(handler_error))
