@@ -865,7 +865,7 @@ class StockDataAPI:
     def run_dcf(self, assumptions: Dict) -> Dict:
         """
         Perform a Discounted Cash Flow (DCF) analysis using real financial data.
-        
+
         Args:
             assumptions: Dict with optional overrides:
                 - symbol: Stock symbol (required)
@@ -874,7 +874,7 @@ class StockDataAPI:
                 - discount_rate: WACC/discount rate (default: 10%)
                 - years: Projection years (default: 5)
                 - tax_rate: Corporate tax rate (default: 21%)
-        
+
         Returns:
             Dict with DCF valuation results
         """
@@ -891,29 +891,31 @@ class StockDataAPI:
             DCF_MSG_MISSING_DATA,
             DCF_MSG_USING_REAL_DATA,
         )
-        
+
         stock_symbol = assumptions.get(DCF_KEY_SYMBOL, "UNKNOWN")
-        
+
         # Get real financial data
         try:
             financials = self.get_financial_statements(stock_symbol)
             metrics = self.get_stock_metrics(stock_symbol)
             price_data = self.get_stock_price(stock_symbol)
-            
+
             # Extract current price
-            current_price = price_data.get("price", assumptions.get(DCF_KEY_CURRENT_PRICE, 100.0))
-            
+            current_price = price_data.get(
+                "price", assumptions.get(DCF_KEY_CURRENT_PRICE, 100.0)
+            )
+
             # Extract financial data
             cash_flow_data = financials.get("cash_flow", [])
             balance_sheet_data = financials.get("balance_sheet", [])
-            
+
             # Get most recent free cash flow
             base_fcf = 0
             if cash_flow_data and len(cash_flow_data) > 0:
                 latest_cf = cash_flow_data[0]
                 base_fcf = latest_cf.get("free_cash_flow", 0)
                 print(DCF_MSG_USING_REAL_DATA.format("cash flow statements"))
-            
+
             # Get cash and debt from balance sheet
             total_cash = 0
             total_debt = 0
@@ -921,11 +923,11 @@ class StockDataAPI:
                 latest_bs = balance_sheet_data[0]
                 total_cash = latest_bs.get("cash", 0)
                 total_debt = latest_bs.get("long_term_debt", 0)
-            
+
             # Get shares outstanding and beta
             shares_outstanding = metrics.get(DCF_KEY_SHARES_OUTSTANDING, 0)
             beta = metrics.get(DCF_KEY_BETA, 1.0)
-            
+
             # If no real FCF data, estimate from operating cash flow
             if base_fcf == 0:
                 print(DCF_MSG_MISSING_DATA.format(stock_symbol))
@@ -936,7 +938,7 @@ class StockDataAPI:
                     # Last resort: estimate from market cap
                     market_cap = metrics.get("market_cap", 0)
                     base_fcf = market_cap * 0.05  # Estimate 5% FCF yield
-            
+
         except Exception as data_error:
             print(f"Error fetching financial data: {str(data_error)}")
             # Use fallback estimates
@@ -946,10 +948,10 @@ class StockDataAPI:
             total_debt = 0
             shares_outstanding = 1_000_000  # Estimate
             beta = 1.0
-        
+
         # Initialize DCF Calculator
         dcf_calc = DCFCalculator()
-        
+
         # Run DCF analysis using the calculator
         return dcf_calc.run_dcf_analysis(
             symbol=stock_symbol,

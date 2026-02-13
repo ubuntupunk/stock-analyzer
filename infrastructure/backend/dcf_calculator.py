@@ -60,7 +60,7 @@ from constants import (
 class DCFCalculator:
     """
     Discounted Cash Flow Calculator
-    
+
     Calculates intrinsic value using DCF methodology with real financial data.
     """
 
@@ -80,15 +80,15 @@ class DCFCalculator:
     ) -> float:
         """
         Calculate Weighted Average Cost of Capital (WACC)
-        
+
         Simplified WACC using CAPM for cost of equity.
         Assumes mostly equity-financed company.
-        
+
         Args:
             beta: Stock beta (systematic risk)
             risk_free_rate: Risk-free rate (e.g., 10-year Treasury)
             market_return: Expected market return
-            
+
         Returns:
             WACC as decimal (e.g., 0.10 for 10%)
         """
@@ -101,12 +101,12 @@ class DCFCalculator:
     ) -> list:
         """
         Project future free cash flows
-        
+
         Args:
             base_fcf: Base/current free cash flow
             growth_rate: Annual growth rate (decimal)
             years: Number of years to project
-            
+
         Returns:
             List of projected FCFs
         """
@@ -121,12 +121,12 @@ class DCFCalculator:
     ) -> float:
         """
         Calculate terminal value using Gordon Growth Model
-        
+
         Args:
             final_fcf: Final year projected FCF
             terminal_growth: Perpetual growth rate
             wacc: Weighted average cost of capital
-            
+
         Returns:
             Terminal value
         """
@@ -139,19 +139,21 @@ class DCFCalculator:
     ) -> float:
         """
         Calculate present value of cash flows
-        
+
         Args:
             cash_flows: List of future cash flows
             discount_rate: Discount rate (WACC)
             start_year: Starting year for discounting
-            
+
         Returns:
             Present value of all cash flows
         """
-        pv = sum([
-            cf / ((1 + discount_rate) ** year)
-            for year, cf in enumerate(cash_flows, start_year)
-        ])
+        pv = sum(
+            [
+                cf / ((1 + discount_rate) ** year)
+                for year, cf in enumerate(cash_flows, start_year)
+            ]
+        )
         return pv
 
     def calculate_equity_value(
@@ -159,12 +161,12 @@ class DCFCalculator:
     ) -> float:
         """
         Convert enterprise value to equity value
-        
+
         Args:
             enterprise_value: Enterprise value
             total_debt: Total debt
             total_cash: Total cash and equivalents
-            
+
         Returns:
             Equity value
         """
@@ -175,11 +177,11 @@ class DCFCalculator:
     ) -> float:
         """
         Calculate intrinsic value per share
-        
+
         Args:
             equity_value: Total equity value
             shares_outstanding: Number of shares outstanding
-            
+
         Returns:
             Value per share
         """
@@ -192,11 +194,11 @@ class DCFCalculator:
     ) -> float:
         """
         Calculate upside/downside potential
-        
+
         Args:
             intrinsic_value: Calculated intrinsic value
             current_price: Current market price
-            
+
         Returns:
             Upside potential as percentage
         """
@@ -221,7 +223,7 @@ class DCFCalculator:
     ) -> Dict:
         """
         Run complete DCF analysis
-        
+
         Args:
             symbol: Stock symbol
             base_fcf: Base free cash flow
@@ -235,15 +237,21 @@ class DCFCalculator:
             discount_rate: Discount rate override (optional)
             years: Projection years (optional)
             tax_rate: Tax rate (optional)
-            
+
         Returns:
             Dict with complete DCF analysis results
         """
         print(DCF_MSG_PERFORMING.format(symbol))
 
         # Use defaults if not provided
-        growth_rate = growth_rate if growth_rate is not None else self.default_growth_rate
-        terminal_growth = terminal_growth if terminal_growth is not None else self.default_terminal_growth
+        growth_rate = (
+            growth_rate if growth_rate is not None else self.default_growth_rate
+        )
+        terminal_growth = (
+            terminal_growth
+            if terminal_growth is not None
+            else self.default_terminal_growth
+        )
         projection_years = years if years is not None else self.default_years
         tax_rate = tax_rate if tax_rate is not None else self.default_tax_rate
 
@@ -251,7 +259,9 @@ class DCFCalculator:
         wacc = discount_rate if discount_rate is not None else self.calculate_wacc(beta)
 
         # Project Free Cash Flows
-        fcf_projections = self.project_free_cash_flows(base_fcf, growth_rate, projection_years)
+        fcf_projections = self.project_free_cash_flows(
+            base_fcf, growth_rate, projection_years
+        )
 
         # Calculate Terminal Value
         terminal_value = self.calculate_terminal_value(
@@ -266,15 +276,23 @@ class DCFCalculator:
         enterprise_value = pv_fcf + pv_terminal_value
 
         # Calculate Equity Value
-        equity_value = self.calculate_equity_value(enterprise_value, total_debt, total_cash)
+        equity_value = self.calculate_equity_value(
+            enterprise_value, total_debt, total_cash
+        )
 
         # Calculate Value Per Share
-        value_per_share = self.calculate_value_per_share(equity_value, shares_outstanding)
+        value_per_share = self.calculate_value_per_share(
+            equity_value, shares_outstanding
+        )
 
         # Calculate Upside Potential
-        upside_potential = self.calculate_upside_potential(value_per_share, current_price)
+        upside_potential = self.calculate_upside_potential(
+            value_per_share, current_price
+        )
 
-        print(DCF_MSG_CALCULATED.format(value_per_share, current_price, upside_potential))
+        print(
+            DCF_MSG_CALCULATED.format(value_per_share, current_price, upside_potential)
+        )
 
         return {
             DCF_KEY_SYMBOL: symbol,

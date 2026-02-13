@@ -120,7 +120,9 @@ class StockUniverseMetrics:
                 )
 
             count = len(self.metrics_buffer)
-            print(f"✅ Sent {count} metrics to CloudWatch (namespace: {self.namespace})")
+            print(
+                f"✅ Sent {count} metrics to CloudWatch (namespace: {self.namespace})"
+            )
             self.metrics_buffer = []
             return True
 

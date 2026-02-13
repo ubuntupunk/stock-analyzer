@@ -256,18 +256,22 @@ class StockUniverseSeeder:
                         "exchangeSuffix": index_config.get("exchangeSuffix", ""),
                         "indexId": index_config["id"],
                         "indexIds": [index_config["id"]],
-                        "marketCap": Decimal(str(market_cap))
-                        if market_cap
-                        else Decimal("0"),
-                        "marketCapUSD": Decimal(str(market_cap_usd))
-                        if market_cap_usd
-                        else Decimal("0"),
+                        "marketCap": (
+                            Decimal(str(market_cap)) if market_cap else Decimal("0")
+                        ),
+                        "marketCapUSD": (
+                            Decimal(str(market_cap_usd))
+                            if market_cap_usd
+                            else Decimal("0")
+                        ),
                         "marketCapBucket": market_cap_bucket,
                         "lastUpdated": datetime.utcnow().isoformat(),
                         "lastValidated": datetime.utcnow().isoformat(),
-                        "isActive": "true"
-                        if md.get("isActive") not in [False, "false"]
-                        else "false",  # String for DynamoDB GSI compatibility
+                        "isActive": (
+                            "true"
+                            if md.get("isActive") not in [False, "false"]
+                            else "false"
+                        ),  # String for DynamoDB GSI compatibility
                         "dataSource": "yfinance",
                         "country": md.get("country", index_config["region"]),
                     }
@@ -346,14 +350,14 @@ class StockUniverseSeeder:
             Dict with update results
         """
         symbols_data = []
-        
+
         if symbols is None:
             # Fetch all symbols from DynamoDB
             print("Fetching all symbols from DynamoDB...")
 
             scan_kwargs = {
                 "ProjectionExpression": "symbol, #rg, currency, indexIds",
-                "ExpressionAttributeNames": {"#rg": "region"}
+                "ExpressionAttributeNames": {"#rg": "region"},
             }
             if index_id:
                 # Filter by index ID
@@ -371,7 +375,7 @@ class StockUniverseSeeder:
                     response = self.table.get_item(
                         Key={"symbol": symbol},
                         ProjectionExpression="symbol, #rg, currency, indexIds",
-                        ExpressionAttributeNames={"#rg": "region"}
+                        ExpressionAttributeNames={"#rg": "region"},
                     )
                     if "Item" in response:
                         symbols_data.append(response["Item"])
@@ -391,7 +395,7 @@ class StockUniverseSeeder:
             symbols_by_currency[currency].append(item)
 
         print(f"Updating market data for {len(symbols)} symbols...")
-        
+
         updated = 0
         failed = 0
         skipped = 0
@@ -400,12 +404,14 @@ class StockUniverseSeeder:
         # Process each currency group separately for FX handling
         for currency, currency_symbols in symbols_by_currency.items():
             print(f"\nProcessing {len(currency_symbols)} symbols in {currency}...")
-            
+
             # Get FX rate for non-USD currencies
             fx_rate = None
             if currency != "USD":
                 # Get index config for this currency to use fetcher
-                index_id_for_currency = currency_symbols[0].get("indexIds", ["SP500"])[0]
+                index_id_for_currency = currency_symbols[0].get("indexIds", ["SP500"])[
+                    0
+                ]
                 index_config = self.index_config.get_index(index_id_for_currency)
                 if index_config:
                     fetcher_class = self.fetchers.get(index_id_for_currency)
@@ -416,7 +422,7 @@ class StockUniverseSeeder:
 
             # Process in batches
             symbol_list = [item["symbol"] for item in currency_symbols]
-            
+
             for idx in range(0, len(symbol_list), batch_size):
                 batch_symbols = symbol_list[idx : idx + batch_size]
                 print(
@@ -483,7 +489,9 @@ class StockUniverseSeeder:
                                 updated += 1
 
                             except Exception as err:
-                                print(f"    ⚠️  Error updating {symbol}: {str(err)[:50]}")
+                                print(
+                                    f"    ⚠️  Error updating {symbol}: {str(err)[:50]}"
+                                )
                                 failed += 1
 
                 except Exception as err:
@@ -491,14 +499,18 @@ class StockUniverseSeeder:
                     failed += len(batch_symbols)
 
                 if updated % 50 == 0 and updated > 0:
-                    print(f"  Progress: {updated} updated, {failed} failed, {skipped} skipped")
+                    print(
+                        f"  Progress: {updated} updated, {failed} failed, {skipped} skipped"
+                    )
 
-        print(f"\n✅ Update complete: {updated} updated, {failed} failed, {skipped} skipped")
+        print(
+            f"\n✅ Update complete: {updated} updated, {failed} failed, {skipped} skipped"
+        )
         return {
             "updated": updated,
             "failed": failed,
             "skipped": skipped,
-            "total": len(symbols)
+            "total": len(symbols),
         }
 
     # ============================================================
@@ -530,7 +542,9 @@ class StockUniverseSeeder:
             return MARKET_CAP_MID
         return MARKET_CAP_SMALL
 
-    def seed_database(self, enrich: bool = True, batch_size: int = SEED_DEFAULT_BATCH_SIZE):
+    def seed_database(
+        self, enrich: bool = True, batch_size: int = SEED_DEFAULT_BATCH_SIZE
+    ):
         """Legacy method - use seed_index() or seed_all_indices() instead"""
         return self.seed_index("SP500", enrich)
 

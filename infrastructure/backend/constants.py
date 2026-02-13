@@ -556,7 +556,7 @@ SEED_RETRY_DELAY = 1
 # Market Cap Buckets (USD)
 MARKET_CAP_MEGA_MIN = 200_000_000_000  # $200B+
 MARKET_CAP_LARGE_MIN = 10_000_000_000  # $10B-$200B
-MARKET_CAP_MID_MIN = 2_000_000_000     # $2B-$10B
+MARKET_CAP_MID_MIN = 2_000_000_000  # $2B-$10B
 # Below $2B is small cap
 
 # Index IDs
@@ -669,4 +669,6 @@ DCF_KEY_TAX_RATE = "tax_rate"
 DCF_MSG_PERFORMING = "Performing DCF analysis for {}"
 DCF_MSG_USING_REAL_DATA = "Using real financial data from {}"
 DCF_MSG_MISSING_DATA = "Missing financial data for {}, using estimates"
-DCF_MSG_CALCULATED = "DCF calculated: intrinsic value ${:.2f} vs current ${:.2f} ({:.1f}% upside)"
+DCF_MSG_CALCULATED = (
+    "DCF calculated: intrinsic value ${:.2f} vs current ${:.2f} ({:.1f}% upside)"
+)

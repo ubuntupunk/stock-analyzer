@@ -53,7 +53,9 @@ class WatchlistManager:
                 WATCHLIST_KEY_SYMBOL: stock_data.get(WATCHLIST_KEY_SYMBOL),
                 WATCHLIST_KEY_ADDED_AT: datetime.now(timezone.utc).isoformat(),
                 WATCHLIST_KEY_NOTES: stock_data.get(WATCHLIST_KEY_NOTES, ""),
-                WATCHLIST_KEY_ALERT_PRICE: Decimal(str(alert_price)) if alert_price is not None else None,
+                WATCHLIST_KEY_ALERT_PRICE: (
+                    Decimal(str(alert_price)) if alert_price is not None else None
+                ),
                 WATCHLIST_KEY_TAGS: stock_data.get(WATCHLIST_KEY_TAGS, []),
             }
 

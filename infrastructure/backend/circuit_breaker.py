@@ -117,11 +117,11 @@ class APIEndpoint:
         """Count failures within monitoring window"""
         if self.last_failure_time == CB_DEFAULT_LATENCY:
             return 0
-        
+
         time_since_failure = time.time() - self.last_failure_time
         if time_since_failure > CB_MONITORING_WINDOW_SECONDS:
             return 0
-        
+
         return self.failures
 
 
@@ -356,12 +356,14 @@ class CircuitBreakerManager:
                 "total_endpoints": len(self._endpoints),
                 "total_calls": total_calls,
                 "total_errors": total_errors,
-                "overall_success_rate": f"{(1 - total_errors/total_calls * 100) if total_calls > 0 else 100:.1f}%"
-                if total_calls > 0
-                else "N/A",
-                "average_latency_ms": f"{total_latency / total_calls:.1f}"
-                if total_calls > 0
-                else "N/A",
+                "overall_success_rate": (
+                    f"{(1 - total_errors/total_calls * 100) if total_calls > 0 else 100:.1f}%"
+                    if total_calls > 0
+                    else "N/A"
+                ),
+                "average_latency_ms": (
+                    f"{total_latency / total_calls:.1f}" if total_calls > 0 else "N/A"
+                ),
                 "open_circuits": open_circuits,
                 "closed_circuits": len(self._endpoints) - open_circuits,
                 "endpoints": self.get_all_states(),
