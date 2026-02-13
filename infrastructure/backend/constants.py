@@ -545,3 +545,51 @@ CB_METRIC_RATE_LIMIT_HITS = "rate_limit_hits"
 CB_METRIC_STATE = "state"
 CB_METRIC_LAST_FAILURE = "last_failure_time"
 CB_METRIC_LAST_SUCCESS = "last_success_time"
+
+
+# Stock Universe Seeder Constants
+SEED_DEFAULT_BATCH_SIZE = 25
+SEED_ENRICH_BATCH_SIZE = 50
+SEED_MAX_RETRIES = 3
+SEED_RETRY_DELAY = 1
+
+# Market Cap Buckets (USD)
+MARKET_CAP_MEGA_MIN = 200_000_000_000  # $200B+
+MARKET_CAP_LARGE_MIN = 10_000_000_000  # $10B-$200B
+MARKET_CAP_MID_MIN = 2_000_000_000     # $2B-$10B
+# Below $2B is small cap
+
+# Index IDs
+INDEX_ID_SP500 = "SP500"
+INDEX_ID_RUSSELL3000 = "RUSSELL3000"
+INDEX_ID_JSE_ALSI = "JSE_ALSI"
+
+# Stock Universe Keys
+STOCK_KEY_INDEX_ID = "indexId"
+STOCK_KEY_INDEX_IDS = "indexIds"
+STOCK_KEY_MARKET_CAP_BUCKET = "marketCapBucket"
+STOCK_KEY_MARKET_CAP_USD = "marketCapUSD"
+STOCK_KEY_LAST_UPDATED = "lastUpdated"
+
+# Seeding Result Keys
+SEED_RESULT_SEEDED = "seeded"
+SEED_RESULT_FAILED = "failed"
+SEED_RESULT_UPDATED = "updated"
+SEED_RESULT_SKIPPED = "skipped"
+SEED_RESULT_ERROR = "error"
+
+# Seeding Messages
+SEED_MSG_SEEDING_INDEX = "Seeding {} ({})"
+SEED_MSG_FOUND_STOCKS = "Found {} stocks to seed"
+SEED_MSG_ENRICHING = "Enriching {} stocks with market data..."
+SEED_MSG_SEEDING_TO_DB = "Seeding {} stocks to DynamoDB..."
+SEED_MSG_BATCH_PROGRESS = "Batch {}/{}: Seeded {} stocks"
+SEED_MSG_COMPLETE = "Seeding complete: {} seeded, {} failed"
+SEED_MSG_UNKNOWN_INDEX = "Unknown index: {}"
+SEED_MSG_NO_FETCHER = "No fetcher for index: {}"
+SEED_MSG_NO_STOCKS = "No stocks fetched for {}"
+SEED_MSG_MERGING = "Merging index memberships for overlapping stocks..."
+SEED_MSG_MERGED = "Merged {} stocks with multiple index memberships"
+
+# Separator
+SEPARATOR_LINE = "=" * 60

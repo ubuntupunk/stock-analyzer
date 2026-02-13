@@ -1,12 +1,43 @@
 import json
-import boto3
-import yfinance as yf
+import os
 from datetime import datetime
 from decimal import Decimal
-import os
 
+import boto3
+import yfinance as yf
+
+from constants import (
+    DEFAULT_TABLE_NAME,
+    ENV_STOCK_UNIVERSE_TABLE,
+    INDEX_ID_JSE_ALSI,
+    INDEX_ID_RUSSELL3000,
+    INDEX_ID_SP500,
+    KEY_ERROR,
+    MARKET_CAP_LARGE,
+    MARKET_CAP_LARGE_MIN,
+    MARKET_CAP_MEGA,
+    MARKET_CAP_MEGA_MIN,
+    MARKET_CAP_MID,
+    MARKET_CAP_MID_MIN,
+    MARKET_CAP_SMALL,
+    SEED_DEFAULT_BATCH_SIZE,
+    SEED_MSG_COMPLETE,
+    SEED_MSG_FOUND_STOCKS,
+    SEED_MSG_MERGING,
+    SEED_MSG_NO_FETCHER,
+    SEED_MSG_NO_STOCKS,
+    SEED_MSG_SEEDING_INDEX,
+    SEED_MSG_UNKNOWN_INDEX,
+    SEED_RESULT_ERROR,
+    SEED_RESULT_FAILED,
+    SEED_RESULT_SEEDED,
+    SEPARATOR_LINE,
+    STOCK_KEY_INDEX_ID,
+    STOCK_KEY_INDEX_IDS,
+    STOCK_KEY_MARKET_CAP_BUCKET,
+)
 from index_config import get_default_config
-from index_fetchers import SP500Fetcher, Russell3000Fetcher, JSEFetcher
+from index_fetchers import JSEFetcher, Russell3000Fetcher, SP500Fetcher
 
 
 class StockUniverseSeeder:
@@ -19,14 +50,13 @@ class StockUniverseSeeder:
 
     def __init__(self):
         self.dynamodb = boto3.resource("dynamodb")
-        self.table = self.dynamodb.Table(
-            os.environ.get("STOCK_UNIVERSE_TABLE", "stock-universe")
-        )
+        table_name = os.environ.get(ENV_STOCK_UNIVERSE_TABLE, DEFAULT_TABLE_NAME)
+        self.table = self.dynamodb.Table(table_name)
         self.index_config = get_default_config()
         self.fetchers = {
-            "SP500": SP500Fetcher,
-            "RUSSELL3000": Russell3000Fetcher,
-            "JSE_ALSI": JSEFetcher,
+            INDEX_ID_SP500: SP500Fetcher,
+            INDEX_ID_RUSSELL3000: Russell3000Fetcher,
+            INDEX_ID_JSE_ALSI: JSEFetcher,
         }
 
     def seed_index(self, index_id: str, enrich: bool = True) -> dict:
@@ -42,15 +72,15 @@ class StockUniverseSeeder:
         """
         index_config = self.index_config.get_index(index_id)
         if not index_config:
-            return {"error": f"Unknown index: {index_id}"}
+            return {KEY_ERROR: SEED_MSG_UNKNOWN_INDEX.format(index_id)}
 
         fetcher_class = self.fetchers.get(index_id)
         if not fetcher_class:
-            return {"error": f"No fetcher for index: {index_id}"}
+            return {KEY_ERROR: SEED_MSG_NO_FETCHER.format(index_id)}
 
-        print(f"\n{'='*60}")
-        print(f"Seeding {index_config['name']} ({index_config['id']})")
-        print(f"{'='*60}")
+        print(f"\n{SEPARATOR_LINE}")
+        print(SEED_MSG_SEEDING_INDEX.format(index_config["name"], index_config["id"]))
+        print(SEPARATOR_LINE)
 
         # Fetch constituents using the fetcher
         fetcher = fetcher_class(index_config)
@@ -58,17 +88,17 @@ class StockUniverseSeeder:
 
         if not stocks:
             return {
-                "error": f"No stocks fetched for {index_id}",
-                "seeded": 0,
-                "failed": 0,
+                KEY_ERROR: SEED_MSG_NO_STOCKS.format(index_id),
+                SEED_RESULT_SEEDED: 0,
+                SEED_RESULT_FAILED: 0,
             }
 
-        print(f"Found {len(stocks)} stocks to seed")
+        print(SEED_MSG_FOUND_STOCKS.format(len(stocks)))
 
         # Add index-specific metadata
         for stock in stocks:
-            stock["indexId"] = index_id
-            stock["indexIds"] = [index_id]
+            stock[STOCK_KEY_INDEX_ID] = index_id
+            stock[STOCK_KEY_INDEX_IDS] = [index_id]
 
         # Enrich with market data from yfinance
         market_data = {}
@@ -367,16 +397,15 @@ class StockUniverseSeeder:
 
     def get_market_cap_bucket(self, market_cap: float) -> str:
         """Legacy method - use fetcher.get_market_cap_bucket() instead"""
-        if market_cap >= 200_000_000_000:
-            return "mega"
-        elif market_cap >= 10_000_000_000:
-            return "large"
-        elif market_cap >= 2_000_000_000:
-            return "mid"
-        else:
-            return "small"
+        if market_cap >= MARKET_CAP_MEGA_MIN:
+            return MARKET_CAP_MEGA
+        if market_cap >= MARKET_CAP_LARGE_MIN:
+            return MARKET_CAP_LARGE
+        if market_cap >= MARKET_CAP_MID_MIN:
+            return MARKET_CAP_MID
+        return MARKET_CAP_SMALL
 
-    def seed_database(self, enrich: bool = True, batch_size: int = 25):
+    def seed_database(self, enrich: bool = True, batch_size: int = SEED_DEFAULT_BATCH_SIZE):
         """Legacy method - use seed_index() or seed_all_indices() instead"""
         return self.seed_index("SP500", enrich)
 
