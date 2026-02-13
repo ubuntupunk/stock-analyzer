@@ -416,6 +416,56 @@ class StockDataAPI:
     # SINGLE STOCK METHODS
     # ========================================================================
 
+    def _fetch_price_from_yahoo(self, symbol: str, price_data: Dict) -> bool:
+        """Fetch price data from Yahoo Finance. Returns True if successful."""
+        try:
+            start = time.time()
+            yf_data = self.yahoo.fetch_data(symbol)
+            latency_ms = (time.time() - start) * 1000
+
+            if yf_data:
+                price_data.update(self.yahoo.parse_price(yf_data))
+                price_data.update(self.yahoo.parse_metrics(yf_data))
+                price_data["source"] = "yahoo_finance"
+                self.metrics.record_request("yahoo_finance", True, latency_ms)
+                return True
+
+            self.metrics.record_request("yahoo_finance", False, latency_ms)
+            return False
+
+        except Exception as err:
+            self.metrics.record_request("yahoo_finance", False, 0)
+            logger.warning("Yahoo price/metrics error for %s: %s", symbol, str(err))
+            return False
+
+    def _fetch_price_from_alpha_vantage(self, symbol: str, price_data: Dict) -> bool:
+        """Fetch price data from Alpha Vantage. Returns True if successful."""
+        try:
+            start = time.time()
+            av_data = self.alpha_vantage.fetch_quote(symbol)
+            latency_ms = (time.time() - start) * 1000
+
+            if av_data and "05. price" in av_data:
+                price_data.update(self.alpha_vantage.parse_price(av_data))
+                price_data["source"] = "alpha_vantage"
+                self.metrics.record_request("alpha_vantage", True, latency_ms)
+                return True
+
+            self.metrics.record_request("alpha_vantage", False, latency_ms)
+            return False
+
+        except Exception as err:
+            self.metrics.record_request("alpha_vantage", False, 0)
+            return False
+
+    def _fetch_historical_data(
+        self, symbol: str, period: str, startDate: str = None, endDate: str = None
+    ) -> Dict:
+        """Fetch historical price data"""
+        if startDate and endDate:
+            return self.yahoo.fetch_history_range(symbol, startDate, endDate)
+        return self.yahoo.fetch_history(symbol, period)
+
     def get_stock_price(
         self,
         symbol: str,
@@ -441,47 +491,12 @@ class StockDataAPI:
             "source": "unknown",
         }
 
-        # Get price data from Yahoo Finance FIRST (fastest, most complete)
-        try:
-            start = time.time()
-            yf_data = self.yahoo.fetch_data(symbol)
-            latency_ms = (time.time() - start) * 1000
+        # Try sources in priority order
+        if not self._fetch_price_from_yahoo(symbol, price_data):
+            self._fetch_price_from_alpha_vantage(symbol, price_data)
 
-            if yf_data:
-                # Parse both price and metrics data from Yahoo Finance
-                price_data.update(self.yahoo.parse_price(yf_data))
-                price_data.update(self.yahoo.parse_metrics(yf_data))  # Add metrics data
-                price_data["source"] = "yahoo_finance"
-                self.metrics.record_request("yahoo_finance", True, latency_ms)
-            else:
-                self.metrics.record_request("yahoo_finance", False, latency_ms)
-
-        except Exception as err:
-            self.metrics.record_request("yahoo_finance", False, 0)
-            logger.warning("Yahoo price/metrics error for %s: %s", symbol, str(err))
-
-        # Fallback to other sources if needed
-        if price_data["source"] == "unknown":
-            # Try Alpha Vantage
-            try:
-                start = time.time()
-                av_data = self.alpha_vantage.fetch_quote(symbol)
-                latency_ms = (time.time() - start) * 1000
-
-                if av_data and "05. price" in av_data:
-                    price_data.update(self.alpha_vantage.parse_price(av_data))
-                    price_data["source"] = "alpha_vantage"
-                    self.metrics.record_request("alpha_vantage", True, latency_ms)
-                else:
-                    self.metrics.record_request("alpha_vantage", False, latency_ms)
-            except Exception as err:
-                self.metrics.record_request("alpha_vantage", False, 0)
-
-        # Also fetch historical data for charting (support custom date range)
-        if startDate and endDate:
-            history = self.yahoo.fetch_history_range(symbol, startDate, endDate)
-        else:
-            history = self.yahoo.fetch_history(symbol, period)
+        # Fetch historical data for charting
+        history = self._fetch_historical_data(symbol, period, startDate, endDate)
         if history:
             price_data["historicalData"] = history
 
@@ -902,6 +917,75 @@ class StockDataAPI:
                 results[symbol] = {"symbol": symbol, "error": str(err)}
         return results
 
+    def _extract_dcf_financial_data(self, stock_symbol: str) -> Dict:
+        """Extract financial data needed for DCF analysis"""
+        from constants import (
+            DCF_KEY_BETA,
+            DCF_KEY_CURRENT_PRICE,
+            DCF_KEY_SHARES_OUTSTANDING,
+            DCF_MSG_MISSING_DATA,
+            DCF_MSG_USING_REAL_DATA,
+        )
+
+        try:
+            financials = self.get_financial_statements(stock_symbol)
+            metrics = self.get_stock_metrics(stock_symbol)
+            price_data = self.get_stock_price(stock_symbol)
+
+            # Extract current price
+            current_price = price_data.get("price", 100.0)
+
+            # Extract cash flow data
+            cash_flow_data = financials.get("cash_flow", [])
+            base_fcf = 0
+            if cash_flow_data and len(cash_flow_data) > 0:
+                base_fcf = cash_flow_data[0].get("free_cash_flow", 0)
+                logger.info(DCF_MSG_USING_REAL_DATA.format("cash flow statements"))
+
+            # Extract balance sheet data
+            balance_sheet_data = financials.get("balance_sheet", [])
+            total_cash = 0
+            total_debt = 0
+            if balance_sheet_data and len(balance_sheet_data) > 0:
+                latest_bs = balance_sheet_data[0]
+                total_cash = latest_bs.get("cash", 0)
+                total_debt = latest_bs.get("long_term_debt", 0)
+
+            # Get shares and beta
+            shares_outstanding = metrics.get(DCF_KEY_SHARES_OUTSTANDING, 0)
+            beta = metrics.get(DCF_KEY_BETA, 1.0)
+
+            # Estimate FCF if missing
+            if base_fcf == 0:
+                logger.info(DCF_MSG_MISSING_DATA.format(stock_symbol))
+                operating_cf = metrics.get("operating_cash_flow", 0)
+                if operating_cf > 0:
+                    base_fcf = operating_cf * 0.8
+                else:
+                    market_cap = metrics.get("market_cap", 0)
+                    base_fcf = market_cap * 0.05
+
+            return {
+                "current_price": current_price,
+                "base_fcf": base_fcf,
+                "total_cash": total_cash,
+                "total_debt": total_debt,
+                "shares_outstanding": shares_outstanding,
+                "beta": beta,
+            }
+
+        except Exception as data_error:
+            logger.warning("Error fetching financial data: %s", str(data_error))
+            # Return fallback estimates
+            return {
+                "current_price": 100.0,
+                "base_fcf": 1000.0,
+                "total_cash": 0,
+                "total_debt": 0,
+                "shares_outstanding": 1_000_000,
+                "beta": 1.0,
+            }
+
     def run_dcf(self, assumptions: Dict) -> Dict:
         """
         Perform a Discounted Cash Flow (DCF) analysis using real financial data.
@@ -919,75 +1003,21 @@ class StockDataAPI:
             Dict with DCF valuation results
         """
         from constants import (
-            DCF_KEY_BETA,
-            DCF_KEY_CURRENT_PRICE,
             DCF_KEY_DISCOUNT_RATE,
             DCF_KEY_GROWTH_RATE,
-            DCF_KEY_SHARES_OUTSTANDING,
             DCF_KEY_SYMBOL,
             DCF_KEY_TAX_RATE,
             DCF_KEY_TERMINAL_GROWTH,
             DCF_KEY_YEARS,
-            DCF_MSG_MISSING_DATA,
-            DCF_MSG_USING_REAL_DATA,
         )
 
         stock_symbol = assumptions.get(DCF_KEY_SYMBOL, "UNKNOWN")
 
-        # Get real financial data
-        try:
-            financials = self.get_financial_statements(stock_symbol)
-            metrics = self.get_stock_metrics(stock_symbol)
-            price_data = self.get_stock_price(stock_symbol)
+        # Extract financial data
+        financial_data = self._extract_dcf_financial_data(stock_symbol)
 
-            # Extract current price
-            current_price = price_data.get(
-                "price", assumptions.get(DCF_KEY_CURRENT_PRICE, 100.0)
-            )
-
-            # Extract financial data
-            cash_flow_data = financials.get("cash_flow", [])
-            balance_sheet_data = financials.get("balance_sheet", [])
-
-            # Get most recent free cash flow
-            base_fcf = 0
-            if cash_flow_data and len(cash_flow_data) > 0:
-                latest_cf = cash_flow_data[0]
-                base_fcf = latest_cf.get("free_cash_flow", 0)
-                logger.info(DCF_MSG_USING_REAL_DATA.format("cash flow statements"))
-
-            # Get cash and debt from balance sheet
-            total_cash = 0
-            total_debt = 0
-            if balance_sheet_data and len(balance_sheet_data) > 0:
-                latest_bs = balance_sheet_data[0]
-                total_cash = latest_bs.get("cash", 0)
-                total_debt = latest_bs.get("long_term_debt", 0)
-
-            # Get shares outstanding and beta
-            shares_outstanding = metrics.get(DCF_KEY_SHARES_OUTSTANDING, 0)
-            beta = metrics.get(DCF_KEY_BETA, 1.0)
-
-            # If no real FCF data, estimate from operating cash flow
-            if base_fcf == 0:
-                logger.info(DCF_MSG_MISSING_DATA.format(stock_symbol))
-                operating_cf = metrics.get("operating_cash_flow", 0)
-                if operating_cf > 0:
-                    base_fcf = operating_cf * 0.8  # Estimate FCF as 80% of operating CF
-                else:
-                    # Last resort: estimate from market cap
-                    market_cap = metrics.get("market_cap", 0)
-                    base_fcf = market_cap * 0.05  # Estimate 5% FCF yield
-
-        except Exception as data_error:
-            logger.warning("Error fetching financial data: %s", str(data_error))
-            # Use fallback estimates
-            current_price = assumptions.get(DCF_KEY_CURRENT_PRICE, 100.0)
-            base_fcf = current_price * 10  # Rough estimate
-            total_cash = 0
-            total_debt = 0
-            shares_outstanding = 1_000_000  # Estimate
-            beta = 1.0
+        # Override with assumptions if provided
+        current_price = assumptions.get("current_price", financial_data["current_price"])
 
         # Initialize DCF Calculator
         dcf_calc = DCFCalculator()
@@ -995,16 +1025,18 @@ class StockDataAPI:
         # Run DCF analysis using the calculator
         return dcf_calc.run_dcf_analysis(
             symbol=stock_symbol,
-            base_fcf=base_fcf,
+            base_fcf=financial_data["base_fcf"],
             current_price=current_price,
-            shares_outstanding=shares_outstanding,
-            total_cash=total_cash,
-            total_debt=total_debt,
-            beta=beta,
+            shares_outstanding=financial_data["shares_outstanding"],
+            total_cash=financial_data["total_cash"],
+            total_debt=financial_data["total_debt"],
+            beta=financial_data["beta"],
             growth_rate=assumptions.get(DCF_KEY_GROWTH_RATE),
             terminal_growth=assumptions.get(DCF_KEY_TERMINAL_GROWTH),
             discount_rate=assumptions.get(DCF_KEY_DISCOUNT_RATE),
             years=assumptions.get(DCF_KEY_YEARS),
+            tax_rate=assumptions.get(DCF_KEY_TAX_RATE),
+        )
             tax_rate=assumptions.get(DCF_KEY_TAX_RATE),
         )
 
