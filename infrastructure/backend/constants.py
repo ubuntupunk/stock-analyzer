@@ -503,3 +503,45 @@ CONTEXT_KEY_USER_ID = "user_id"
 
 # HTTP Status Codes (additional)
 HTTP_UNAUTHORIZED = 401
+
+
+# Circuit Breaker Constants
+CB_DEFAULT_FAILURE_THRESHOLD = 5
+CB_DEFAULT_SUCCESS_THRESHOLD = 2
+CB_DEFAULT_TIMEOUT_SECONDS = 30.0
+CB_DEFAULT_MONITORING_WINDOW = 60
+CB_DEFAULT_HALF_OPEN_MAX_CALLS = 3
+CB_DEFAULT_SUCCESS_RATE = 1.0
+CB_DEFAULT_LATENCY = 0.0
+CB_MONITORING_WINDOW_SECONDS = 60
+
+# Circuit Breaker States
+CB_STATE_CLOSED = "closed"
+CB_STATE_OPEN = "open"
+CB_STATE_HALF_OPEN = "half_open"
+
+# Circuit Breaker Messages
+CB_MSG_CIRCUIT_OPENED = "Circuit OPENED for {} after {} failures"
+CB_MSG_CIRCUIT_CLOSED = "Circuit CLOSED for {} after {} successes"
+CB_MSG_CIRCUIT_HALF_OPEN = "Circuit HALF_OPEN for {}, testing recovery"
+CB_MSG_CALL_BLOCKED = "Circuit OPEN for {}, call blocked"
+CB_MSG_SUCCESS_RECORDED = "Success recorded for {}"
+CB_MSG_FAILURE_RECORDED = "Failure recorded for {}: {}"
+
+# Circuit Breaker Error Types
+CB_ERROR_TYPE_UNKNOWN = "unknown"
+CB_ERROR_TYPE_TIMEOUT = "timeout"
+CB_ERROR_TYPE_RATE_LIMIT = "rate_limit"
+CB_ERROR_TYPE_CONNECTION = "connection"
+
+# Circuit Breaker Metrics Keys
+CB_METRIC_FAILURES = "failures"
+CB_METRIC_SUCCESSES = "successes"
+CB_METRIC_TOTAL_CALLS = "total_calls"
+CB_METRIC_TOTAL_ERRORS = "total_errors"
+CB_METRIC_SUCCESS_RATE = "success_rate"
+CB_METRIC_AVG_LATENCY_MS = "avg_latency_ms"
+CB_METRIC_RATE_LIMIT_HITS = "rate_limit_hits"
+CB_METRIC_STATE = "state"
+CB_METRIC_LAST_FAILURE = "last_failure_time"
+CB_METRIC_LAST_SUCCESS = "last_success_time"

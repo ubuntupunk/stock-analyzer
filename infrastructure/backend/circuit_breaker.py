@@ -3,30 +3,61 @@ Circuit Breaker Pattern Implementation for Backend API Calls
 Prevents cascading failures when external APIs are unavailable
 """
 
-import time
 import threading
-from typing import Dict, Optional
+import time
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Dict, Optional
+
+from constants import (
+    CB_DEFAULT_FAILURE_THRESHOLD,
+    CB_DEFAULT_HALF_OPEN_MAX_CALLS,
+    CB_DEFAULT_LATENCY,
+    CB_DEFAULT_MONITORING_WINDOW,
+    CB_DEFAULT_SUCCESS_RATE,
+    CB_DEFAULT_SUCCESS_THRESHOLD,
+    CB_DEFAULT_TIMEOUT_SECONDS,
+    CB_ERROR_TYPE_UNKNOWN,
+    CB_METRIC_AVG_LATENCY_MS,
+    CB_METRIC_FAILURES,
+    CB_METRIC_LAST_FAILURE,
+    CB_METRIC_LAST_SUCCESS,
+    CB_METRIC_RATE_LIMIT_HITS,
+    CB_METRIC_STATE,
+    CB_METRIC_SUCCESS_RATE,
+    CB_METRIC_SUCCESSES,
+    CB_METRIC_TOTAL_CALLS,
+    CB_METRIC_TOTAL_ERRORS,
+    CB_MONITORING_WINDOW_SECONDS,
+    CB_MSG_CALL_BLOCKED,
+    CB_MSG_CIRCUIT_CLOSED,
+    CB_MSG_CIRCUIT_HALF_OPEN,
+    CB_MSG_CIRCUIT_OPENED,
+    CB_MSG_FAILURE_RECORDED,
+    CB_MSG_SUCCESS_RECORDED,
+    CB_STATE_CLOSED,
+    CB_STATE_HALF_OPEN,
+    CB_STATE_OPEN,
+)
 
 
 class CircuitState(Enum):
     """Circuit breaker states"""
 
-    CLOSED = "closed"  # Normal operation
-    OPEN = "open"  # Circuit tripped, fail fast
-    HALF_OPEN = "half_open"  # Testing recovery
+    CLOSED = CB_STATE_CLOSED  # Normal operation
+    OPEN = CB_STATE_OPEN  # Circuit tripped, fail fast
+    HALF_OPEN = CB_STATE_HALF_OPEN  # Testing recovery
 
 
 @dataclass
 class CircuitBreakerConfig:
     """Configuration for circuit breaker"""
 
-    failure_threshold: int = 5  # Failures before opening
-    success_threshold: int = 2  # Successes to close (from half_open)
-    timeout_seconds: float = 30.0  # Time in open state before half_open
-    monitoring_window: int = 60  # Seconds to consider recent failures
-    half_open_max_calls: int = 3  # Max calls in half_open state
+    failure_threshold: int = CB_DEFAULT_FAILURE_THRESHOLD
+    success_threshold: int = CB_DEFAULT_SUCCESS_THRESHOLD
+    timeout_seconds: float = CB_DEFAULT_TIMEOUT_SECONDS
+    monitoring_window: int = CB_DEFAULT_MONITORING_WINDOW
+    half_open_max_calls: int = CB_DEFAULT_HALF_OPEN_MAX_CALLS
 
 
 @dataclass
@@ -36,22 +67,22 @@ class APIEndpoint:
     name: str
     failures: int = 0
     successes: int = 0
-    last_failure_time: float = 0.0
-    last_success_time: float = 0.0
+    last_failure_time: float = CB_DEFAULT_LATENCY
+    last_success_time: float = CB_DEFAULT_LATENCY
     total_calls: int = 0
     total_errors: int = 0
-    total_latency_ms: float = 0.0
+    total_latency_ms: float = CB_DEFAULT_LATENCY
     rate_limit_hits: int = 0
     state: CircuitState = CircuitState.CLOSED
 
-    def record_success(self, latency_ms: float = 0):
+    def record_success(self, latency_ms: float = CB_DEFAULT_LATENCY):
         """Record a successful API call"""
         self.successes += 1
         self.total_calls += 1
         self.total_latency_ms += latency_ms
         self.last_success_time = time.time()
 
-    def record_failure(self, error_type: str = "unknown"):
+    def record_failure(self, error_type: str = CB_ERROR_TYPE_UNKNOWN):
         """Record a failed API call"""
         self.failures += 1
         self.total_calls += 1
@@ -68,28 +99,29 @@ class APIEndpoint:
     def get_success_rate(self) -> float:
         """Calculate success rate (0.0 to 1.0)"""
         if self.total_calls == 0:
-            return 1.0
+            return CB_DEFAULT_SUCCESS_RATE
         return self.successes / self.total_calls
 
     def get_average_latency_ms(self) -> float:
         """Calculate average latency in milliseconds"""
         if self.total_calls == 0:
-            return 0.0
+            return CB_DEFAULT_LATENCY
         return self.total_latency_ms / self.total_calls
 
     def should_open(self, failure_threshold: int) -> bool:
         """Check if circuit should open based on failures"""
-        # Only consider recent failures
         recent_failures = self._get_recent_failures()
         return recent_failures >= failure_threshold
 
     def _get_recent_failures(self) -> int:
         """Count failures within monitoring window"""
-        if self.last_failure_time == 0:
+        if self.last_failure_time == CB_DEFAULT_LATENCY:
             return 0
-        monitoring_window = 60  # seconds
-        if time.time() - self.last_failure_time > monitoring_window:
+        
+        time_since_failure = time.time() - self.last_failure_time
+        if time_since_failure > CB_MONITORING_WINDOW_SECONDS:
             return 0
+        
         return self.failures
 
 

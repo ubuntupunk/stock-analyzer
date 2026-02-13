@@ -15,7 +15,8 @@
     "lint": "eslint infrastructure/frontend/**/*.js",
     "lint:fix": "eslint --fix infrastructure/frontend/**/*.js",
     "format": "prettier --write infrastructure/frontend/**/*.js",
-    "format:check": "prettier --check infrastructure/frontend/**/*.js"
+    "format:check": "prettier --check infrastructure/frontend/**/*.js",
+    "prepare": "husky"
   },
   "keywords": [
     "stock",
@@ -42,6 +43,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.3.0",
+    "husky": "^9.1.7",
     "prettier": "^3.8.1",
     "sass": "^1.97.3"
   },
