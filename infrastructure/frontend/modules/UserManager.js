@@ -171,10 +171,28 @@ class UserManager {
     logout() {
         console.log('UserManager: Logging out');
         
+        // Clear current user
         this.currentUser = null;
+        
+        // Remove session from localStorage
         localStorage.removeItem(this.sessionKey);
         
+        // Also clear any other potential session keys
+        // (in case there are multiple session keys being used)
+        Object.keys(localStorage).forEach(key => {
+            if (key.includes('stock_analyzer') || key.includes('session')) {
+                localStorage.removeItem(key);
+            }
+        });
+        
+        // Emit logout event
         this.eventBus.emit('user:loggedout');
+        
+        // Force a page reload to clear any in-memory state
+        // This ensures a clean slate after logout
+        setTimeout(() => {
+            window.location.reload();
+        }, 100);
     }
     
     /**
