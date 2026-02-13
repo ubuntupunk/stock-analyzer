@@ -5,8 +5,35 @@ Handles HTTP routing and CORS for all stock data endpoints
 
 import json
 import math
-from stock_api import StockDataAPI, decimal_default
+
+from constants import (
+    CORS_ALLOW_HEADERS,
+    CORS_ALLOW_METHODS_GET,
+    CORS_ALLOW_ORIGIN,
+    DELIMITER_COMMA,
+    ERROR_METHOD_NOT_ALLOWED,
+    ERROR_SYMBOL_REQUIRED,
+    ERROR_SYMBOLS_REQUIRED,
+    HTTP_BAD_REQUEST,
+    HTTP_METHOD_GET,
+    HTTP_METHOD_NOT_ALLOWED,
+    HTTP_METHOD_OPTIONS,
+    HTTP_METHOD_POST,
+    HTTP_OK,
+    HTTP_SERVER_ERROR,
+    KEY_BODY,
+    KEY_ERROR,
+    KEY_STATUS_CODE,
+    PARAM_PERIOD,
+    QUERY_PARAM_SYMBOL,
+    QUERY_PARAM_SYMBOLS,
+    REQUEST_KEY_BODY,
+    REQUEST_KEY_HTTP_METHOD,
+    REQUEST_KEY_PATH,
+    REQUEST_KEY_QUERY_STRING_PARAMS,
+)
 from screener_api import StockScreener
+from stock_api import StockDataAPI, decimal_default
 
 
 def clean_float_values(obj):
@@ -17,11 +44,42 @@ def clean_float_values(obj):
     if isinstance(obj, float):
         if math.isnan(obj) or math.isinf(obj):
             return None
-    elif isinstance(obj, dict):
+    if isinstance(obj, dict):
         return {key: clean_float_values(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [clean_float_values(item) for item in obj]
     return obj
+
+
+def _create_cors_headers():
+    """Create CORS headers"""
+    return {
+        "Access-Control-Allow-Origin": CORS_ALLOW_ORIGIN,
+        "Content-Type": "application/json",
+    }
+
+
+def _create_response(status_code: int, response_body: dict) -> dict:
+    """Create standardized API response"""
+    cleaned_body = clean_float_values(response_body)
+    return {
+        KEY_STATUS_CODE: status_code,
+        "headers": _create_cors_headers(),
+        KEY_BODY: json.dumps(cleaned_body, default=decimal_default),
+    }
+
+
+def _handle_options_request() -> dict:
+    """Handle CORS preflight"""
+    return {
+        KEY_STATUS_CODE: HTTP_OK,
+        "headers": {
+            "Access-Control-Allow-Origin": CORS_ALLOW_ORIGIN,
+            "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS,
+            "Access-Control-Allow-Methods": CORS_ALLOW_METHODS_GET,
+        },
+        KEY_BODY: "",
+    }
 
 
 def lambda_handler(event, context):
