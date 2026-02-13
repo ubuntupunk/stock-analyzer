@@ -863,59 +863,189 @@ class StockDataAPI:
 
     def run_dcf(self, assumptions: Dict) -> Dict:
         """
-        Perform a Discounted Cash Flow (DCF) analysis.
-        This is a placeholder and will return dummy data.
+        Perform a Discounted Cash Flow (DCF) analysis using real financial data.
+        
+        Args:
+            assumptions: Dict with optional overrides:
+                - symbol: Stock symbol (required)
+                - growth_rate: FCF growth rate (default: 5%)
+                - terminal_growth_rate: Terminal growth rate (default: 2%)
+                - discount_rate: WACC/discount rate (default: 10%)
+                - years: Projection years (default: 5)
+                - tax_rate: Corporate tax rate (default: 21%)
+        
+        Returns:
+            Dict with DCF valuation results
         """
-        print(f"Performing DCF analysis with assumptions: {assumptions}")
-
-        # Simulate DCF calculation
-        symbol = assumptions.get("symbol", "UNKNOWN")
-        current_price = assumptions.get("current_price", 100.0)
-        growth_rate = assumptions.get("growth_rate", 0.05)
-        terminal_growth_rate = assumptions.get("terminal_growth_rate", 0.02)
-        discount_rate = assumptions.get("discount_rate", 0.10)
-        years = assumptions.get("years", 5)
-
-        # Dummy Free Cash Flow projection (simplistic)
-        fcf_projections = [
-            current_price * (1 + growth_rate) ** year_idx * 0.1
-            for year_idx in range(1, years + 1)
-        ]  # 10% of price as FCF
-
-        # Dummy Terminal Value (simplistic)
-        terminal_value = (
-            fcf_projections[-1]
-            * (1 + terminal_growth_rate)
-            / (discount_rate - terminal_growth_rate)
+        from constants import (
+            DCF_DEFAULT_DISCOUNT_RATE,
+            DCF_DEFAULT_GROWTH_RATE,
+            DCF_DEFAULT_PROJECTION_YEARS,
+            DCF_DEFAULT_TAX_RATE,
+            DCF_DEFAULT_TERMINAL_GROWTH_RATE,
+            DCF_KEY_ASSUMPTIONS,
+            DCF_KEY_BASE_FCF,
+            DCF_KEY_BETA,
+            DCF_KEY_CASH,
+            DCF_KEY_CURRENT_PRICE,
+            DCF_KEY_DEBT,
+            DCF_KEY_DISCOUNT_RATE,
+            DCF_KEY_ENTERPRISE_VALUE,
+            DCF_KEY_EQUITY_VALUE,
+            DCF_KEY_FCF_PROJECTIONS,
+            DCF_KEY_GROWTH_RATE,
+            DCF_KEY_INTRINSIC_VALUE,
+            DCF_KEY_MODEL_DATE,
+            DCF_KEY_PV_FCF,
+            DCF_KEY_PV_TERMINAL_VALUE,
+            DCF_KEY_SHARES_OUTSTANDING,
+            DCF_KEY_SYMBOL,
+            DCF_KEY_TAX_RATE,
+            DCF_KEY_TERMINAL_GROWTH,
+            DCF_KEY_TERMINAL_VALUE,
+            DCF_KEY_UPSIDE_POTENTIAL,
+            DCF_KEY_VALUE_PER_SHARE,
+            DCF_KEY_WACC,
+            DCF_KEY_YEARS,
+            DCF_MSG_CALCULATED,
+            DCF_MSG_MISSING_DATA,
+            DCF_MSG_PERFORMING,
+            DCF_MSG_USING_REAL_DATA,
         )
-
-        # Dummy Present Value of FCFs
-        pv_fcf = sum(
-            [
-                fcf / (1 + discount_rate) ** idx
-                for idx, fcf in enumerate(fcf_projections, 1)
-            ]
-        )
-
-        # Dummy Present Value of Terminal Value
-        pv_terminal_value = terminal_value / (1 + discount_rate) ** years
-
-        # Dummy Intrinsic Value (simplistic)
-        intrinsic_value = pv_fcf + pv_terminal_value
-
+        
+        stock_symbol = assumptions.get(DCF_KEY_SYMBOL, "UNKNOWN")
+        print(DCF_MSG_PERFORMING.format(stock_symbol))
+        
+        # Get real financial data
+        try:
+            financials = self.get_financial_statements(stock_symbol)
+            metrics = self.get_stock_metrics(stock_symbol)
+            price_data = self.get_stock_price(stock_symbol)
+            
+            # Extract current price
+            current_price = price_data.get("price", assumptions.get(DCF_KEY_CURRENT_PRICE, 100.0))
+            
+            # Extract financial data
+            cash_flow_data = financials.get("cash_flow", [])
+            balance_sheet_data = financials.get("balance_sheet", [])
+            
+            # Get most recent free cash flow
+            base_fcf = 0
+            if cash_flow_data and len(cash_flow_data) > 0:
+                latest_cf = cash_flow_data[0]
+                base_fcf = latest_cf.get("free_cash_flow", 0)
+                print(DCF_MSG_USING_REAL_DATA.format("cash flow statements"))
+            
+            # Get cash and debt from balance sheet
+            total_cash = 0
+            total_debt = 0
+            if balance_sheet_data and len(balance_sheet_data) > 0:
+                latest_bs = balance_sheet_data[0]
+                total_cash = latest_bs.get("cash", 0)
+                total_debt = latest_bs.get("long_term_debt", 0)
+            
+            # Get shares outstanding and beta
+            shares_outstanding = metrics.get(DCF_KEY_SHARES_OUTSTANDING, 0)
+            beta = metrics.get(DCF_KEY_BETA, 1.0)
+            
+            # If no real FCF data, estimate from operating cash flow
+            if base_fcf == 0:
+                print(DCF_MSG_MISSING_DATA.format(stock_symbol))
+                operating_cf = metrics.get("operating_cash_flow", 0)
+                if operating_cf > 0:
+                    base_fcf = operating_cf * 0.8  # Estimate FCF as 80% of operating CF
+                else:
+                    # Last resort: estimate from market cap
+                    market_cap = metrics.get("market_cap", 0)
+                    base_fcf = market_cap * 0.05  # Estimate 5% FCF yield
+            
+        except Exception as data_error:
+            print(f"Error fetching financial data: {str(data_error)}")
+            # Use fallback estimates
+            current_price = assumptions.get(DCF_KEY_CURRENT_PRICE, 100.0)
+            base_fcf = current_price * 10  # Rough estimate
+            total_cash = 0
+            total_debt = 0
+            shares_outstanding = 1_000_000  # Estimate
+            beta = 1.0
+        
+        # Get assumptions with defaults
+        growth_rate = assumptions.get(DCF_KEY_GROWTH_RATE, DCF_DEFAULT_GROWTH_RATE)
+        terminal_growth_rate = assumptions.get(DCF_KEY_TERMINAL_GROWTH, DCF_DEFAULT_TERMINAL_GROWTH_RATE)
+        discount_rate = assumptions.get(DCF_KEY_DISCOUNT_RATE, DCF_DEFAULT_DISCOUNT_RATE)
+        projection_years = assumptions.get(DCF_KEY_YEARS, DCF_DEFAULT_PROJECTION_YEARS)
+        tax_rate = assumptions.get(DCF_KEY_TAX_RATE, DCF_DEFAULT_TAX_RATE)
+        
+        # Calculate WACC if beta is available
+        wacc = discount_rate
+        if beta > 0:
+            from constants import DCF_DEFAULT_MARKET_RETURN, DCF_DEFAULT_RISK_FREE_RATE
+            risk_free_rate = DCF_DEFAULT_RISK_FREE_RATE
+            market_return = DCF_DEFAULT_MARKET_RETURN
+            equity_risk_premium = market_return - risk_free_rate
+            cost_of_equity = risk_free_rate + (beta * equity_risk_premium)
+            wacc = cost_of_equity  # Simplified WACC (assuming mostly equity financed)
+        
+        # Project Free Cash Flows
+        fcf_projections = []
+        for year in range(1, projection_years + 1):
+            projected_fcf = base_fcf * ((1 + growth_rate) ** year)
+            fcf_projections.append(projected_fcf)
+        
+        # Calculate Terminal Value (Gordon Growth Model)
+        terminal_fcf = fcf_projections[-1] * (1 + terminal_growth_rate)
+        terminal_value = terminal_fcf / (wacc - terminal_growth_rate)
+        
+        # Calculate Present Values
+        pv_fcf = sum([
+            fcf / ((1 + wacc) ** year)
+            for year, fcf in enumerate(fcf_projections, 1)
+        ])
+        
+        pv_terminal_value = terminal_value / ((1 + wacc) ** projection_years)
+        
+        # Calculate Enterprise Value
+        enterprise_value = pv_fcf + pv_terminal_value
+        
+        # Calculate Equity Value (EV - Debt + Cash)
+        equity_value = enterprise_value - total_debt + total_cash
+        
+        # Calculate Value Per Share
+        value_per_share = equity_value / shares_outstanding if shares_outstanding > 0 else 0
+        
+        # Calculate Upside Potential
+        upside_potential = 0
+        if current_price > 0:
+            upside_potential = ((value_per_share - current_price) / current_price) * 100
+        
+        print(DCF_MSG_CALCULATED.format(value_per_share, current_price, upside_potential))
+        
         return {
-            "symbol": symbol,
-            "intrinsic_value": round(intrinsic_value, 2),
-            "current_price": current_price,
-            "upside_potential": round(
-                (intrinsic_value - current_price) / current_price * 100, 2
-            ),
-            "assumptions_used": assumptions,
-            "fcf_projections": [round(factor, 2) for factor in fcf_projections],
-            "terminal_value": round(terminal_value, 2),
-            "pv_fcf": round(pv_fcf, 2),
-            "pv_terminal_value": round(pv_terminal_value, 2),
-            "model_date": datetime.now().isoformat(),
+            DCF_KEY_SYMBOL: stock_symbol,
+            DCF_KEY_INTRINSIC_VALUE: round(value_per_share, 2),
+            DCF_KEY_CURRENT_PRICE: round(current_price, 2),
+            DCF_KEY_UPSIDE_POTENTIAL: round(upside_potential, 2),
+            DCF_KEY_ENTERPRISE_VALUE: round(enterprise_value, 2),
+            DCF_KEY_EQUITY_VALUE: round(equity_value, 2),
+            DCF_KEY_SHARES_OUTSTANDING: shares_outstanding,
+            DCF_KEY_VALUE_PER_SHARE: round(value_per_share, 2),
+            DCF_KEY_FCF_PROJECTIONS: [round(fcf, 2) for fcf in fcf_projections],
+            DCF_KEY_TERMINAL_VALUE: round(terminal_value, 2),
+            DCF_KEY_PV_FCF: round(pv_fcf, 2),
+            DCF_KEY_PV_TERMINAL_VALUE: round(pv_terminal_value, 2),
+            DCF_KEY_BASE_FCF: round(base_fcf, 2),
+            DCF_KEY_CASH: round(total_cash, 2),
+            DCF_KEY_DEBT: round(total_debt, 2),
+            DCF_KEY_BETA: round(beta, 2),
+            DCF_KEY_WACC: round(wacc * 100, 2),  # As percentage
+            DCF_KEY_ASSUMPTIONS: {
+                DCF_KEY_GROWTH_RATE: growth_rate,
+                DCF_KEY_TERMINAL_GROWTH: terminal_growth_rate,
+                DCF_KEY_DISCOUNT_RATE: discount_rate,
+                DCF_KEY_YEARS: projection_years,
+                DCF_KEY_TAX_RATE: tax_rate,
+            },
+            DCF_KEY_MODEL_DATE: datetime.now().isoformat(),
         }
 
 

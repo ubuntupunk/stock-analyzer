@@ -627,3 +627,46 @@ WATCHLIST_UPDATE_TAGS = "tags = :tags"
 
 # Watchlist Query Expression
 WATCHLIST_QUERY_USER_ID = "userId = :uid"
+
+
+# DCF (Discounted Cash Flow) Constants
+DCF_DEFAULT_GROWTH_RATE = 0.05  # 5%
+DCF_DEFAULT_TERMINAL_GROWTH_RATE = 0.02  # 2%
+DCF_DEFAULT_DISCOUNT_RATE = 0.10  # 10% WACC
+DCF_DEFAULT_PROJECTION_YEARS = 5
+DCF_DEFAULT_TAX_RATE = 0.21  # 21% corporate tax
+DCF_DEFAULT_RISK_FREE_RATE = 0.04  # 4%
+DCF_DEFAULT_MARKET_RETURN = 0.10  # 10%
+DCF_DEFAULT_DEBT_COST = 0.05  # 5%
+
+# DCF Calculation Keys
+DCF_KEY_SYMBOL = "symbol"
+DCF_KEY_INTRINSIC_VALUE = "intrinsic_value"
+DCF_KEY_CURRENT_PRICE = "current_price"
+DCF_KEY_UPSIDE_POTENTIAL = "upside_potential"
+DCF_KEY_FCF_PROJECTIONS = "fcf_projections"
+DCF_KEY_TERMINAL_VALUE = "terminal_value"
+DCF_KEY_PV_FCF = "pv_fcf"
+DCF_KEY_PV_TERMINAL_VALUE = "pv_terminal_value"
+DCF_KEY_ENTERPRISE_VALUE = "enterprise_value"
+DCF_KEY_EQUITY_VALUE = "equity_value"
+DCF_KEY_SHARES_OUTSTANDING = "shares_outstanding"
+DCF_KEY_VALUE_PER_SHARE = "value_per_share"
+DCF_KEY_MODEL_DATE = "model_date"
+DCF_KEY_ASSUMPTIONS = "assumptions_used"
+DCF_KEY_WACC = "wacc"
+DCF_KEY_GROWTH_RATE = "growth_rate"
+DCF_KEY_TERMINAL_GROWTH = "terminal_growth_rate"
+DCF_KEY_DISCOUNT_RATE = "discount_rate"
+DCF_KEY_YEARS = "years"
+DCF_KEY_BASE_FCF = "base_fcf"
+DCF_KEY_CASH = "cash"
+DCF_KEY_DEBT = "debt"
+DCF_KEY_BETA = "beta"
+DCF_KEY_TAX_RATE = "tax_rate"
+
+# DCF Messages
+DCF_MSG_PERFORMING = "Performing DCF analysis for {}"
+DCF_MSG_USING_REAL_DATA = "Using real financial data from {}"
+DCF_MSG_MISSING_DATA = "Missing financial data for {}, using estimates"
+DCF_MSG_CALCULATED = "DCF calculated: intrinsic value ${:.2f} vs current ${:.2f} ({:.1f}% upside)"
