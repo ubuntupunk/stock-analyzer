@@ -137,6 +137,42 @@ class StockUniverseSeeder:
 
         return results
 
+    def _fetch_ticker_data(
+        self, symbol: str, ticker, index_config: dict, fetcher
+    ) -> dict:
+        """Fetch and process data for a single ticker"""
+        if not ticker:
+            return {}
+
+        try:
+            info = ticker.info
+            market_cap = info.get("marketCap", 0) or 0
+
+            # Get FX rate for non-USD currencies
+            fx_rate = None
+            if index_config["currency"] != "USD":
+                fx_rate = fetcher.get_fx_rate()
+
+            market_cap_usd = fetcher.apply_fx_conversion(market_cap, fx_rate)
+
+            data = {
+                "marketCap": market_cap,
+                "marketCapUSD": market_cap_usd,
+                "exchange": info.get("exchange", index_config["exchange"]),
+                "country": info.get("country", index_config["region"]),
+                "industry": info.get("industry", ""),
+                "isActive": "true",
+            }
+
+            if not market_cap:
+                logger.warning("No market cap for %s", symbol)
+
+            return data
+
+        except Exception as err:
+            logger.warning("Error fetching %s: %s", symbol, str(err)[:50])
+            return {}
+
     def _enrich_stocks(self, stocks: list, index_config: dict, fetcher) -> dict:
         """
         Fetch market data from yfinance with currency handling
@@ -152,7 +188,6 @@ class StockUniverseSeeder:
         symbols = [stock["symbol"] for stock in stocks]
         logger.info("Fetching market data for %d symbols...", len(symbols))
 
-        # Use yfinance in batches to avoid timeouts
         market_data = {}
         batch_size = 100
 
@@ -169,37 +204,10 @@ class StockUniverseSeeder:
                 tickers = yf.Tickers(" ".join(batch_symbols))
 
                 for symbol in batch_symbols:
-                    try:
-                        ticker = tickers.tickers.get(symbol)
-                        if ticker:
-                            info = ticker.info
-                            market_cap = info.get("marketCap", 0) or 0
-
-                            # Get FX rate for non-USD currencies
-                            fx_rate = None
-                            if index_config["currency"] != "USD":
-                                fx_rate = fetcher.get_fx_rate()
-
-                            market_cap_usd = fetcher.apply_fx_conversion(
-                                market_cap, fx_rate
-                            )
-
-                            market_data[symbol] = {
-                                "marketCap": market_cap,
-                                "marketCapUSD": market_cap_usd,
-                                "exchange": info.get(
-                                    "exchange", index_config["exchange"]
-                                ),
-                                "country": info.get("country", index_config["region"]),
-                                "industry": info.get("industry", ""),
-                                "isActive": "true",  # String for DynamoDB GSI compatibility
-                            }
-
-                            if not market_cap:
-                                logger.warning("No market cap for %s", symbol)
-                    except Exception as err:
-                        logger.warning("Error fetching %s: %s", symbol, str(err)[:50])
-                        market_data[symbol] = {}
+                    ticker = tickers.tickers.get(symbol)
+                    market_data[symbol] = self._fetch_ticker_data(
+                        symbol, ticker, index_config, fetcher
+                    )
 
             except Exception as err:
                 logger.warning("Batch error: %s", err)
@@ -209,6 +217,73 @@ class StockUniverseSeeder:
             len([data for data in market_data.values() if data]),
         )
         return market_data
+
+    def _get_market_cap_bucket_from_thresholds(
+        self, market_cap_usd: float, index_config: dict
+    ) -> str:
+        """Determine market cap bucket based on index thresholds"""
+        if market_cap_usd <= 0:
+            return "unknown"
+
+        thresholds = index_config.get("marketCapThresholds", {})
+        mega = thresholds.get("mega", 200_000_000_000)
+        large = thresholds.get("large", 10_000_000_000)
+        mid = thresholds.get("mid", 2_000_000_000)
+
+        if market_cap_usd >= mega:
+            return "mega"
+        if market_cap_usd >= large:
+            return "large"
+        if market_cap_usd >= mid:
+            return "mid"
+        return "small"
+
+    def _build_stock_item(
+        self, stock: dict, market_data: dict, index_config: dict
+    ) -> dict:
+        """Build DynamoDB item from stock and market data"""
+        symbol = stock["symbol"]
+        md = market_data.get(symbol, {})
+
+        market_cap = md.get("marketCap", 0) or 0
+        market_cap_usd = md.get("marketCapUSD", 0) or 0
+
+        # Determine market cap bucket
+        market_cap_bucket = self._get_market_cap_bucket_from_thresholds(
+            market_cap_usd, index_config
+        )
+
+        item = {
+            "symbol": symbol,
+            "name": stock["name"],
+            "sector": stock.get("sector", "Unknown"),
+            "subSector": stock.get("subSector", ""),
+            "industry": md.get("industry", ""),
+            "region": index_config["region"],
+            "currency": index_config["currency"],
+            "exchange": md.get("exchange", index_config["exchange"]),
+            "exchangeSuffix": index_config.get("exchangeSuffix", ""),
+            "indexId": index_config["id"],
+            "indexIds": [index_config["id"]],
+            "marketCap": Decimal(str(market_cap)) if market_cap else Decimal("0"),
+            "marketCapUSD": (
+                Decimal(str(market_cap_usd)) if market_cap_usd else Decimal("0")
+            ),
+            "marketCapBucket": market_cap_bucket,
+            "lastUpdated": datetime.utcnow().isoformat(),
+            "lastValidated": datetime.utcnow().isoformat(),
+            "isActive": (
+                "true" if md.get("isActive") not in [False, "false"] else "false"
+            ),
+            "dataSource": "yfinance",
+            "country": md.get("country", index_config["region"]),
+        }
+
+        # Add headquarters if available
+        if "headquarters" in stock:
+            item["headquarters"] = stock["headquarters"]
+
+        return item
 
     def _seed_to_database(
         self, stocks: list, market_data: dict, index_config: dict
@@ -232,65 +307,9 @@ class StockUniverseSeeder:
         with self.table.batch_writer() as batch:
             for stock in stocks:
                 symbol = stock["symbol"]
-                md = market_data.get(symbol, {})
 
                 try:
-                    market_cap = md.get("marketCap", 0) or 0
-                    market_cap_usd = md.get("marketCapUSD", 0) or 0
-
-                    # Determine market cap bucket based on USD value
-                    market_cap_bucket = "unknown"
-                    if market_cap_usd > 0:
-                        thresholds = index_config.get("marketCapThresholds", {})
-                        mega = thresholds.get("mega", 200_000_000_000)
-                        large = thresholds.get("large", 10_000_000_000)
-                        mid = thresholds.get("mid", 2_000_000_000)
-
-                        if market_cap_usd >= mega:
-                            market_cap_bucket = "mega"
-                        elif market_cap_usd >= large:
-                            market_cap_bucket = "large"
-                        elif market_cap_usd >= mid:
-                            market_cap_bucket = "mid"
-                        else:
-                            market_cap_bucket = "small"
-
-                    item = {
-                        "symbol": symbol,
-                        "name": stock["name"],
-                        "sector": stock.get("sector", "Unknown"),
-                        "subSector": stock.get("subSector", ""),
-                        "industry": md.get("industry", ""),
-                        "region": index_config["region"],
-                        "currency": index_config["currency"],
-                        "exchange": md.get("exchange", index_config["exchange"]),
-                        "exchangeSuffix": index_config.get("exchangeSuffix", ""),
-                        "indexId": index_config["id"],
-                        "indexIds": [index_config["id"]],
-                        "marketCap": (
-                            Decimal(str(market_cap)) if market_cap else Decimal("0")
-                        ),
-                        "marketCapUSD": (
-                            Decimal(str(market_cap_usd))
-                            if market_cap_usd
-                            else Decimal("0")
-                        ),
-                        "marketCapBucket": market_cap_bucket,
-                        "lastUpdated": datetime.utcnow().isoformat(),
-                        "lastValidated": datetime.utcnow().isoformat(),
-                        "isActive": (
-                            "true"
-                            if md.get("isActive") not in [False, "false"]
-                            else "false"
-                        ),  # String for DynamoDB GSI compatibility
-                        "dataSource": "yfinance",
-                        "country": md.get("country", index_config["region"]),
-                    }
-
-                    # Add headquarters if available from stock dict
-                    if "headquarters" in stock:
-                        item["headquarters"] = stock["headquarters"]
-
+                    item = self._build_stock_item(stock, market_data, index_config)
                     batch.put_item(Item=item)
                     seeded += 1
 
