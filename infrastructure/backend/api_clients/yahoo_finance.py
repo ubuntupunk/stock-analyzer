@@ -3,36 +3,129 @@ Yahoo Finance API Client
 Primary data source - Uses yfinance library (handles authentication internally)
 """
 
-import yfinance as yf
-import pandas as pd
-import asyncio
-from typing import Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 import time
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
+from datetime import datetime
+from typing import Dict, List, Optional
 
+import pandas as pd
+import yfinance as yf
 
-# Timeout configuration
-DEFAULT_TIMEOUT_SECONDS = 10
-LONG_TIMEOUT_SECONDS = 30  # For financial statements that take longer
+from constants import (
+    DATE_FORMAT_YYYY_MM,
+    DATE_FORMAT_YYYY_MM_DD,
+    DEFAULT_EMPTY_STRING,
+    DEFAULT_SOURCE_YAHOO,
+    DEFAULT_TITLE_NO_TITLE,
+    DEFAULT_URL_HASH,
+    DEFAULT_VALUE_NA,
+    DEFAULT_VALUE_ZERO,
+    HIST_KEY_CLOSE,
+    HIST_KEY_HIGH,
+    HIST_KEY_LOW,
+    HIST_KEY_OPEN,
+    HIST_KEY_VOLUME,
+    UNIX_TIMESTAMP_MAX,
+    YF_BALANCE_CASH,
+    YF_BALANCE_LONG_TERM_DEBT,
+    YF_BALANCE_STOCKHOLDERS_EQUITY,
+    YF_BALANCE_TOTAL_ASSETS,
+    YF_BALANCE_TOTAL_LIABILITIES,
+    YF_CASHFLOW_CAPEX,
+    YF_CASHFLOW_DIVIDENDS,
+    YF_CASHFLOW_FREE,
+    YF_CASHFLOW_OPERATING,
+    YF_CASHFLOW_STOCK_REPURCHASED,
+    YF_DEFAULT_TIMEOUT_SECONDS,
+    YF_INCOME_EBITDA,
+    YF_INCOME_GROSS_PROFIT,
+    YF_INCOME_NET_INCOME,
+    YF_INCOME_OPERATING_INCOME,
+    YF_INCOME_TOTAL_REVENUE,
+    YF_KEY_AVERAGE_VOLUME,
+    YF_KEY_BETA,
+    YF_KEY_CURRENT_PRICE,
+    YF_KEY_CURRENT_RATIO,
+    YF_KEY_DEBT_TO_EQUITY,
+    YF_KEY_DIVIDEND_YIELD,
+    YF_KEY_EARNINGS_GROWTH,
+    YF_KEY_EPS_CURRENT_YEAR,
+    YF_KEY_EPS_FORWARD,
+    YF_KEY_EPS_TRAILING_TWELVE_MONTHS,
+    YF_KEY_FIFTY_DAY_AVERAGE,
+    YF_KEY_FIFTY_TWO_WEEK_HIGH,
+    YF_KEY_FIFTY_TWO_WEEK_LOW,
+    YF_KEY_FORWARD_PE,
+    YF_KEY_FREE_CASHFLOW,
+    YF_KEY_LONG_NAME,
+    YF_KEY_MARKET_CAP,
+    YF_KEY_NUMBER_OF_ANALYST_OPINIONS,
+    YF_KEY_OPERATING_CASHFLOW,
+    YF_KEY_OPERATING_MARGINS,
+    YF_KEY_PEG_RATIO,
+    YF_KEY_PRICE_TO_BOOK,
+    YF_KEY_PROFIT_MARGINS,
+    YF_KEY_RECOMMENDATION_KEY,
+    YF_KEY_RECOMMENDATION_MEAN,
+    YF_KEY_REGULAR_MARKET_CHANGE,
+    YF_KEY_REGULAR_MARKET_CHANGE_PERCENT,
+    YF_KEY_REGULAR_MARKET_DAY_HIGH,
+    YF_KEY_REGULAR_MARKET_DAY_LOW,
+    YF_KEY_REGULAR_MARKET_PREVIOUS_CLOSE,
+    YF_KEY_REGULAR_MARKET_PRICE,
+    YF_KEY_REGULAR_MARKET_VOLUME,
+    YF_KEY_RETURN_ON_ASSETS,
+    YF_KEY_RETURN_ON_EQUITY,
+    YF_KEY_REVENUE_GROWTH,
+    YF_KEY_SHARES_OUTSTANDING,
+    YF_KEY_SHORT_NAME,
+    YF_KEY_TARGET_HIGH_PRICE,
+    YF_KEY_TARGET_LOW_PRICE,
+    YF_KEY_TARGET_MEAN_PRICE,
+    YF_KEY_TARGET_MEDIAN_PRICE,
+    YF_KEY_TOTAL_REVENUE,
+    YF_KEY_TRAILING_EPS,
+    YF_KEY_TRAILING_PE,
+    YF_KEY_TWO_HUNDRED_DAY_AVERAGE,
+    YF_LONG_TIMEOUT_SECONDS,
+    YF_MAX_FINANCIAL_YEARS,
+    YF_MAX_NEWS_ARTICLES,
+    YF_MAX_SUMMARY_LENGTH,
+    YF_NEWS_CANONICAL_URL,
+    YF_NEWS_CAPTION,
+    YF_NEWS_DESCRIPTION,
+    YF_NEWS_DISPLAY_NAME,
+    YF_NEWS_HEADLINE,
+    YF_NEWS_LINK,
+    YF_NEWS_PROVIDER,
+    YF_NEWS_PROVIDER_PUBLISH_TIME,
+    YF_NEWS_PUB_DATE,
+    YF_NEWS_SNIPPET,
+    YF_NEWS_SUMMARY,
+    YF_NEWS_TITLE,
+    YF_NEWS_URL,
+)
 
 
 class YahooFinanceClient:
     """Client for Yahoo Finance API using yfinance library"""
 
-    def __init__(self, timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS):
+    def __init__(self, timeout_seconds: float = YF_DEFAULT_TIMEOUT_SECONDS):
         self.base_url = "https://query2.finance.yahoo.com/v10/finance/quoteSummary"
         self.timeout = timeout_seconds
 
     def _fetch_with_timeout(self, func, timeout: float = None):
         """Execute a function with timeout protection"""
-        timeout = timeout or self.timeout
+        timeout_value = timeout or self.timeout
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(func)
             try:
-                return future.result(timeout=timeout)
+                return future.result(timeout=timeout_value)
             except FuturesTimeoutError:
-                print(f"YFinance timeout after {timeout}s")
+                print(f"YFinance timeout after {timeout_value}s")
                 return None
 
     def fetch_data(self, symbol: str, modules: str = None) -> Optional[Dict]:
@@ -44,24 +137,24 @@ class YahooFinanceClient:
         def _fetch():
             try:
                 ticker = yf.Ticker(symbol)
-                info = ticker.info
-                if info:
-                    return info
+                ticker_info = ticker.info
+                if ticker_info:
+                    return ticker_info
                 return None
-            except Exception as err:
-                print(f"YFinance error for {symbol}: {str(err)}")
+            except Exception as fetch_error:
+                print(f"YFinance error for {symbol}: {str(fetch_error)}")
                 return None
 
         start_time = time.time()
-        result = self._fetch_with_timeout(_fetch)
+        fetch_result = self._fetch_with_timeout(_fetch)
         latency_ms = (time.time() - start_time) * 1000
 
-        if result is None:
+        if fetch_result is None:
             print(
                 f"YFinance fetch for {symbol} timed out or failed ({latency_ms:.0f}ms)"
             )
 
-        return result
+        return fetch_result
 
     async def fetch_data_async(self, session, symbol: str, modules: str = None):
         """
@@ -69,71 +162,86 @@ class YahooFinanceClient:
         Returns: (symbol, data) tuple
         With timeout protection
         """
-        import yfinance as yf
 
         def _fetch():
             ticker = yf.Ticker(symbol)
             return ticker.info
 
-        # Use thread pool for sync yfinance in async context
         loop = asyncio.get_event_loop()
         try:
             start_time = time.time()
-            info = await loop.run_in_executor(None, _fetch)
+            ticker_info = await loop.run_in_executor(None, _fetch)
             latency_ms = (time.time() - start_time) * 1000
 
-            if info:
-                has_price = "currentPrice" in info or "regularMarketPrice" in info
-                print(
-                    f"YFinance async: {symbol} - info keys: {len(info)}, has price key: {has_price} ({latency_ms:.0f}ms)"
+            if ticker_info:
+                has_price = (
+                    YF_KEY_CURRENT_PRICE in ticker_info
+                    or YF_KEY_REGULAR_MARKET_PRICE in ticker_info
                 )
-                return (symbol, info)
-            else:
                 print(
-                    f"YFinance async: {symbol} - info is empty or None ({latency_ms:.0f}ms)"
+                    f"YFinance async: {symbol} - info keys: {len(ticker_info)}, "
+                    f"has price key: {has_price} ({latency_ms:.0f}ms)"
                 )
-                return (symbol, None)
+                return (symbol, ticker_info)
+
+            print(
+                f"YFinance async: {symbol} - info is empty or None ({latency_ms:.0f}ms)"
+            )
+            return (symbol, None)
         except asyncio.TimeoutError:
             print(f"YFinance async: {symbol} - timeout after {self.timeout}s")
             return (symbol, None)
-        except Exception as err:
-            print(f"YFinance async error for {symbol}: {str(err)}")
+        except Exception as async_error:
+            print(f"YFinance async error for {symbol}: {str(async_error)}")
             return (symbol, None)
 
     def parse_price(self, data: Dict) -> Dict:
         """Parse Yahoo Finance price data"""
         price_info = {}
         try:
-
-            def get_value(obj, key, default=0):
-                if isinstance(obj, dict):
-                    return obj.get(key, default)
-                return getattr(obj, key, default) if hasattr(obj, key) else default
-
             price_info["price"] = data.get(
-                "currentPrice", data.get("regularMarketPrice", 0)
+                YF_KEY_CURRENT_PRICE,
+                data.get(YF_KEY_REGULAR_MARKET_PRICE, DEFAULT_VALUE_ZERO),
             )
-            price_info["open"] = data.get("open", 0)
+            price_info["open"] = data.get("open", DEFAULT_VALUE_ZERO)
             price_info["high"] = data.get(
-                "dayHigh", data.get("regularMarketDayHigh", 0)
+                "dayHigh", data.get(YF_KEY_REGULAR_MARKET_DAY_HIGH, DEFAULT_VALUE_ZERO)
             )
-            price_info["low"] = data.get("dayLow", data.get("regularMarketDayLow", 0))
+            price_info["low"] = data.get(
+                "dayLow", data.get(YF_KEY_REGULAR_MARKET_DAY_LOW, DEFAULT_VALUE_ZERO)
+            )
             price_info["volume"] = data.get(
-                "volume", data.get("regularMarketVolume", 0)
+                "volume", data.get(YF_KEY_REGULAR_MARKET_VOLUME, DEFAULT_VALUE_ZERO)
             )
             price_info["previous_close"] = data.get(
-                "previousClose", data.get("regularMarketPreviousClose", 0)
+                "previousClose",
+                data.get(YF_KEY_REGULAR_MARKET_PREVIOUS_CLOSE, DEFAULT_VALUE_ZERO),
             )
             price_info["change"] = data.get(
-                "change", data.get("regularMarketChange", 0)
+                "change", data.get(YF_KEY_REGULAR_MARKET_CHANGE, DEFAULT_VALUE_ZERO)
             )
             price_info["change_percent"] = data.get(
-                "changePercent", data.get("regularMarketChangePercent", 0)
+                "changePercent",
+                data.get(YF_KEY_REGULAR_MARKET_CHANGE_PERCENT, DEFAULT_VALUE_ZERO),
             )
-        except Exception as err:
-            print(f"Error parsing Yahoo Finance price: {str(err)}")
+        except Exception as parse_error:
+            print(f"Error parsing Yahoo Finance price: {str(parse_error)}")
 
         return price_info
+
+    def _convert_history_to_dict(self, hist_dataframe: pd.DataFrame) -> Dict:
+        """Convert pandas DataFrame history to dict format"""
+        historical_data = {}
+        for date, row in hist_dataframe.iterrows():
+            date_str = date.strftime(DATE_FORMAT_YYYY_MM_DD)
+            historical_data[date_str] = {
+                HIST_KEY_OPEN: float(row["Open"]),
+                HIST_KEY_HIGH: float(row["High"]),
+                HIST_KEY_LOW: float(row["Low"]),
+                HIST_KEY_CLOSE: float(row["Close"]),
+                HIST_KEY_VOLUME: int(row["Volume"]),
+            }
+        return historical_data
 
     def fetch_history(self, symbol: str, period: str = "1mo") -> Optional[Dict]:
         """
@@ -142,26 +250,14 @@ class YahooFinanceClient:
         """
         try:
             ticker = yf.Ticker(symbol)
-            hist = ticker.history(period=period)
+            hist_dataframe = ticker.history(period=period)
 
-            if hist is None or hist.empty:
+            if hist_dataframe is None or hist_dataframe.empty:
                 return None
 
-            # Convert to dict format expected by frontend
-            historical_data = {}
-            for date, row in hist.iterrows():
-                date_str = date.strftime("%Y-%m-%d")
-                historical_data[date_str] = {
-                    "1. open": float(row["Open"]),
-                    "2. high": float(row["High"]),
-                    "3. low": float(row["Low"]),
-                    "4. close": float(row["Close"]),
-                    "5. volume": int(row["Volume"]),
-                }
-
-            return historical_data
-        except Exception as err:
-            print(f"YFinance history error for {symbol}: {str(err)}")
+            return self._convert_history_to_dict(hist_dataframe)
+        except Exception as history_error:
+            print(f"YFinance history error for {symbol}: {str(history_error)}")
             return None
 
     def fetch_history_range(
@@ -178,26 +274,14 @@ class YahooFinanceClient:
         """
         try:
             ticker = yf.Ticker(symbol)
-            hist = ticker.history(start=startDate, end=endDate)
+            hist_dataframe = ticker.history(start=startDate, end=endDate)
 
-            if hist is None or hist.empty:
+            if hist_dataframe is None or hist_dataframe.empty:
                 return None
 
-            # Convert to dict format expected by frontend
-            historical_data = {}
-            for date, row in hist.iterrows():
-                date_str = date.strftime("%Y-%m-%d")
-                historical_data[date_str] = {
-                    "1. open": float(row["Open"]),
-                    "2. high": float(row["High"]),
-                    "3. low": float(row["Low"]),
-                    "4. close": float(row["Close"]),
-                    "5. volume": int(row["Volume"]),
-                }
-
-            return historical_data
-        except Exception as err:
-            print(f"YFinance history range error for {symbol}: {str(err)}")
+            return self._convert_history_to_dict(hist_dataframe)
+        except Exception as history_error:
+            print(f"YFinance history range error for {symbol}: {str(history_error)}")
             return None
 
     def parse_history(self, historical_data: Dict) -> Dict:
@@ -209,124 +293,333 @@ class YahooFinanceClient:
         metrics = {}
 
         try:
-            # Helper function to extract value
-            def get_value(key, default=None):
-                return data.get(key, default)
-
-            metrics["company_name"] = data.get("shortName", data.get("longName", "N/A"))
-            metrics["current_price"] = data.get(
-                "currentPrice", data.get("regularMarketPrice", 0)
+            metrics["company_name"] = data.get(
+                YF_KEY_SHORT_NAME, data.get(YF_KEY_LONG_NAME, DEFAULT_VALUE_NA)
             )
-            metrics["change"] = data.get("regularMarketChange", 0)
-            metrics["change_percent"] = data.get("regularMarketChangePercent", 0)
-            metrics["market_cap"] = data.get("marketCap", 0)
-            metrics["shares_outstanding"] = data.get("sharesOutstanding", 0)
-            metrics["revenue"] = data.get("totalRevenue", 0)
-            metrics["pe_ratio"] = data.get("trailingPE", 0)
-            metrics["forward_pe"] = data.get("forwardPE", 0)
-            metrics["peg_ratio"] = data.get("pegRatio", 0)
-            metrics["price_to_book"] = data.get("priceToBook", 0)
-            metrics["dividend_yield"] = data.get("dividendYield", 0)
-            metrics["52_week_high"] = data.get("fiftyTwoWeekHigh", 0)
-            metrics["52_week_low"] = data.get("fiftyTwoWeekLow", 0)
-            metrics["50_day_avg"] = data.get("fiftyDayAverage", 0)
-            metrics["200_day_avg"] = data.get("twoHundredDayAverage", 0)
-            metrics["volume"] = data.get("volume", 0)
-            metrics["avg_volume"] = data.get("averageVolume", 0)
-            metrics["beta"] = data.get("beta", 0)
-            metrics["eps"] = data.get("trailingEps", 0)
-            metrics["revenue_growth"] = data.get("revenueGrowth", 0)
-            metrics["earnings_growth"] = data.get("earningsGrowth", 0)
-            metrics["profit_margin"] = data.get("profitMargins", 0)
-            metrics["operating_margin"] = data.get("operatingMargins", 0)
-            metrics["roe"] = data.get("returnOnEquity", 0)
-            metrics["roa"] = data.get("returnOnAssets", 0)
-            metrics["debt_to_equity"] = data.get("debtToEquity", 0)
-            metrics["current_ratio"] = data.get("currentRatio", 0)
-            metrics["free_cash_flow"] = data.get("freeCashflow", 0)
-            metrics["operating_cash_flow"] = data.get("operatingCashflow", 0)
+            metrics["current_price"] = data.get(
+                YF_KEY_CURRENT_PRICE,
+                data.get(YF_KEY_REGULAR_MARKET_PRICE, DEFAULT_VALUE_ZERO),
+            )
+            metrics["change"] = data.get(
+                YF_KEY_REGULAR_MARKET_CHANGE, DEFAULT_VALUE_ZERO
+            )
+            metrics["change_percent"] = data.get(
+                YF_KEY_REGULAR_MARKET_CHANGE_PERCENT, DEFAULT_VALUE_ZERO
+            )
+            metrics["market_cap"] = data.get(YF_KEY_MARKET_CAP, DEFAULT_VALUE_ZERO)
+            metrics["shares_outstanding"] = data.get(
+                YF_KEY_SHARES_OUTSTANDING, DEFAULT_VALUE_ZERO
+            )
+            metrics["revenue"] = data.get(YF_KEY_TOTAL_REVENUE, DEFAULT_VALUE_ZERO)
+            metrics["pe_ratio"] = data.get(YF_KEY_TRAILING_PE, DEFAULT_VALUE_ZERO)
+            metrics["forward_pe"] = data.get(YF_KEY_FORWARD_PE, DEFAULT_VALUE_ZERO)
+            metrics["peg_ratio"] = data.get(YF_KEY_PEG_RATIO, DEFAULT_VALUE_ZERO)
+            metrics["price_to_book"] = data.get(
+                YF_KEY_PRICE_TO_BOOK, DEFAULT_VALUE_ZERO
+            )
+            metrics["dividend_yield"] = data.get(
+                YF_KEY_DIVIDEND_YIELD, DEFAULT_VALUE_ZERO
+            )
+            metrics["52_week_high"] = data.get(
+                YF_KEY_FIFTY_TWO_WEEK_HIGH, DEFAULT_VALUE_ZERO
+            )
+            metrics["52_week_low"] = data.get(
+                YF_KEY_FIFTY_TWO_WEEK_LOW, DEFAULT_VALUE_ZERO
+            )
+            metrics["50_day_avg"] = data.get(
+                YF_KEY_FIFTY_DAY_AVERAGE, DEFAULT_VALUE_ZERO
+            )
+            metrics["200_day_avg"] = data.get(
+                YF_KEY_TWO_HUNDRED_DAY_AVERAGE, DEFAULT_VALUE_ZERO
+            )
+            metrics["volume"] = data.get("volume", DEFAULT_VALUE_ZERO)
+            metrics["avg_volume"] = data.get(YF_KEY_AVERAGE_VOLUME, DEFAULT_VALUE_ZERO)
+            metrics["beta"] = data.get(YF_KEY_BETA, DEFAULT_VALUE_ZERO)
+            metrics["eps"] = data.get(YF_KEY_TRAILING_EPS, DEFAULT_VALUE_ZERO)
+            metrics["revenue_growth"] = data.get(
+                YF_KEY_REVENUE_GROWTH, DEFAULT_VALUE_ZERO
+            )
+            metrics["earnings_growth"] = data.get(
+                YF_KEY_EARNINGS_GROWTH, DEFAULT_VALUE_ZERO
+            )
+            metrics["profit_margin"] = data.get(
+                YF_KEY_PROFIT_MARGINS, DEFAULT_VALUE_ZERO
+            )
+            metrics["operating_margin"] = data.get(
+                YF_KEY_OPERATING_MARGINS, DEFAULT_VALUE_ZERO
+            )
+            metrics["roe"] = data.get(YF_KEY_RETURN_ON_EQUITY, DEFAULT_VALUE_ZERO)
+            metrics["roa"] = data.get(YF_KEY_RETURN_ON_ASSETS, DEFAULT_VALUE_ZERO)
+            metrics["debt_to_equity"] = data.get(
+                YF_KEY_DEBT_TO_EQUITY, DEFAULT_VALUE_ZERO
+            )
+            metrics["current_ratio"] = data.get(
+                YF_KEY_CURRENT_RATIO, DEFAULT_VALUE_ZERO
+            )
+            metrics["free_cash_flow"] = data.get(
+                YF_KEY_FREE_CASHFLOW, DEFAULT_VALUE_ZERO
+            )
+            metrics["operating_cash_flow"] = data.get(
+                YF_KEY_OPERATING_CASHFLOW, DEFAULT_VALUE_ZERO
+            )
 
-        except Exception as err:
-            print(f"Error parsing Yahoo Finance metrics: {str(err)}")
+        except Exception as parse_error:
+            print(f"Error parsing Yahoo Finance metrics: {str(parse_error)}")
 
         return metrics
+
+    def _create_estimate_entry(
+        self,
+        period: str,
+        avg_value: float,
+        low_value: float = 0,
+        high_value: float = 0,
+        num_analysts: int = 0,
+    ) -> Dict:
+        """Create a standardized estimate entry"""
+        return {
+            "period": period,
+            "avg": avg_value,
+            "low": low_value,
+            "high": high_value,
+            "num_analysts": num_analysts,
+        }
 
     def parse_estimates(self, data: Dict) -> Dict:
         """Parse Yahoo Finance analyst estimates"""
         estimates = {}
         try:
             # Price targets
-            estimates["currentPrice"] = data.get(
-                "currentPrice", data.get("regularMarketPrice", 0)
+            estimates[YF_KEY_CURRENT_PRICE] = data.get(
+                YF_KEY_CURRENT_PRICE,
+                data.get(YF_KEY_REGULAR_MARKET_PRICE, DEFAULT_VALUE_ZERO),
             )
-            estimates["targetMeanPrice"] = data.get("targetMeanPrice", 0)
-            estimates["targetHighPrice"] = data.get("targetHighPrice", 0)
-            estimates["targetLowPrice"] = data.get("targetLowPrice", 0)
-            estimates["targetMedianPrice"] = data.get("targetMedianPrice", 0)
+            estimates[YF_KEY_TARGET_MEAN_PRICE] = data.get(
+                YF_KEY_TARGET_MEAN_PRICE, DEFAULT_VALUE_ZERO
+            )
+            estimates[YF_KEY_TARGET_HIGH_PRICE] = data.get(
+                YF_KEY_TARGET_HIGH_PRICE, DEFAULT_VALUE_ZERO
+            )
+            estimates[YF_KEY_TARGET_LOW_PRICE] = data.get(
+                YF_KEY_TARGET_LOW_PRICE, DEFAULT_VALUE_ZERO
+            )
+            estimates[YF_KEY_TARGET_MEDIAN_PRICE] = data.get(
+                YF_KEY_TARGET_MEDIAN_PRICE, DEFAULT_VALUE_ZERO
+            )
 
             # Analyst ratings
-            estimates["recommendationMean"] = data.get("recommendationMean", 0)
-            estimates["recommendationKey"] = data.get("recommendationKey", "N/A")
-            estimates["numberOfAnalystOpinions"] = data.get(
-                "numberOfAnalystOpinions", 0
+            estimates[YF_KEY_RECOMMENDATION_MEAN] = data.get(
+                YF_KEY_RECOMMENDATION_MEAN, DEFAULT_VALUE_ZERO
+            )
+            estimates[YF_KEY_RECOMMENDATION_KEY] = data.get(
+                YF_KEY_RECOMMENDATION_KEY, DEFAULT_VALUE_NA
+            )
+            estimates[YF_KEY_NUMBER_OF_ANALYST_OPINIONS] = data.get(
+                YF_KEY_NUMBER_OF_ANALYST_OPINIONS, DEFAULT_VALUE_ZERO
             )
 
-            # EPS estimates (current and next year)
-            estimates["epsForward"] = data.get("epsForward", 0)  # Next year EPS
-            estimates["epsCurrentYear"] = data.get(
-                "epsCurrentYear", 0
-            )  # Current year EPS
-            estimates["epsTrailingTwelveMonths"] = data.get(
-                "epsTrailingTwelveMonths", 0
+            # EPS estimates
+            estimates[YF_KEY_EPS_FORWARD] = data.get(
+                YF_KEY_EPS_FORWARD, DEFAULT_VALUE_ZERO
+            )
+            estimates[YF_KEY_EPS_CURRENT_YEAR] = data.get(
+                YF_KEY_EPS_CURRENT_YEAR, DEFAULT_VALUE_ZERO
+            )
+            estimates[YF_KEY_EPS_TRAILING_TWELVE_MONTHS] = data.get(
+                YF_KEY_EPS_TRAILING_TWELVE_MONTHS, DEFAULT_VALUE_ZERO
             )
 
-            # Earnings estimates for display (using price targets as proxy)
+            # Build earnings estimates list
             earnings_list = []
             revenue_list = []
 
-            # Price target estimate (1y)
-            if "targetMeanPrice" in data:
+            if YF_KEY_TARGET_MEAN_PRICE in data:
                 earnings_list.append(
-                    {
-                        "period": "Price Target",
-                        "avg": data.get("targetMeanPrice", 0),
-                        "low": data.get("targetLowPrice", 0),
-                        "high": data.get("targetHighPrice", 0),
-                        "num_analysts": data.get("numberOfAnalystOpinions", 0),
-                    }
+                    self._create_estimate_entry(
+                        "Price Target",
+                        data.get(YF_KEY_TARGET_MEAN_PRICE, DEFAULT_VALUE_ZERO),
+                        data.get(YF_KEY_TARGET_LOW_PRICE, DEFAULT_VALUE_ZERO),
+                        data.get(YF_KEY_TARGET_HIGH_PRICE, DEFAULT_VALUE_ZERO),
+                        data.get(YF_KEY_NUMBER_OF_ANALYST_OPINIONS, DEFAULT_VALUE_ZERO),
+                    )
                 )
 
-            # Current Year EPS estimate
-            if data.get("epsCurrentYear"):
+            if data.get(YF_KEY_EPS_CURRENT_YEAR):
                 earnings_list.append(
-                    {
-                        "period": "Current Year EPS",
-                        "avg": data.get("epsCurrentYear", 0),
-                        "low": 0,
-                        "high": 0,
-                        "num_analysts": 0,
-                    }
+                    self._create_estimate_entry(
+                        "Current Year EPS",
+                        data.get(YF_KEY_EPS_CURRENT_YEAR, DEFAULT_VALUE_ZERO),
+                    )
                 )
 
-            # Next Year EPS estimate
-            if data.get("epsForward"):
+            if data.get(YF_KEY_EPS_FORWARD):
                 earnings_list.append(
-                    {
-                        "period": "Next Year EPS",
-                        "avg": data.get("epsForward", 0),
-                        "low": 0,
-                        "high": 0,
-                        "num_analysts": 0,
-                    }
+                    self._create_estimate_entry(
+                        "Next Year EPS",
+                        data.get(YF_KEY_EPS_FORWARD, DEFAULT_VALUE_ZERO),
+                    )
                 )
 
             estimates["earnings_estimates"] = earnings_list
             estimates["revenue_estimates"] = revenue_list
 
-        except Exception as err:
-            print(f"Error parsing Yahoo Finance estimates: {str(err)}")
+        except Exception as parse_error:
+            print(f"Error parsing Yahoo Finance estimates: {str(parse_error)}")
 
         return estimates
+
+    def _safe_get_financial_value(
+        self, dataframe: pd.DataFrame, row_key: str, column_date
+    ) -> float:
+        """Safely extract financial value from DataFrame"""
+        if row_key in dataframe.index and not pd.isna(
+            dataframe.loc[row_key, column_date]
+        ):
+            return float(dataframe.loc[row_key, column_date])
+        return DEFAULT_VALUE_ZERO
+
+    def _format_fiscal_date(self, date_value) -> str:
+        """Format fiscal date to YYYY-MM format"""
+        if hasattr(date_value, "strftime"):
+            return date_value.strftime(DATE_FORMAT_YYYY_MM)
+        return str(date_value)
+
+    def _parse_income_statement(self, ticker) -> List[Dict]:
+        """Parse income statement from ticker object"""
+        try:
+            financials = ticker.financials
+            if financials is None or financials.empty:
+                return []
+
+            income_statement = []
+            for date in financials.columns[:YF_MAX_FINANCIAL_YEARS]:
+                income_statement.append(
+                    {
+                        "fiscal_date": self._format_fiscal_date(date),
+                        "revenue": self._safe_get_financial_value(
+                            financials, YF_INCOME_TOTAL_REVENUE, date
+                        ),
+                        "net_income": self._safe_get_financial_value(
+                            financials, YF_INCOME_NET_INCOME, date
+                        ),
+                        "ebitda": self._safe_get_financial_value(
+                            financials, YF_INCOME_EBITDA, date
+                        ),
+                        "gross_profit": self._safe_get_financial_value(
+                            financials, YF_INCOME_GROSS_PROFIT, date
+                        ),
+                        "operating_income": self._safe_get_financial_value(
+                            financials, YF_INCOME_OPERATING_INCOME, date
+                        ),
+                    }
+                )
+            return income_statement
+        except Exception as parse_error:
+            print(f"Error parsing income statement: {str(parse_error)}")
+            return []
+
+    def _parse_balance_sheet(self, ticker) -> List[Dict]:
+        """Parse balance sheet from ticker object"""
+        try:
+            balance_sheet = ticker.balance_sheet
+            if balance_sheet is None or balance_sheet.empty:
+                return []
+
+            balance_data = []
+            for date in balance_sheet.columns[:YF_MAX_FINANCIAL_YEARS]:
+                balance_data.append(
+                    {
+                        "fiscal_date": self._format_fiscal_date(date),
+                        "total_assets": self._safe_get_financial_value(
+                            balance_sheet, YF_BALANCE_TOTAL_ASSETS, date
+                        ),
+                        "total_liabilities": self._safe_get_financial_value(
+                            balance_sheet, YF_BALANCE_TOTAL_LIABILITIES, date
+                        ),
+                        "shareholders_equity": self._safe_get_financial_value(
+                            balance_sheet, YF_BALANCE_STOCKHOLDERS_EQUITY, date
+                        ),
+                        "cash": self._safe_get_financial_value(
+                            balance_sheet, YF_BALANCE_CASH, date
+                        ),
+                        "long_term_debt": self._safe_get_financial_value(
+                            balance_sheet, YF_BALANCE_LONG_TERM_DEBT, date
+                        ),
+                    }
+                )
+            return balance_data
+        except Exception as parse_error:
+            print(f"Error parsing balance sheet: {str(parse_error)}")
+            return []
+
+    def _parse_cash_flow(self, ticker) -> List[Dict]:
+        """Parse cash flow statement from ticker object"""
+        try:
+            cashflow = ticker.cashflow
+            if cashflow is None or cashflow.empty:
+                return []
+
+            cash_flow = []
+            for date in cashflow.columns[:YF_MAX_FINANCIAL_YEARS]:
+                cash_flow.append(
+                    {
+                        "fiscal_date": self._format_fiscal_date(date),
+                        "operating_cashflow": self._safe_get_financial_value(
+                            cashflow, YF_CASHFLOW_OPERATING, date
+                        ),
+                        "free_cash_flow": self._safe_get_financial_value(
+                            cashflow, YF_CASHFLOW_FREE, date
+                        ),
+                        "capex": self._safe_get_financial_value(
+                            cashflow, YF_CASHFLOW_CAPEX, date
+                        ),
+                        "dividends_paid": self._safe_get_financial_value(
+                            cashflow, YF_CASHFLOW_DIVIDENDS, date
+                        ),
+                        "stock_repurchased": self._safe_get_financial_value(
+                            cashflow, YF_CASHFLOW_STOCK_REPURCHASED, date
+                        ),
+                    }
+                )
+            return cash_flow
+        except Exception as parse_error:
+            print(f"Error parsing cash flow: {str(parse_error)}")
+            return []
+
+    def _create_fallback_financials(self, data: Dict) -> Dict:
+        """Create fallback financial data from info dict"""
+        return {
+            "income_statement": [
+                {
+                    "revenue": data.get(YF_KEY_TOTAL_REVENUE, DEFAULT_VALUE_ZERO),
+                    "net_income": data.get("netIncomeToCommon", DEFAULT_VALUE_ZERO),
+                    "ebitda": data.get("ebitda", DEFAULT_VALUE_ZERO),
+                }
+            ],
+            "balance_sheet": [
+                {
+                    "total_assets": data.get("totalAssets", DEFAULT_VALUE_ZERO),
+                    "total_liabilities": data.get(
+                        "totalLiabilities", DEFAULT_VALUE_ZERO
+                    ),
+                    "shareholders_equity": data.get(
+                        "totalStockholderEquity", DEFAULT_VALUE_ZERO
+                    ),
+                    "cash": data.get("cash", DEFAULT_VALUE_ZERO),
+                }
+            ],
+            "cash_flow": [
+                {
+                    "operating_cashflow": data.get(
+                        YF_KEY_OPERATING_CASHFLOW, DEFAULT_VALUE_ZERO
+                    ),
+                    "free_cash_flow": data.get(
+                        YF_KEY_FREE_CASHFLOW, DEFAULT_VALUE_ZERO
+                    ),
+                    "capex": data.get("capitalExpenditures", DEFAULT_VALUE_ZERO),
+                }
+            ],
+        }
 
     def parse_financials(self, data: Dict) -> Dict:
         """Parse Yahoo Finance financial statements - legacy method using info dict"""
@@ -346,227 +639,17 @@ class YahooFinanceClient:
             if data is not None:
                 ticker = data
 
-                # Parse Income Statement
-                try:
-                    financials = ticker.financials
-                    if financials is not None and not financials.empty:
-                        income_statement = []
-                        # Columns are dates, rows are line items
-                        for date in financials.columns[:4]:  # Get up to 4 years
-                            income_statement.append(
-                                {
-                                    "fiscal_date": date.strftime("%Y-%m")
-                                    if hasattr(date, "strftime")
-                                    else str(date),
-                                    "revenue": float(
-                                        financials.loc["Total Revenue", date]
-                                    )
-                                    if "Total Revenue" in financials.index
-                                    and not pd.isna(
-                                        financials.loc["Total Revenue", date]
-                                    )
-                                    else 0,
-                                    "net_income": float(
-                                        financials.loc["Net Income", date]
-                                    )
-                                    if "Net Income" in financials.index
-                                    and not pd.isna(financials.loc["Net Income", date])
-                                    else 0,
-                                    "ebitda": float(financials.loc["EBITDA", date])
-                                    if "EBITDA" in financials.index
-                                    and not pd.isna(financials.loc["EBITDA", date])
-                                    else 0,
-                                    "gross_profit": float(
-                                        financials.loc["Gross Profit", date]
-                                    )
-                                    if "Gross Profit" in financials.index
-                                    and not pd.isna(
-                                        financials.loc["Gross Profit", date]
-                                    )
-                                    else 0,
-                                    "operating_income": float(
-                                        financials.loc["Operating Income", date]
-                                    )
-                                    if "Operating Income" in financials.index
-                                    and not pd.isna(
-                                        financials.loc["Operating Income", date]
-                                    )
-                                    else 0,
-                                }
-                            )
-                        parsed["income_statement"] = income_statement
-                except Exception as err:
-                    print(f"Error parsing income statement: {str(err)}")
-                    parsed["income_statement"] = []
+                parsed["income_statement"] = self._parse_income_statement(ticker)
+                parsed["balance_sheet"] = self._parse_balance_sheet(ticker)
+                parsed["cash_flow"] = self._parse_cash_flow(ticker)
 
-                # Parse Balance Sheet
-                try:
-                    balance_sheet = ticker.balance_sheet
-                    if balance_sheet is not None and not balance_sheet.empty:
-                        balance_data = []
-                        # Columns are dates, rows are line items
-                        for date in balance_sheet.columns[:4]:  # Get up to 4 years
-                            balance_data.append(
-                                {
-                                    "fiscal_date": date.strftime("%Y-%m")
-                                    if hasattr(date, "strftime")
-                                    else str(date),
-                                    "total_assets": float(
-                                        balance_sheet.loc["Total Assets", date]
-                                    )
-                                    if "Total Assets" in balance_sheet.index
-                                    and not pd.isna(
-                                        balance_sheet.loc["Total Assets", date]
-                                    )
-                                    else 0,
-                                    "total_liabilities": float(
-                                        balance_sheet.loc[
-                                            "Total Liabilities Net Minority Interest",
-                                            date,
-                                        ]
-                                    )
-                                    if "Total Liabilities Net Minority Interest"
-                                    in balance_sheet.index
-                                    and not pd.isna(
-                                        balance_sheet.loc[
-                                            "Total Liabilities Net Minority Interest",
-                                            date,
-                                        ]
-                                    )
-                                    else 0,
-                                    "shareholders_equity": float(
-                                        balance_sheet.loc["Stockholders Equity", date]
-                                    )
-                                    if "Stockholders Equity" in balance_sheet.index
-                                    and not pd.isna(
-                                        balance_sheet.loc["Stockholders Equity", date]
-                                    )
-                                    else 0,
-                                    "cash": float(
-                                        balance_sheet.loc[
-                                            "Cash And Cash Equivalents", date
-                                        ]
-                                    )
-                                    if "Cash And Cash Equivalents"
-                                    in balance_sheet.index
-                                    and not pd.isna(
-                                        balance_sheet.loc[
-                                            "Cash And Cash Equivalents", date
-                                        ]
-                                    )
-                                    else 0,
-                                    "long_term_debt": float(
-                                        balance_sheet.loc["Long Term Debt", date]
-                                    )
-                                    if "Long Term Debt" in balance_sheet.index
-                                    and not pd.isna(
-                                        balance_sheet.loc["Long Term Debt", date]
-                                    )
-                                    else 0,
-                                }
-                            )
-                        parsed["balance_sheet"] = balance_data
-                except Exception as err:
-                    print(f"Error parsing balance sheet: {str(err)}")
-                    parsed["balance_sheet"] = []
+            # Fallback to info dict if no ticker object or empty results
+            has_no_income_statement = not parsed or not parsed.get("income_statement")
+            if has_no_income_statement and data and isinstance(data, dict):
+                parsed = self._create_fallback_financials(data)
 
-                # Parse Cash Flow
-                try:
-                    cashflow = ticker.cashflow
-                    if cashflow is not None and not cashflow.empty:
-                        cash_flow = []
-                        # Columns are dates, rows are line items
-                        for date in cashflow.columns[:4]:  # Get up to 4 years
-                            cash_flow.append(
-                                {
-                                    "fiscal_date": date.strftime("%Y-%m")
-                                    if hasattr(date, "strftime")
-                                    else str(date),
-                                    "operating_cashflow": float(
-                                        cashflow.loc["Operating Cash Flow", date]
-                                    )
-                                    if "Operating Cash Flow" in cashflow.index
-                                    and not pd.isna(
-                                        cashflow.loc["Operating Cash Flow", date]
-                                    )
-                                    else 0,
-                                    "free_cash_flow": float(
-                                        cashflow.loc["Free Cash Flow", date]
-                                    )
-                                    if "Free Cash Flow" in cashflow.index
-                                    and not pd.isna(
-                                        cashflow.loc["Free Cash Flow", date]
-                                    )
-                                    else 0,
-                                    "capex": float(
-                                        cashflow.loc["Capital Expenditure", date]
-                                    )
-                                    if "Capital Expenditure" in cashflow.index
-                                    and not pd.isna(
-                                        cashflow.loc["Capital Expenditure", date]
-                                    )
-                                    else 0,
-                                    "dividends_paid": float(
-                                        cashflow.loc["Cash Dividends Paid", date]
-                                    )
-                                    if "Cash Dividends Paid" in cashflow.index
-                                    and not pd.isna(
-                                        cashflow.loc["Cash Dividends Paid", date]
-                                    )
-                                    else 0,
-                                    "stock_repurchased": float(
-                                        cashflow.loc[
-                                            "Repurchase Of Capital Stock", date
-                                        ]
-                                    )
-                                    if "Repurchase Of Capital Stock" in cashflow.index
-                                    and not pd.isna(
-                                        cashflow.loc[
-                                            "Repurchase Of Capital Stock", date
-                                        ]
-                                    )
-                                    else 0,
-                                }
-                            )
-                        parsed["cash_flow"] = cash_flow
-                except Exception as err:
-                    print(f"Error parsing cash flow: {str(err)}")
-                    parsed["cash_flow"] = []
-
-            # Fallback to info dict if no ticker object
-            if not parsed or (
-                not parsed.get("income_statement") and data and isinstance(data, dict)
-            ):
-                parsed = {
-                    "income_statement": [
-                        {
-                            "revenue": data.get("totalRevenue", 0),
-                            "net_income": data.get("netIncomeToCommon", 0),
-                            "ebitda": data.get("ebitda", 0),
-                        }
-                    ],
-                    "balance_sheet": [
-                        {
-                            "total_assets": data.get("totalAssets", 0),
-                            "total_liabilities": data.get("totalLiabilities", 0),
-                            "shareholders_equity": data.get(
-                                "totalStockholderEquity", 0
-                            ),
-                            "cash": data.get("cash", 0),
-                        }
-                    ],
-                    "cash_flow": [
-                        {
-                            "operating_cashflow": data.get("operatingCashflow", 0),
-                            "free_cash_flow": data.get("freeCashflow", 0),
-                            "capex": data.get("capitalExpenditures", 0),
-                        }
-                    ],
-                }
-
-        except Exception as err:
-            print(f"Error parsing Yahoo Finance financials: {str(err)}")
-            # Return empty arrays on error
+        except Exception as parse_error:
+            print(f"Error parsing Yahoo Finance financials: {str(parse_error)}")
             parsed = {"income_statement": [], "balance_sheet": [], "cash_flow": []}
 
         return parsed
@@ -584,9 +667,87 @@ class YahooFinanceClient:
         try:
             ticker = yf.Ticker(symbol)
             return self.parse_financials_full(ticker)
-        except Exception as err:
-            print(f"YFinance fetch_financials error for {symbol}: {str(err)}")
+        except Exception as fetch_error:
+            print(f"YFinance fetch_financials error for {symbol}: {str(fetch_error)}")
             return {"income_statement": [], "balance_sheet": [], "cash_flow": []}
+
+    def _extract_news_source(self, provider_data) -> str:
+        """Extract source name from provider data"""
+        if isinstance(provider_data, dict):
+            return (
+                provider_data.get(YF_NEWS_DISPLAY_NAME)
+                or provider_data.get(KEY_NAME)
+                or provider_data.get("id")
+                or DEFAULT_SOURCE_YAHOO
+            )
+        if provider_data:
+            return str(provider_data)
+        return DEFAULT_SOURCE_YAHOO
+
+    def _extract_news_title(self, news_item: Dict) -> str:
+        """Extract title from news item"""
+        return (
+            news_item.get(YF_NEWS_TITLE)
+            or news_item.get(YF_NEWS_HEADLINE)
+            or news_item.get(YF_NEWS_CAPTION)
+            or DEFAULT_TITLE_NO_TITLE
+        )
+
+    def _extract_news_url(self, news_item: Dict) -> str:
+        """Extract URL from news item"""
+        return (
+            news_item.get(YF_NEWS_LINK)
+            or news_item.get(YF_NEWS_URL)
+            or news_item.get(YF_NEWS_CANONICAL_URL)
+            or DEFAULT_URL_HASH
+        )
+
+    def _extract_news_summary(self, news_item: Dict) -> str:
+        """Extract and truncate summary from news item"""
+        summary_text = (
+            news_item.get(YF_NEWS_SUMMARY)
+            or news_item.get(YF_NEWS_DESCRIPTION)
+            or news_item.get(YF_NEWS_SNIPPET)
+            or DEFAULT_EMPTY_STRING
+        )
+        if summary_text:
+            return summary_text[:YF_MAX_SUMMARY_LENGTH]
+        return DEFAULT_EMPTY_STRING
+
+    def _convert_publish_time(self, pub_time) -> str:
+        """Convert publish time to ISO format"""
+        if not pub_time:
+            return datetime.now().isoformat()
+
+        try:
+            # Try as Unix timestamp first (seconds)
+            if isinstance(pub_time, (int, float)) and pub_time < UNIX_TIMESTAMP_MAX:
+                return datetime.fromtimestamp(pub_time).isoformat()
+            return str(pub_time)
+        except Exception:
+            return str(pub_time)
+
+    def _parse_news_item(self, news_item: Dict) -> Dict:
+        """Parse a single news item into standardized format"""
+        provider_data = news_item.get(YF_NEWS_PROVIDER)
+        source = self._extract_news_source(provider_data)
+        title = self._extract_news_title(news_item)
+        url = self._extract_news_url(news_item)
+        summary = self._extract_news_summary(news_item)
+
+        pub_time = news_item.get(YF_NEWS_PROVIDER_PUBLISH_TIME)
+        if not pub_time:
+            pub_time = news_item.get(YF_NEWS_PUB_DATE, DEFAULT_EMPTY_STRING)
+
+        pub_date = self._convert_publish_time(pub_time)
+
+        return {
+            "title": title,
+            "url": url,
+            "publishedAt": pub_date,
+            "source": source,
+            "summary": summary,
+        }
 
     def fetch_news(self, symbol: str) -> List[Dict]:
         """
@@ -602,89 +763,23 @@ class YahooFinanceClient:
             ticker = yf.Ticker(symbol)
             news_data = ticker.news
 
-            print(
-                f"YFinance fetch_news for {symbol}: received {len(news_data) if news_data else 0} items"
-            )
+            news_count = len(news_data) if news_data else 0
+            print(f"YFinance fetch_news for {symbol}: received {news_count} items")
+
             if news_data and len(news_data) > 0:
                 # Log first item structure for debugging
                 print(f"YFinance news sample for {symbol}:")
                 print(f"  First item keys: {list(news_data[0].keys())}")
                 print(f"  First item: {news_data[0]}")
 
-                articles = []
-                for item in news_data[:20]:  # Limit to 20 articles
-                    # Handle provider - can be dict or string
-                    provider = item.get("provider")
-                    if isinstance(provider, dict):
-                        source = (
-                            provider.get("displayName")
-                            or provider.get("name")
-                            or provider.get("id")
-                            or "Yahoo Finance"
-                        )
-                    elif provider:
-                        source = str(provider)
-                    else:
-                        source = "Yahoo Finance"
-
-                    # Handle title - try multiple fields
-                    title = (
-                        item.get("title")
-                        or item.get("headline")
-                        or item.get("caption")
-                        or "No Title"
-                    )
-
-                    # Handle URL
-                    url = (
-                        item.get("link")
-                        or item.get("url")
-                        or item.get("canonicalUrl")
-                        or "#"
-                    )
-
-                    # Handle summary/description
-                    summary = (
-                        item.get("summary")
-                        or item.get("description")
-                        or item.get("snippet")
-                        or ""
-                    )
-
-                    # Handle timestamp - convert Unix timestamp to ISO
-                    pub_time = item.get("providerPublishTime")
-                    if pub_time:
-                        from datetime import datetime
-
-                        try:
-                            # Try as Unix timestamp first (seconds)
-                            if (
-                                isinstance(pub_time, (int, float))
-                                and pub_time < 9999999999
-                            ):
-                                pub_date = datetime.fromtimestamp(pub_time).isoformat()
-                            else:
-                                pub_date = str(pub_time)
-                        except Exception:
-                            pub_date = str(pub_time)
-                    else:
-                        pub_date = item.get("pubDate", "") or datetime.now().isoformat()
-
-                    articles.append(
-                        {
-                            "title": title,
-                            "url": url,
-                            "publishedAt": pub_date,
-                            "source": source,
-                            "summary": summary[:500]
-                            if summary
-                            else "",  # Truncate long summaries
-                        }
-                    )
+                articles = [
+                    self._parse_news_item(news_item)
+                    for news_item in news_data[:YF_MAX_NEWS_ARTICLES]
+                ]
                 return articles
             return []
-        except Exception as err:
-            print(f"YFinance fetch_news error for {symbol}: {str(err)}")
+        except Exception as fetch_error:
+            print(f"YFinance fetch_news error for {symbol}: {str(fetch_error)}")
             import traceback
 
             traceback.print_exc()
