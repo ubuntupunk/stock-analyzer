@@ -5,12 +5,21 @@ Central registry for all supported stock indices.
 Each index defines its metadata and fetch strategy.
 """
 
+from constants import (
+    INDEX_ID_JSE_ALSI,
+    INDEX_ID_RUSSELL3000,
+    INDEX_ID_SP500,
+    MARKET_CAP_LARGE_MIN,
+    MARKET_CAP_MEGA_MIN,
+    MARKET_CAP_MID_MIN,
+)
+
 
 class IndexConfig:
     def __init__(self):
         self.indices = {
-            "SP500": {
-                "id": "SP500",
+            INDEX_ID_SP500: {
+                "id": INDEX_ID_SP500,
                 "name": "S&P 500",
                 "description": "Large-cap US stocks",
                 "region": "US",
@@ -23,13 +32,13 @@ class IndexConfig:
                 "fetcher": "SP500Fetcher",
                 "updateFrequency": "7 days",
                 "marketCapThresholds": {
-                    "mega": 200_000_000_000,
-                    "large": 10_000_000_000,
-                    "mid": 2_000_000_000,
+                    "mega": MARKET_CAP_MEGA_MIN,
+                    "large": MARKET_CAP_LARGE_MIN,
+                    "mid": MARKET_CAP_MID_MIN,
                 },
             },
-            "RUSSELL3000": {
-                "id": "RUSSELL3000",
+            INDEX_ID_RUSSELL3000: {
+                "id": INDEX_ID_RUSSELL3000,
                 "name": "Russell 3000",
                 "description": "US total market (small to large cap)",
                 "region": "US",
@@ -44,14 +53,14 @@ class IndexConfig:
                 "fallbackUrl": "http://www.beatthemarketanalyzer.com/blog/wp-content/uploads/2016/10/Russell-3000-Stock-Tickers-List.xlsx",
                 "updateFrequency": "7 days",
                 "marketCapThresholds": {
-                    "mega": 200_000_000_000,
-                    "large": 10_000_000_000,
-                    "mid": 2_000_000_000,
+                    "mega": MARKET_CAP_MEGA_MIN,
+                    "large": MARKET_CAP_LARGE_MIN,
+                    "mid": MARKET_CAP_MID_MIN,
                     "small": 300_000_000,
                 },
             },
-            "JSE_ALSI": {
-                "id": "JSE_ALSI",
+            INDEX_ID_JSE_ALSI: {
+                "id": INDEX_ID_JSE_ALSI,
                 "name": "JSE All Share Index",
                 "description": "South African total market index",
                 "region": "ZA",
@@ -70,9 +79,9 @@ class IndexConfig:
                     "source": "yfinance",
                 },
                 "marketCapThresholds": {
-                    "mega": 200_000_000_000,
-                    "large": 10_000_000_000,
-                    "mid": 2_000_000_000,
+                    "mega": MARKET_CAP_MEGA_MIN,
+                    "large": MARKET_CAP_LARGE_MIN,
+                    "mid": MARKET_CAP_MID_MIN,
                     "small": 500_000_000,
                 },
             },
