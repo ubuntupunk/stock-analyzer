@@ -673,3 +673,58 @@ DCF_MSG_MISSING_DATA = "Missing financial data for {}, using estimates"
 DCF_MSG_CALCULATED = (
     "DCF calculated: intrinsic value ${:.2f} vs current ${:.2f} ({:.1f}% upside)"
 )
+
+
+# Stock Metrics Constants
+METRICS_CLOUDWATCH_BATCH_SIZE = 20  # CloudWatch supports up to 20 metrics per request
+METRICS_STALE_THRESHOLD_HOURS = 168  # 7 days
+METRICS_HOURS_PER_SECOND = 3600
+METRICS_PERFECT_SCORE = 100
+METRICS_FRESHNESS_THRESHOLD = 80  # Below this is considered low freshness
+METRICS_QUALITY_THRESHOLD = 80  # Below this is considered low quality
+METRICS_WARNING_PENALTY_PER_ISSUE = 5
+METRICS_MAX_WARNING_PENALTY = 50
+METRICS_CRITICAL_THRESHOLD = 50  # Below this is critical
+METRICS_DELISTED_WARNING_THRESHOLD = 10
+METRICS_DELISTED_CRITICAL_THRESHOLD = 50
+
+# Batch Processing Constants
+BATCH_MAX_SYMBOLS = 50  # Maximum symbols per batch request
+BATCH_DEFAULT_SIZE = 25
+
+# Percentage Calculation
+PERCENT_MULTIPLIER = 100
+
+
+# Common Error Messages
+ERROR_MSG_SYMBOL_REQUIRED = "Symbol required"
+ERROR_MSG_SYMBOLS_REQUIRED = "Symbols required"
+ERROR_MSG_SYMBOL_PARAM_REQUIRED = "Symbol parameter is required"
+ERROR_MSG_SYMBOLS_PARAM_REQUIRED = "Symbols parameter is required (comma-separated list)"
+ERROR_MSG_AT_LEAST_ONE_SYMBOL = "At least one symbol is required"
+ERROR_MSG_QUERY_PARAM_REQUIRED = 'Query parameter "q" is required'
+ERROR_MSG_ASSUMPTIONS_REQUIRED = "Assumptions required for DCF analysis"
+ERROR_MSG_EMAIL_PASSWORD_REQUIRED = "Email and password are required"
+ERROR_MSG_HCAPTCHA_MISSING = "hCaptcha token missing. Security check required."
+ERROR_MSG_INVALID_CREDENTIALS = "Invalid email or password"
+ERROR_MSG_INVALID_ENDPOINT = "Invalid endpoint"
+ERROR_MSG_INVALID_BATCH_ENDPOINT = "Invalid batch endpoint"
+ERROR_MSG_METHOD_NOT_ALLOWED = "Method not allowed"
+ERROR_MSG_INTERNAL_SERVER = "Internal server error"
+ERROR_MSG_NO_DATA = "No data"
+ERROR_MSG_NO_UPDATES = "No updates provided"
+ERROR_MSG_UNAUTHORIZED = "Unauthorized - Authentication required"
+ERROR_MSG_UNAUTHORIZED_SAVE_FACTORS = "Unauthorized - Authentication required to save factors"
+
+# Success Messages
+SUCCESS_MSG_DELETED = "Item deleted"
+SUCCESS_MSG_FACTOR_DELETED = "Factor deleted successfully"
+
+# JSON Response Keys
+JSON_KEY_ERROR = "error"
+JSON_KEY_SUCCESS = "success"
+JSON_KEY_MESSAGE = "message"
+JSON_KEY_RESULTS = "results"
+JSON_KEY_STATUS = "status"
+JSON_KEY_ITEM = "item"
+JSON_KEY_SYMBOL = "symbol"

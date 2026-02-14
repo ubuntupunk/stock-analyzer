@@ -11,6 +11,21 @@ from datetime import datetime
 from typing import Dict, List
 from decimal import Decimal
 
+from constants import (
+    METRICS_CLOUDWATCH_BATCH_SIZE,
+    METRICS_STALE_THRESHOLD_HOURS,
+    METRICS_HOURS_PER_SECOND,
+    METRICS_PERFECT_SCORE,
+    METRICS_FRESHNESS_THRESHOLD,
+    METRICS_QUALITY_THRESHOLD,
+    METRICS_WARNING_PENALTY_PER_ISSUE,
+    METRICS_MAX_WARNING_PENALTY,
+    METRICS_CRITICAL_THRESHOLD,
+    METRICS_DELISTED_WARNING_THRESHOLD,
+    METRICS_DELISTED_CRITICAL_THRESHOLD,
+    PERCENT_MULTIPLIER,
+)
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -53,7 +68,7 @@ class StockUniverseMetrics:
 
         # Success rate
         if total > 0:
-            success_rate = (seeded / total) * 100
+            success_rate = (seeded / total) * PERCENT_MULTIPLIER
             self.metrics_buffer.append(
                 {
                     "MetricName": "SeedingSuccessRate",
@@ -117,7 +132,7 @@ class StockUniverseMetrics:
         try:
             # CloudWatch supports up to 20 metrics per request
             # Split into batches if needed
-            batch_size = 20
+            batch_size = METRICS_CLOUDWATCH_BATCH_SIZE
             for idx in range(0, len(self.metrics_buffer), batch_size):
                 batch = self.metrics_buffer[idx : idx + batch_size]
 
@@ -151,11 +166,11 @@ class StockUniverseMetrics:
                 "oldest_data_age_hours": 0,
                 "stale_count": 0,
                 "fresh_count": 0,
-                "freshness_score": 100,
+                "freshness_score": METRICS_PERFECT_SCORE,
             }
 
         now = datetime.utcnow()
-        stale_threshold_hours = 168  # 7 days
+        stale_threshold_hours = METRICS_STALE_THRESHOLD_HOURS
         age_hours_list = []
         stale_count = 0
 
@@ -166,7 +181,7 @@ class StockUniverseMetrics:
                     last_updated_dt = datetime.fromisoformat(
                         last_updated.replace("Z", "+00:00")
                     )
-                    age_hours = (now - last_updated_dt).total_seconds() / 3600
+                    age_hours = (now - last_updated_dt).total_seconds() / METRICS_HOURS_PER_SECOND
                     age_hours_list.append(age_hours)
 
                     if age_hours > stale_threshold_hours:
@@ -185,7 +200,7 @@ class StockUniverseMetrics:
 
         # Calculate freshness score (0-100)
         if len(stocks) > 0:
-            fresh_percentage = (freshness_metrics["fresh_count"] / len(stocks)) * 100
+            fresh_percentage = (freshness_metrics["fresh_count"] / len(stocks)) * PERCENT_MULTIPLIER
             freshness_metrics["freshness_score"] = round(fresh_percentage, 2)
 
         return freshness_metrics
@@ -207,7 +222,7 @@ class StockUniverseMetrics:
                 "invalid_count": 0,
                 "warning_count": 0,
                 "total_issues": 0,
-                "quality_score": 100,
+                "quality_score": METRICS_PERFECT_SCORE,
             }
 
         total_stocks = len(validation_results)
@@ -226,15 +241,15 @@ class StockUniverseMetrics:
         )
 
         # Calculate quality score based on validity and issues
-        quality_score = 100
+        quality_score = METRICS_PERFECT_SCORE
 
         # Deduct for invalid stocks
         if total_stocks > 0:
-            validity_score = (valid_count / total_stocks) * 100
+            validity_score = (valid_count / total_stocks) * PERCENT_MULTIPLIER
             quality_score = min(quality_score, validity_score)
 
         # Deduct for warnings (-5 points per warning, capped at -50)
-        warning_penalty = min(warning_count * 5, 50)
+        warning_penalty = min(warning_count * METRICS_WARNING_PENALTY_PER_ISSUE, METRICS_MAX_WARNING_PENALTY)
         quality_score = max(0, quality_score - warning_penalty)
 
         quality_metrics = {
@@ -310,38 +325,38 @@ class StockUniverseMetrics:
         """
         issues = []
 
-        freshness_score = stock_universe_data.get("freshness_score", 100)
-        quality_score = stock_universe_data.get("quality_score", 100)
+        freshness_score = stock_universe_data.get("freshness_score", METRICS_PERFECT_SCORE)
+        quality_score = stock_universe_data.get("quality_score", METRICS_PERFECT_SCORE)
         delisted_count = stock_universe_data.get("delisted_count", 0)
 
         # Issue: Low freshness score
-        if freshness_score < 80:
+        if freshness_score < METRICS_FRESHNESS_THRESHOLD:
             issues.append(
                 {
                     "type": "low_freshness",
-                    "severity": "warning" if freshness_score > 50 else "critical",
-                    "message": f"Data freshness score is {freshness_score}% (< 80%)",
+                    "severity": "warning" if freshness_score > METRICS_CRITICAL_THRESHOLD else "critical",
+                    "message": f"Data freshness score is {freshness_score}% (< {METRICS_FRESHNESS_THRESHOLD}%)",
                     "freshness_score": freshness_score,
                 }
             )
 
         # Issue: Low quality score
-        if quality_score < 80:
+        if quality_score < METRICS_QUALITY_THRESHOLD:
             issues.append(
                 {
                     "type": "low_quality",
-                    "severity": "warning" if quality_score > 50 else "critical",
-                    "message": f"Data quality score is {quality_score}% (< 80%)",
+                    "severity": "warning" if quality_score > METRICS_CRITICAL_THRESHOLD else "critical",
+                    "message": f"Data quality score is {quality_score}% (< {METRICS_QUALITY_THRESHOLD}%)",
                     "quality_score": quality_score,
                 }
             )
 
         # Issue: Many delisted stocks
-        if delisted_count > 10:
+        if delisted_count > METRICS_DELISTED_WARNING_THRESHOLD:
             issues.append(
                 {
                     "type": "many_delisted",
-                    "severity": "warning" if delisted_count < 50 else "critical",
+                    "severity": "warning" if delisted_count < METRICS_DELISTED_CRITICAL_THRESHOLD else "critical",
                     "message": f"{delisted_count} delisted stocks detected",
                     "delisted_count": delisted_count,
                 }
@@ -353,7 +368,7 @@ class StockUniverseMetrics:
 if __name__ == "__main__":
     import unittest.mock as mock
 
-    print("=== Stock Universe Metrics Tests ===\n")
+    logger.info("=== Stock Universe Metrics Tests ===\n")
 
     # Mock boto3 for local testing
     mock_cw = mock.MagicMock()
@@ -361,7 +376,7 @@ if __name__ == "__main__":
         metrics = StockUniverseMetrics()
 
         # Test 1: Freshness calculation
-        print("1. Freshness Score Calculation:")
+        logger.info("1. Freshness Score Calculation:")
         mock_stocks = [
             {"lastUpdated": "2026-02-10T10:00:00"},  # Fresh (< 1 day)
             {"lastUpdated": "2026-02-05T10:00:00"},  # Fresh
@@ -369,12 +384,12 @@ if __name__ == "__main__":
             {},  # No last updated
         ]
     freshness = metrics.calculate_freshness_score(mock_stocks)
-    print(f"   Fresh score: {freshness['freshness_score']}%")
-    print(f"   Stale count: {freshness['stale_count']}")
-    print(f"   Oldest age: {freshness['oldest_data_age_hours']:.1f} hours")
+    logger.info(f"   Fresh score: {freshness['freshness_score']}%")
+    logger.info(f"   Stale count: {freshness['stale_count']}")
+    logger.info(f"   Oldest age: {freshness['oldest_data_age_hours']:.1f} hours")
 
     # Test 2: Quality score calculation
-    print("\n2. Quality Score Calculation:")
+    logger.info("\n2. Quality Score Calculation:")
     mock_validation = [
         {"valid": True, "warnings": [], "errors": [], "issues": []},
         {"valid": True, "warnings": [{"type": "info"}], "errors": [], "issues": []},
@@ -388,22 +403,22 @@ if __name__ == "__main__":
     ]
 
     quality = metrics.calculate_data_quality_score(mock_validation)
-    print(f"   Quality score: {quality['quality_score']}%")
-    print(f"   Valid: {quality['valid_count']}, Invalid: {quality['invalid_count']}")
-    print(f"   Total issues: {quality['total_issues']}")
+    logger.info(f"   Quality score: {quality['quality_score']}%")
+    logger.info(f"   Valid: {quality['valid_count']}, Invalid: {quality['invalid_count']}")
+    logger.info(f"   Total issues: {quality['total_issues']}")
 
     # Test 3: Health issue detection
-    print("\n3. Health Issue Detection:")
+    logger.info("\n3. Health Issue Detection:")
     health_data = {"freshness_score": 75, "quality_score": 60, "delisted_count": 15}
     issues = metrics.detect_health_issues(health_data)
-    print(f"   Detected {len(issues)} issues:")
+    logger.info(f"   Detected {len(issues)} issues:")
     for issue in issues:
-        print(f"     - {issue['type']}: {issue['severity']}")
+        logger.info(f"     - {issue['type']}: {issue['severity']}")
 
     # Test 4: Seeding result logging
-    print("\n4. Seeding Result Logging:")
+    logger.info("\n4. Seeding Result Logging:")
     seeding_result = {"seeded": 500, "failed": 5, "total": 505, "duration_seconds": 120}
     metrics.log_seeding_results("SP500", seeding_result)
-    print(f"   Buffered metrics: {len(metrics.metrics_buffer)}")
+    logger.info(f"   Buffered metrics: {len(metrics.metrics_buffer)}")
 
-    print("\n✅ Metrics module tests passed!")
+    logger.info("\n✅ Metrics module tests passed!")

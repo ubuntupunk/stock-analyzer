@@ -6,12 +6,21 @@ Handles HTTP routing and CORS for all stock data endpoints
 import json
 import math
 
+from logger_config import setup_logger
 from constants import (
+    BATCH_MAX_SYMBOLS,
     CORS_ALLOW_HEADERS,
     CORS_ALLOW_METHODS_GET,
     CORS_ALLOW_ORIGIN,
     DELIMITER_COMMA,
     ERROR_METHOD_NOT_ALLOWED,
+    ERROR_MSG_AT_LEAST_ONE_SYMBOL,
+    ERROR_MSG_INTERNAL_SERVER,
+    ERROR_MSG_INVALID_BATCH_ENDPOINT,
+    ERROR_MSG_INVALID_ENDPOINT,
+    ERROR_MSG_METHOD_NOT_ALLOWED,
+    ERROR_MSG_SYMBOL_PARAM_REQUIRED,
+    ERROR_MSG_SYMBOLS_PARAM_REQUIRED,
     ERROR_SYMBOL_REQUIRED,
     ERROR_SYMBOLS_REQUIRED,
     HTTP_BAD_REQUEST,
@@ -21,6 +30,8 @@ from constants import (
     HTTP_METHOD_POST,
     HTTP_OK,
     HTTP_SERVER_ERROR,
+    JSON_KEY_ERROR,
+    JSON_KEY_MESSAGE,
     KEY_BODY,
     KEY_ERROR,
     KEY_STATUS_CODE,
@@ -49,6 +60,9 @@ def clean_float_values(obj):
     if isinstance(obj, list):
         return [clean_float_values(item) for item in obj]
     return obj
+
+# Initialize logger
+logger = setup_logger(__name__)
 
 
 def _create_cors_headers():
@@ -134,7 +148,7 @@ def lambda_handler(event, context):
                     },
                     "body": json.dumps(
                         {
-                            "error": "Symbols parameter is required (comma-separated list)"
+                            "error": ERROR_MSG_SYMBOLS_PARAM_REQUIRED
                         }
                     ),
                 }
@@ -153,11 +167,11 @@ def lambda_handler(event, context):
                         "Access-Control-Allow-Origin": "*",
                         "Content-Type": "application/json",
                     },
-                    "body": json.dumps({"error": "At least one symbol is required"}),
+                    "body": json.dumps({"error": ERROR_MSG_AT_LEAST_ONE_SYMBOL}),
                 }
 
             # Limit batch size to prevent abuse
-            if len(symbols) > 50:
+            if len(symbols) > BATCH_MAX_SYMBOLS:
                 return {
                     "statusCode": 400,
                     "headers": {
@@ -165,7 +179,7 @@ def lambda_handler(event, context):
                         "Content-Type": "application/json",
                     },
                     "body": json.dumps(
-                        {"error": "Maximum 50 symbols per batch request"}
+                        {"error": f"Maximum {BATCH_MAX_SYMBOLS} symbols per batch request"}
                     ),
                 }
 
@@ -179,7 +193,7 @@ def lambda_handler(event, context):
             elif "/batch/financials" in path:
                 result = api.get_batch_financials(symbols)
             else:
-                result = {"error": "Invalid batch endpoint"}
+                result = {"error": ERROR_MSG_INVALID_BATCH_ENDPOINT}
 
         elif "/screen" in path:
             screener = StockScreener()
@@ -204,7 +218,7 @@ def lambda_handler(event, context):
                         "Access-Control-Allow-Origin": "*",
                         "Content-Type": "application/json",
                     },
-                    "body": json.dumps({"error": "Method not allowed"}),
+                    "body": json.dumps({"error": ERROR_MSG_METHOD_NOT_ALLOWED}),
                 }
 
         else:
@@ -218,7 +232,7 @@ def lambda_handler(event, context):
                         "Access-Control-Allow-Origin": "*",
                         "Content-Type": "application/json",
                     },
-                    "body": json.dumps({"error": "Symbol parameter is required"}),
+                    "body": json.dumps({"error": ERROR_MSG_SYMBOL_PARAM_REQUIRED}),
                 }
 
             # Route to appropriate single stock handler
@@ -239,7 +253,7 @@ def lambda_handler(event, context):
             elif "/news" in path:
                 result = api.get_stock_news(symbol)
             else:
-                result = {"error": "Invalid endpoint"}
+                result = {"error": ERROR_MSG_INVALID_ENDPOINT}
 
         # Clean result of NaN/Infinity values before serialization
         cleaned_result = clean_float_values(result)
@@ -254,12 +268,12 @@ def lambda_handler(event, context):
         }
 
     except Exception as err:
-        print(f"Error processing request: {str(err)}")
+        logger.error(f"Error processing request: {str(err)}")
         return {
             "statusCode": 500,
             "headers": {
                 "Access-Control-Allow-Origin": "*",
                 "Content-Type": "application/json",
             },
-            "body": json.dumps({"error": "Internal server error", "message": str(err)}),
+            "body": json.dumps({"error": ERROR_MSG_INTERNAL_SERVER, "message": str(err)}),
         }
