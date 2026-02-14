@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, Optional
 
+from logger_config import setup_logger
 from constants import (
     CB_DEFAULT_FAILURE_THRESHOLD,
     CB_DEFAULT_HALF_OPEN_MAX_CALLS,
@@ -39,6 +40,9 @@ from constants import (
     CB_STATE_HALF_OPEN,
     CB_STATE_OPEN,
 )
+
+# Initialize logger
+logger = setup_logger(__name__)
 
 
 class CircuitState(Enum):
@@ -140,7 +144,7 @@ class CircuitBreakerManager:
             except Exception as err:
                 cb_manager.record_failure('yahoo_finance', str(err))
         else:
-            print("Circuit is OPEN for yahoo_finance")
+            logger.warning("Circuit is OPEN for yahoo_finance")
     """
 
     def __init__(self, config: Optional[CircuitBreakerConfig] = None):
@@ -195,7 +199,7 @@ class CircuitBreakerManager:
                     > self.config.timeout_seconds
                 ):
                     endpoint.state = CircuitState.HALF_OPEN
-                    print(
+                    logger.info(
                         f"CircuitBreaker: {endpoint_name} transitioning OPEN → HALF_OPEN"
                     )
                     return True
@@ -223,7 +227,7 @@ class CircuitBreakerManager:
                 if endpoint.successes >= self.config.success_threshold:
                     endpoint.state = CircuitState.CLOSED
                     endpoint.failures = 0  # Reset failure count
-                    print(
+                    logger.info(
                         f"CircuitBreaker: {endpoint_name} transitioning HALF_OPEN → CLOSED"
                     )
 
@@ -231,7 +235,7 @@ class CircuitBreakerManager:
             elif endpoint.state == CircuitState.CLOSED:
                 if endpoint.should_open(self.config.failure_threshold):
                     endpoint.state = CircuitState.OPEN
-                    print(
+                    logger.warning(
                         f"CircuitBreaker: {endpoint_name} transitioning CLOSED → OPEN"
                     )
 
@@ -248,13 +252,13 @@ class CircuitBreakerManager:
             if endpoint.state == CircuitState.HALF_OPEN:
                 # Any failure in half_open opens the circuit again
                 endpoint.state = CircuitState.OPEN
-                print(f"CircuitBreaker: {endpoint_name} failure in HALF_OPEN → OPEN")
+                logger.warning(f"CircuitBreaker: {endpoint_name} failure in HALF_OPEN → OPEN")
 
             elif endpoint.state == CircuitState.CLOSED:
                 # Check if we should open the circuit
                 if endpoint.should_open(self.config.failure_threshold):
                     endpoint.state = CircuitState.OPEN
-                    print(f"CircuitBreaker: {endpoint_name} too many failures → OPEN")
+                    logger.warning(f"CircuitBreaker: {endpoint_name} too many failures → OPEN")
 
     def record_rate_limit(self, endpoint_name: str):
         """Record a rate limit hit for an endpoint"""
@@ -268,7 +272,7 @@ class CircuitBreakerManager:
             # Rate limit immediately opens the circuit
             if endpoint.state == CircuitState.CLOSED:
                 endpoint.state = CircuitState.OPEN
-                print(f"CircuitBreaker: {endpoint_name} rate limited → OPEN")
+                logger.warning(f"CircuitBreaker: {endpoint_name} rate limited → OPEN")
 
     def force_open(self, endpoint_name: str):
         """Manually open a circuit (for maintenance, etc.)"""
@@ -278,7 +282,7 @@ class CircuitBreakerManager:
             else:
                 endpoint = APIEndpoint(name=endpoint_name, state=CircuitState.OPEN)
                 self._endpoints[endpoint_name] = endpoint
-            print(f"CircuitBreaker: {endpoint_name} forcibly OPENED")
+            logger.info(f"CircuitBreaker: {endpoint_name} forcibly OPENED")
 
     def force_close(self, endpoint_name: str):
         """Manually close a circuit"""
@@ -286,7 +290,7 @@ class CircuitBreakerManager:
             if endpoint_name in self._endpoints:
                 self._endpoints[endpoint_name].state = CircuitState.CLOSED
                 self._endpoints[endpoint_name].failures = 0
-            print(f"CircuitBreaker: {endpoint_name} forcibly CLOSED")
+            logger.info(f"CircuitBreaker: {endpoint_name} forcibly CLOSED")
 
     def reset(self, endpoint_name: Optional[str] = None):
         """Reset circuit breaker for an endpoint or all endpoints"""
@@ -298,7 +302,7 @@ class CircuitBreakerManager:
                 # Reset all
                 for name in list(self._endpoints.keys()):
                     self._endpoints[name] = APIEndpoint(name=name)
-            print(
+            logger.info(
                 f"CircuitBreaker: Reset {'all' if endpoint_name is None else endpoint_name}"
             )
 

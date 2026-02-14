@@ -17,6 +17,7 @@ Methodology:
 from datetime import datetime
 from typing import Dict
 
+from logger_config import setup_logger
 from constants import (
     DCF_DEFAULT_DEBT_COST,
     DCF_DEFAULT_DISCOUNT_RATE,
@@ -55,6 +56,9 @@ from constants import (
     DCF_MSG_PERFORMING,
     DCF_MSG_USING_REAL_DATA,
 )
+
+# Initialize logger
+logger = setup_logger(__name__)
 
 
 class DCFCalculator:
@@ -241,7 +245,7 @@ class DCFCalculator:
         Returns:
             Dict with complete DCF analysis results
         """
-        print(DCF_MSG_PERFORMING.format(symbol))
+        logger.info(DCF_MSG_PERFORMING.format(symbol))
 
         # Use defaults if not provided
         growth_rate = (
@@ -290,7 +294,7 @@ class DCFCalculator:
             value_per_share, current_price
         )
 
-        print(
+        logger.info(
             DCF_MSG_CALCULATED.format(value_per_share, current_price, upside_potential)
         )
 

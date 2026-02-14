@@ -385,25 +385,25 @@ if __name__ == "__main__":
         0, "/home/ubuntupunk/Projects/stock-analyzer/infrastructure/backend"
     )
 
-    print("=== Stock Validator Tests ===\n")
+    logger.info("=== Stock Validator Tests ===\n")
 
     validator = StockValidator()
 
     # Test 1: Stale data detection
-    print("1. Stale Data Test:")
+    logger.info("1. Stale Data Test:")
     old_timestamp = "2025-01-01T00:00:00"
     is_stale = validator.is_data_stale(old_timestamp)
-    print(f"   Data from {old_timestamp} is stale: {is_stale}")
+    logger.info(f"   Data from {old_timestamp} is stale: {is_stale}")
 
     # Test 2: Market cap bucket determination
-    print("\n2. Market Cap Bucket Test:")
+    logger.info("\n2. Market Cap Bucket Test:")
     test_caps = [250e9, 50e9, 5e9, 500e6, 0]
     for cap in test_caps:
         bucket = validator._determine_market_cap_bucket(cap)
-        print(f"   ${cap/1e9:,.0f}B -> {bucket}")
+        logger.info(f"   ${cap/1e9:,.0f}B -> {bucket}")
 
     # Test 3: Anomaly detection
-    print("\n3. Anomaly Detection Test:")
+    logger.info("\n3. Anomaly Detection Test:")
     test_stocks = [
         {
             "symbol": "TEST",
@@ -436,10 +436,10 @@ if __name__ == "__main__":
     for stock in test_stocks:
         anomalies = validator.detect_anomalies(stock)
         if anomalies:
-            print(f"   {stock['symbol']}: {len(anomalies)} anomalies")
+            logger.info(f"   {stock['symbol']}: {len(anomalies)} anomalies")
             for anomaly in anomalies:
-                print(f"      - {anomaly['type']}: {anomaly['message']}")
+                logger.info(f"      - {anomaly['type']}: {anomaly['message']}")
         else:
-            print(f"   {stock['symbol']}: No anomalies")
+            logger.info(f"   {stock['symbol']}: No anomalies")
 
-    print("\n✅ Validator tests passed!")
+    logger.info("\n✅ Validator tests passed!")
