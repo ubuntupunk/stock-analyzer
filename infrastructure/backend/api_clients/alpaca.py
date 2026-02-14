@@ -5,7 +5,10 @@ Optional data source - requires API key and secret
 
 import os
 import requests
+import logging
 from typing import Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class AlpacaClient:
@@ -34,14 +37,14 @@ class AlpacaClient:
             if response.status_code == 200:
                 return response.json()
             elif response.status_code == 429:
-                print(f"Alpaca rate limited for {symbol}")
+                logger.warning(f"Alpaca rate limited for {symbol}")
                 return None
             return None
         except requests.Timeout:
-            print(f"Alpaca timeout for {symbol}")
+            logger.warning(f"Alpaca timeout for {symbol}")
             return None
         except Exception as err:
-            print(f"Alpaca error for {symbol}: {str(err)}")
+            logger.error(f"Alpaca error for {symbol}: {str(err)}")
             return None
 
     def parse_price(self, data: Dict) -> Dict:
@@ -66,6 +69,6 @@ class AlpacaClient:
                         price_info["change"] / prev_price
                     ) * 100
         except Exception as err:
-            print(f"Error parsing Alpaca price: {str(err)}")
+            logger.error(f"Error parsing Alpaca price: {str(err)}")
 
         return price_info

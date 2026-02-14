@@ -4,11 +4,14 @@ Russell 3000 Index Fetcher
 Fetches Russell 3000 constituents from iShares ETF holdings or alternative sources.
 """
 
+import logging
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 from typing import Optional
 from .base import IndexFetcher
+
+logger = logging.getLogger(__name__)
 
 
 class Russell3000Fetcher(IndexFetcher):
@@ -32,7 +35,7 @@ class Russell3000Fetcher(IndexFetcher):
             # Use fallback list
             stocks = self._get_fallback()
 
-        print(f"✅ Fetched {len(stocks)} stocks from {self.name}")
+        logger.info(f"Fetched {len(stocks)} stocks from {self.name}")
         return stocks
 
     def _fetch_ishares_holdings(self) -> list:
@@ -56,12 +59,12 @@ class Russell3000Fetcher(IndexFetcher):
             # 2. Use a headless browser to render the page
             # 3. Use alternative data source
 
-            print(
+            logger.info(
                 f"ℹ️  iShares holdings page requires JavaScript, trying alternative..."
             )
 
         except Exception as err:
-            print(f"⚠️  Error fetching iShares holdings: {err}")
+            logger.warning(f"  Error fetching iShares holdings: {err}")
 
         return []
 
@@ -78,7 +81,7 @@ class Russell3000Fetcher(IndexFetcher):
             return []
 
         try:
-            print(f"ℹ️  Downloading holdings from {fallback_url}...")
+            logger.info(f"  Downloading holdings from {fallback_url}...")
 
             # Download the Excel file
             response = requests.get(fallback_url, timeout=30)
@@ -109,11 +112,11 @@ class Russell3000Fetcher(IndexFetcher):
                     )
                     stocks.append(stock)
 
-                print(f"✅ Parsed {len(stocks)} stocks from Excel")
+                logger.info(f" Parsed {len(stocks)} stocks from Excel")
                 return stocks
 
         except Exception as err:
-            print(f"⚠️  Error fetching from Excel: {err}")
+            logger.warning(f"  Error fetching from Excel: {err}")
 
         return []
 
@@ -124,7 +127,7 @@ class Russell3000Fetcher(IndexFetcher):
         Returns:
             List of stock dicts
         """
-        print("ℹ️  Using fallback stock list...")
+        logger.info("  Using fallback stock list...")
 
         # Mix of large, mid, and small cap stocks
         fallback_stocks = [
@@ -159,5 +162,5 @@ class Russell3000Fetcher(IndexFetcher):
             stock = self.format_stock(symbol, name, sector)
             stocks.append(stock)
 
-        print(f"✅ Fallback list contains {len(stocks)} stocks")
+        logger.info(f" Fallback list contains {len(stocks)} stocks")
         return stocks

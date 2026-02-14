@@ -5,6 +5,7 @@ Primary data source - Uses yfinance library (handles authentication internally)
 
 import time
 import asyncio
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import datetime
@@ -12,6 +13,8 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 import yfinance as yf
+
+logger = logging.getLogger(__name__)
 
 from constants import (
     DATE_FORMAT_YYYY_MM,
@@ -125,7 +128,7 @@ class YahooFinanceClient:
             try:
                 return future.result(timeout=timeout_value)
             except FuturesTimeoutError:
-                print(f"YFinance timeout after {timeout_value}s")
+                logger.warning(f"YFinance timeout after {timeout_value}s")
                 return None
 
     def fetch_data(self, symbol: str, modules: str = None) -> Optional[Dict]:
@@ -142,7 +145,7 @@ class YahooFinanceClient:
                     return ticker_info
                 return None
             except Exception as fetch_error:
-                print(f"YFinance error for {symbol}: {str(fetch_error)}")
+                logger.error(f"YFinance error for {symbol}: {str(fetch_error)}")
                 return None
 
         start_time = time.time()
@@ -150,7 +153,7 @@ class YahooFinanceClient:
         latency_ms = (time.time() - start_time) * 1000
 
         if fetch_result is None:
-            print(
+            logger.warning(
                 f"YFinance fetch for {symbol} timed out or failed ({latency_ms:.0f}ms)"
             )
 
@@ -178,21 +181,21 @@ class YahooFinanceClient:
                     YF_KEY_CURRENT_PRICE in ticker_info
                     or YF_KEY_REGULAR_MARKET_PRICE in ticker_info
                 )
-                print(
+                logger.debug(
                     f"YFinance async: {symbol} - info keys: {len(ticker_info)}, "
                     f"has price key: {has_price} ({latency_ms:.0f}ms)"
                 )
                 return (symbol, ticker_info)
 
-            print(
+            logger.debug(
                 f"YFinance async: {symbol} - info is empty or None ({latency_ms:.0f}ms)"
             )
             return (symbol, None)
         except asyncio.TimeoutError:
-            print(f"YFinance async: {symbol} - timeout after {self.timeout}s")
+            logger.warning(f"YFinance async: {symbol} - timeout after {self.timeout}s")
             return (symbol, None)
         except Exception as async_error:
-            print(f"YFinance async error for {symbol}: {str(async_error)}")
+            logger.error(f"YFinance async error for {symbol}: {str(async_error)}")
             return (symbol, None)
 
     def parse_price(self, data: Dict) -> Dict:
@@ -225,7 +228,7 @@ class YahooFinanceClient:
                 data.get(YF_KEY_REGULAR_MARKET_CHANGE_PERCENT, DEFAULT_VALUE_ZERO),
             )
         except Exception as parse_error:
-            print(f"Error parsing Yahoo Finance price: {str(parse_error)}")
+            logger.error(f"Error parsing Yahoo Finance price: {str(parse_error)}")
 
         return price_info
 
@@ -257,7 +260,7 @@ class YahooFinanceClient:
 
             return self._convert_history_to_dict(hist_dataframe)
         except Exception as history_error:
-            print(f"YFinance history error for {symbol}: {str(history_error)}")
+            logger.error(f"YFinance history error for {symbol}: {str(history_error)}")
             return None
 
     def fetch_history_range(
@@ -281,7 +284,7 @@ class YahooFinanceClient:
 
             return self._convert_history_to_dict(hist_dataframe)
         except Exception as history_error:
-            print(f"YFinance history range error for {symbol}: {str(history_error)}")
+            logger.error(f"YFinance history range error for {symbol}: {str(history_error)}")
             return None
 
     def parse_history(self, historical_data: Dict) -> Dict:
@@ -364,7 +367,7 @@ class YahooFinanceClient:
             )
 
         except Exception as parse_error:
-            print(f"Error parsing Yahoo Finance metrics: {str(parse_error)}")
+            logger.error(f"Error parsing Yahoo Finance metrics: {str(parse_error)}")
 
         return metrics
 
@@ -464,7 +467,7 @@ class YahooFinanceClient:
             estimates["revenue_estimates"] = revenue_list
 
         except Exception as parse_error:
-            print(f"Error parsing Yahoo Finance estimates: {str(parse_error)}")
+            logger.error(f"Error parsing Yahoo Finance estimates: {str(parse_error)}")
 
         return estimates
 
@@ -515,7 +518,7 @@ class YahooFinanceClient:
                 )
             return income_statement
         except Exception as parse_error:
-            print(f"Error parsing income statement: {str(parse_error)}")
+            logger.error(f"Error parsing income statement: {str(parse_error)}")
             return []
 
     def _parse_balance_sheet(self, ticker) -> List[Dict]:
@@ -549,7 +552,7 @@ class YahooFinanceClient:
                 )
             return balance_data
         except Exception as parse_error:
-            print(f"Error parsing balance sheet: {str(parse_error)}")
+            logger.error(f"Error parsing balance sheet: {str(parse_error)}")
             return []
 
     def _parse_cash_flow(self, ticker) -> List[Dict]:
@@ -583,7 +586,7 @@ class YahooFinanceClient:
                 )
             return cash_flow
         except Exception as parse_error:
-            print(f"Error parsing cash flow: {str(parse_error)}")
+            logger.error(f"Error parsing cash flow: {str(parse_error)}")
             return []
 
     def _create_fallback_financials(self, data: Dict) -> Dict:
@@ -649,7 +652,7 @@ class YahooFinanceClient:
                 parsed = self._create_fallback_financials(data)
 
         except Exception as parse_error:
-            print(f"Error parsing Yahoo Finance financials: {str(parse_error)}")
+            logger.error(f"Error parsing Yahoo Finance financials: {str(parse_error)}")
             parsed = {"income_statement": [], "balance_sheet": [], "cash_flow": []}
 
         return parsed
@@ -668,7 +671,7 @@ class YahooFinanceClient:
             ticker = yf.Ticker(symbol)
             return self.parse_financials_full(ticker)
         except Exception as fetch_error:
-            print(f"YFinance fetch_financials error for {symbol}: {str(fetch_error)}")
+            logger.error(f"YFinance fetch_financials error for {symbol}: {str(fetch_error)}")
             return {"income_statement": [], "balance_sheet": [], "cash_flow": []}
 
     def _extract_news_source(self, provider_data) -> str:
@@ -764,13 +767,13 @@ class YahooFinanceClient:
             news_data = ticker.news
 
             news_count = len(news_data) if news_data else 0
-            print(f"YFinance fetch_news for {symbol}: received {news_count} items")
+            logger.debug(f"YFinance fetch_news for {symbol}: received {news_count} items")
 
             if news_data and len(news_data) > 0:
                 # Log first item structure for debugging
-                print(f"YFinance news sample for {symbol}:")
-                print(f"  First item keys: {list(news_data[0].keys())}")
-                print(f"  First item: {news_data[0]}")
+                logger.debug(f"YFinance news sample for {symbol}:")
+                logger.debug(f"  First item keys: {list(news_data[0].keys())}")
+                logger.debug(f"  First item: {news_data[0]}")
 
                 articles = [
                     self._parse_news_item(news_item)
@@ -779,7 +782,7 @@ class YahooFinanceClient:
                 return articles
             return []
         except Exception as fetch_error:
-            print(f"YFinance fetch_news error for {symbol}: {str(fetch_error)}")
+            logger.error(f"YFinance fetch_news error for {symbol}: {str(fetch_error)}")
             import traceback
 
             traceback.print_exc()

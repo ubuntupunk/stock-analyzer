@@ -5,9 +5,12 @@ Fallback data source - FREE but RATE LIMITED (5 calls/minute on free tier)
 
 import os
 import time
+import logging
 from typing import Dict, List, Optional
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 from constants import (
     AV_BALANCE_CASH,
@@ -125,7 +128,7 @@ class AlphaVantageClient:
 
         if len(self._rate_limit_calls) >= AV_RATE_LIMIT_CALLS:
             self._rate_limit_hits += 1
-            print(AV_MSG_RATE_LIMIT_HIT.format(self._rate_limit_hits))
+            logger.warning(AV_MSG_RATE_LIMIT_HIT.format(self._rate_limit_hits))
             return False
 
         return True
@@ -169,7 +172,7 @@ class AlphaVantageClient:
             # Check rate limit before making call
             if not self._check_rate_limit():
                 wait_time = self._calculate_wait_time()
-                print(AV_MSG_RATE_LIMITED_WAIT.format(f"{wait_time:.0f}"))
+                logger.warning(AV_MSG_RATE_LIMITED_WAIT.format(f"{wait_time:.0f}"))
                 time.sleep(wait_time)
                 continue
 
@@ -180,7 +183,7 @@ class AlphaVantageClient:
                 # Check for rate limiting
                 retry_after = self._should_retry_after(response)
                 if retry_after is not None:
-                    print(AV_MSG_RATE_LIMITED_WAIT.format(retry_after))
+                    logger.warning(AV_MSG_RATE_LIMITED_WAIT.format(retry_after))
                     time.sleep(retry_after)
                     continue
 
@@ -189,7 +192,7 @@ class AlphaVantageClient:
 
                     # Check for API limit message
                     if self._is_rate_limit_response(response_data):
-                        print(AV_MSG_API_LIMIT)
+                        logger.warning(AV_MSG_API_LIMIT)
                         self._rate_limit_hits += 1
                         if attempt < max_retries - 1:
                             time.sleep(AV_RATE_LIMIT_PERIOD)
@@ -197,12 +200,12 @@ class AlphaVantageClient:
                         return None
                     return response_data
 
-                print(AV_MSG_HTTP_ERROR.format(response.status_code))
+                logger.error(AV_MSG_HTTP_ERROR.format(response.status_code))
 
             except requests.Timeout:
-                print(AV_MSG_TIMEOUT.format(attempt + 1, max_retries))
+                logger.warning(AV_MSG_TIMEOUT.format(attempt + 1, max_retries))
             except Exception as fetch_error:
-                print(AV_MSG_ERROR.format(str(fetch_error)))
+                logger.error(AV_MSG_ERROR.format(str(fetch_error)))
 
         return None
 
@@ -312,7 +315,7 @@ class AlphaVantageClient:
             )
 
         except Exception as parse_error:
-            print(f"Error parsing Alpha Vantage metrics: {str(parse_error)}")
+            logger.error(f"Error parsing Alpha Vantage metrics: {str(parse_error)}")
 
         return metrics
 
@@ -333,7 +336,7 @@ class AlphaVantageClient:
             price_info["change_percent"] = float(change_percent_str)
             price_info["timestamp"] = data.get(AV_QUOTE_TRADING_DAY, "")
         except Exception as parse_error:
-            print(f"Error parsing Alpha Vantage price: {str(parse_error)}")
+            logger.error(f"Error parsing Alpha Vantage price: {str(parse_error)}")
 
         return price_info
 
@@ -367,7 +370,7 @@ class AlphaVantageClient:
             estimates["earnings_estimates"] = earnings_list
 
         except Exception as parse_error:
-            print(f"Error parsing Alpha Vantage estimates: {str(parse_error)}")
+            logger.error(f"Error parsing Alpha Vantage estimates: {str(parse_error)}")
 
         return estimates
 
@@ -401,7 +404,7 @@ class AlphaVantageClient:
                 for report in annual_reports[:AV_MAX_ANNUAL_REPORTS]
             ]
         except Exception as parse_error:
-            print(f"Error parsing income statement: {str(parse_error)}")
+            logger.error(f"Error parsing income statement: {str(parse_error)}")
         return statements
 
     def _parse_balance_report(self, report: Dict) -> Dict:
@@ -437,7 +440,7 @@ class AlphaVantageClient:
                 for report in annual_reports[:AV_MAX_ANNUAL_REPORTS]
             ]
         except Exception as parse_error:
-            print(f"Error parsing balance sheet: {str(parse_error)}")
+            logger.error(f"Error parsing balance sheet: {str(parse_error)}")
         return statements
 
     def _parse_cashflow_report(self, report: Dict) -> Dict:
@@ -465,5 +468,5 @@ class AlphaVantageClient:
                 for report in annual_reports[:AV_MAX_ANNUAL_REPORTS]
             ]
         except Exception as parse_error:
-            print(f"Error parsing cash flow: {str(parse_error)}")
+            logger.error(f"Error parsing cash flow: {str(parse_error)}")
         return statements

@@ -5,7 +5,10 @@ Optional data source - requires API key
 
 import os
 import requests
+import logging
 from typing import Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class PolygonClient:
@@ -31,14 +34,14 @@ class PolygonClient:
                 data = response.json()
                 return data.get("results", {})
             elif response.status_code == 429:
-                print(f"Polygon rate limited for {symbol}")
+                logger.warning(f"Polygon rate limited for {symbol}")
                 return None
             return None
         except requests.Timeout:
-            print(f"Polygon timeout for {symbol}")
+            logger.warning(f"Polygon timeout for {symbol}")
             return None
         except Exception as err:
-            print(f"Polygon error for {symbol}: {str(err)}")
+            logger.error(f"Polygon error for {symbol}: {str(err)}")
             return None
 
     def fetch_snapshot(self, symbol: str) -> Optional[Dict]:
@@ -58,14 +61,14 @@ class PolygonClient:
                 data = response.json()
                 return data.get("ticker", {})
             elif response.status_code == 429:
-                print(f"Polygon rate limited snapshot for {symbol}")
+                logger.warning(f"Polygon rate limited snapshot for {symbol}")
                 return None
             return None
         except requests.Timeout:
-            print(f"Polygon snapshot timeout for {symbol}")
+            logger.warning(f"Polygon snapshot timeout for {symbol}")
             return None
         except Exception as err:
-            print(f"Polygon snapshot error for {symbol}: {str(err)}")
+            logger.error(f"Polygon snapshot error for {symbol}: {str(err)}")
             return None
 
     def parse_metrics(self, data: Dict) -> Dict:
@@ -83,7 +86,7 @@ class PolygonClient:
             )
 
         except Exception as err:
-            print(f"Error parsing Polygon metrics: {str(err)}")
+            logger.error(f"Error parsing Polygon metrics: {str(err)}")
 
         return metrics
 
@@ -109,6 +112,6 @@ class PolygonClient:
                     price_info["change"] / price_info["previous_close"]
                 ) * 100
         except Exception as err:
-            print(f"Error parsing Polygon price: {str(err)}")
+            logger.error(f"Error parsing Polygon price: {str(err)}")
 
         return price_info

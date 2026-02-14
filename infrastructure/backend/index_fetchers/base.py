@@ -6,8 +6,11 @@ Implement specific logic for each data source (Wikipedia, ETF holdings, official
 """
 
 from abc import ABC, abstractmethod
+import logging
 import yfinance as yf
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class IndexFetcher(ABC):
@@ -129,7 +132,7 @@ class IndexFetcher(ABC):
                 if rate and rate > 0:
                     return float(rate)
         except Exception as err:
-            print(f"Error fetching FX rate for {fx_symbol}: {err}")
+            logger.warning(f"Error fetching FX rate for {fx_symbol}: {err}")
 
         return 1.0
 

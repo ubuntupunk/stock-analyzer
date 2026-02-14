@@ -4,8 +4,11 @@ S&P 500 Index Fetcher
 Fetches S&P 500 constituents from Wikipedia.
 """
 
+import logging
 import pandas as pd
 from .base import IndexFetcher
+
+logger = logging.getLogger(__name__)
 
 
 class SP500Fetcher(IndexFetcher):
@@ -46,11 +49,11 @@ class SP500Fetcher(IndexFetcher):
 
                 stocks.append(stock)
 
-            print(f"✅ Fetched {len(stocks)} stocks from {self.name}")
+            logger.info(f"Fetched {len(stocks)} stocks from {self.name}")
             return stocks
 
         except Exception as err:
-            print(f"❌ Error fetching {self.name} from Wikipedia: {err}")
+            logger.error(f"Error fetching {self.name} from Wikipedia: {err}")
             return self._get_fallback()
 
     def _get_fallback(self) -> list:
@@ -60,7 +63,7 @@ class SP500Fetcher(IndexFetcher):
         Returns:
             List of popular stock dicts
         """
-        print("ℹ️  Using fallback stock list...")
+        logger.info("Using fallback stock list...")
         fallback_stocks = [
             (
                 "AAPL",
@@ -164,5 +167,5 @@ class SP500Fetcher(IndexFetcher):
             stock = self.format_stock(symbol, name, sector, sub_sector)
             stocks.append(stock)
 
-        print(f"✅ Fallback list contains {len(stocks)} stocks")
+        logger.info(f"Fallback list contains {len(stocks)} stocks")
         return stocks

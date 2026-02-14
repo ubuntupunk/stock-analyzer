@@ -5,9 +5,12 @@ Fetches JSE All Share / Top 40 constituents with .JO suffix handling
 and ZAR to USD FX rate conversion.
 """
 
+import logging
 import pandas as pd
 import yfinance as yf
 from .base import IndexFetcher
+
+logger = logging.getLogger(__name__)
 
 
 class JSEFetcher(IndexFetcher):
@@ -27,7 +30,7 @@ class JSEFetcher(IndexFetcher):
             # Use fallback list
             stocks = self._get_fallback()
 
-        print(f"✅ Fetched {len(stocks)} stocks from {self.name}")
+        logger.info(f"Fetched {len(stocks)} stocks from {self.name}")
         return stocks
 
     def _fetch_from_wikipedia(self) -> list:
@@ -74,11 +77,11 @@ class JSEFetcher(IndexFetcher):
 
                 stocks.append(stock)
 
-            print(f"✅ Fetched {len(stocks)} stocks from Wikipedia")
+            logger.info(f"Fetched {len(stocks)} stocks from Wikipedia")
             return stocks
 
         except Exception as err:
-            print(f"⚠️  Error fetching JSE stocks from Wikipedia: {err}")
+            logger.warning(f"Error fetching JSE stocks from Wikipedia: {err}")
             return []
 
     def _get_fallback(self) -> list:
@@ -88,7 +91,7 @@ class JSEFetcher(IndexFetcher):
         Returns:
             List of JSE stock dicts with .JO suffix
         """
-        print("ℹ️  Using fallback JSE stock list...")
+        logger.info("Using fallback JSE stock list...")
 
         # Popular JSE stocks from various sectors
         fallback_stocks = [
@@ -142,7 +145,7 @@ class JSEFetcher(IndexFetcher):
             stock = self.format_stock(symbol, name, sector)
             stocks.append(stock)
 
-        print(f"✅ Fallback list contains {len(stocks)} stocks")
+        logger.info(f"Fallback list contains {len(stocks)} stocks")
         return stocks
 
     def get_fx_rate(self) -> float:
@@ -162,14 +165,14 @@ class JSEFetcher(IndexFetcher):
             rate = info.get("regularMarketPrice") or info.get("previousClose")
 
             if rate and rate > 0:
-                print(f"ℹ️  FX Rate: {rate:.2f} ZAR = 1 USD")
+                logger.info(f"FX Rate: {rate:.2f} ZAR = 1 USD")
                 return float(rate)
 
         except Exception as err:
-            print(f"⚠️  Error fetching ZAR/USD rate: {err}")
+            logger.warning(f"Error fetching ZAR/USD rate: {err}")
 
         # Fallback rate (approximately current)
-        print("ℹ️  Using fallback FX rate: 18.50 ZAR = 1 USD")
+        logger.info("Using fallback FX rate: 18.50 ZAR = 1 USD")
         return 18.50
 
     def apply_fx_conversion(self, amount: float, fx_rate: float = None) -> float:
