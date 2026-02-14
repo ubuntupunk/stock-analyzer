@@ -24,15 +24,26 @@ from functools import wraps
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from logger_config import setup_logger
 from constants import (
     CONTEXT_KEY_USER_ID,
     ERROR_AUTH_REQUIRED,
     ERROR_INVALID_TOKEN,
+    ERROR_MSG_ASSUMPTIONS_REQUIRED,
+    ERROR_MSG_EMAIL_PASSWORD_REQUIRED,
+    ERROR_MSG_HCAPTCHA_MISSING,
+    ERROR_MSG_INVALID_CREDENTIALS,
+    ERROR_MSG_QUERY_PARAM_REQUIRED,
+    ERROR_MSG_SYMBOL_REQUIRED,
+    ERROR_MSG_SYMBOLS_REQUIRED,
     ERROR_SYMBOL_PARAM_REQUIRED,
     ERROR_SYMBOLS_PARAM_REQUIRED,
     HEADER_AUTHORIZATION,
     HEADER_BEARER_PREFIX,
     HTTP_UNAUTHORIZED,
+    JSON_KEY_ERROR,
+    JSON_KEY_MESSAGE,
+    JSON_KEY_STATUS,
     LOCAL_DEV_TOKEN,
     LOCAL_DEV_USER_ID,
     LOCAL_SERVER_HOST,
@@ -67,6 +78,9 @@ from constants import (
 from screener_api import StockScreener
 from stock_api import StockDataAPI
 from watchlist_api import WatchlistManager
+
+# Initialize logger
+logger = setup_logger(__name__)
 
 
 # Custom JSON provider to handle NaN and Infinity values
@@ -103,7 +117,7 @@ def before_request():
         if token == LOCAL_DEV_TOKEN:
             setattr(g, CONTEXT_KEY_USER_ID, LOCAL_DEV_USER_ID)
         else:
-            print(ERROR_INVALID_TOKEN.format(token))
+            logger.warning(ERROR_INVALID_TOKEN.format(token))
 
 
 def auth_required(handler_func):
@@ -257,7 +271,7 @@ LOCAL_POPULAR_STOCKS = [
 frontend_path = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend"
 )
-print(f"Serving frontend from: {frontend_path}")
+logger.info(f"Serving frontend from: {frontend_path}")
 
 
 @app.route("/")
@@ -364,7 +378,7 @@ def search_stocks():
     limit = request.args.get("limit", 20)
 
     if not query:
-        return jsonify({"error": 'Query parameter "q" is required'}), 400
+        return jsonify({JSON_KEY_ERROR: ERROR_MSG_QUERY_PARAM_REQUIRED}), 400
 
     try:
         limit = int(limit)
@@ -380,7 +394,7 @@ def search_stocks():
         if result:
             return jsonify(result)
     except Exception as err:
-        print(f"DynamoDB not available, using local fallback: {err}")
+        logger.warning(f"DynamoDB not available, using local fallback: {err}")
 
     # Fallback to local search in popular stocks list
     query_upper = query.upper()
@@ -420,7 +434,7 @@ def get_popular_stocks():
         if result:
             return jsonify(result)
     except Exception as err:
-        print(f"DynamoDB not available, using local fallback: {err}")
+        logger.warning(f"DynamoDB not available, using local fallback: {err}")
 
     # Fallback to local popular stocks list
     sorted_stocks = sorted(
@@ -434,7 +448,7 @@ def get_popular_stocks():
 def get_batch_prices():
     symbols = request.args.get("symbols", "").split(",")
     if not symbols or not symbols[0]:
-        return jsonify({"error": "Symbols required"}), 400
+        return jsonify({JSON_KEY_ERROR: ERROR_MSG_SYMBOLS_REQUIRED}), 400
     result = stock_api.get_batch_prices(
         [symbol.upper() for symbol in symbols if symbol]
     )
@@ -445,7 +459,7 @@ def get_batch_prices():
 def get_batch_metrics():
     symbols = request.args.get("symbols", "").split(",")
     if not symbols or not symbols[0]:
-        return jsonify({"error": "Symbols required"}), 400
+        return jsonify({JSON_KEY_ERROR: ERROR_MSG_SYMBOLS_REQUIRED}), 400
     result = stock_api.get_batch_metrics(
         [symbol.upper() for symbol in symbols if symbol]
     )
@@ -456,7 +470,7 @@ def get_batch_metrics():
 def get_batch_estimates():
     symbols = request.args.get("symbols", "").split(",")
     if not symbols or not symbols[0]:
-        return jsonify({"error": "Symbols required"}), 400
+        return jsonify({JSON_KEY_ERROR: ERROR_MSG_SYMBOLS_REQUIRED}), 400
     result = stock_api.get_batch_estimates(
         [symbol.upper() for symbol in symbols if symbol]
     )
@@ -467,7 +481,7 @@ def get_batch_estimates():
 def get_batch_financials():
     symbols = request.args.get("symbols", "").split(",")
     if not symbols or not symbols[0]:
-        return jsonify({"error": "Symbols required"}), 400
+        return jsonify({JSON_KEY_ERROR: ERROR_MSG_SYMBOLS_REQUIRED}), 400
     result = stock_api.get_batch_financials(
         [symbol.upper() for symbol in symbols if symbol]
     )
@@ -477,11 +491,11 @@ def get_batch_financials():
 @app.route("/api/dcf", methods=["POST"])
 def run_dcf_analysis():
     """Run Discounted Cash Flow (DCF) analysis"""
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Assumptions required for DCF analysis"}), 400
+    dcf_assumptions = request.get_json()
+    if not dcf_assumptions:
+        return jsonify({JSON_KEY_ERROR: ERROR_MSG_ASSUMPTIONS_REQUIRED}), 400
 
-    result = stock_api.run_dcf(data)
+    result = stock_api.run_dcf(dcf_assumptions)
     return jsonify(result)
 
 
@@ -505,22 +519,22 @@ def manage_watchlist():
         return jsonify(manager.get_watchlist(user_id))
 
     elif request.method == "POST":
-        data = request.get_json()
-        if not data or "symbol" not in data:
-            return jsonify({"error": "Symbol required"}), 400
+        watchlist_item = request.get_json()
+        if not watchlist_item or "symbol" not in watchlist_item:
+            return jsonify({JSON_KEY_ERROR: ERROR_MSG_SYMBOL_REQUIRED}), 400
 
-        result = manager.add_to_watchlist(user_id, data)
+        result = manager.add_to_watchlist(user_id, watchlist_item)
         if result.get("success"):
             return jsonify(result.get("item"))  # Return the added item
         return jsonify({"error": result.get("error")}), 500
 
     elif request.method == "PUT":
-        data = request.get_json()
-        if not data or "symbol" not in data:
-            return jsonify({"error": "Symbol required"}), 400
+        update_request = request.get_json()
+        if not update_request or "symbol" not in update_request:
+            return jsonify({JSON_KEY_ERROR: ERROR_MSG_SYMBOL_REQUIRED}), 400
 
-        symbol = data["symbol"].upper()
-        updates = data.get("updates", {})
+        symbol = update_request["symbol"].upper()
+        updates = update_request.get("updates", {})
         result = manager.update_watchlist_item(user_id, symbol, updates)
         if result.get("success"):
             return jsonify(result.get("item"))  # Return the updated item
@@ -529,7 +543,7 @@ def manage_watchlist():
     elif request.method == "DELETE":
         symbol = request.args.get("symbol")
         if not symbol:
-            return jsonify({"error": "Symbol required"}), 400
+            return jsonify({JSON_KEY_ERROR: ERROR_MSG_SYMBOL_REQUIRED}), 400
 
         result = manager.remove_from_watchlist(user_id, symbol.upper())
         if result.get("success"):
@@ -554,13 +568,13 @@ def screen_stocks():
 
         screener = StockScreener()
 
-        data = request.get_json()
-        criteria = data.get("criteria", {})
+        screening_request = request.get_json()
+        criteria = screening_request.get("criteria", {})
 
         result = screener.screen_stocks(criteria)
         return jsonify(result)
     except Exception as err:
-        print(f"Error screening stocks: {str(err)}")
+        logger.error(f"Error screening stocks: {str(err)}")
         return jsonify({"error": str(err), "results": []}), 500
 
 
@@ -581,8 +595,8 @@ def custom_factors():
 
         if request.method == "POST":
             # Save custom factor
-            data = request.get_json()
-            result = screener.save_factor(user_id, data)
+            factor_data = request.get_json()
+            result = screener.save_factor(user_id, factor_data)
             return jsonify(result)
 
         else:  # GET
@@ -591,7 +605,7 @@ def custom_factors():
             return jsonify(result)
 
     except Exception as err:
-        print(f"Error with custom factors: {str(err)}")
+        logger.error(f"Error with custom factors: {str(err)}")
         return jsonify({"error": str(err)}), 500
 
 
@@ -614,7 +628,7 @@ def delete_custom_factor(factor_id):
         return jsonify(result)
 
     except Exception as err:
-        print(f"Error deleting factor: {str(err)}")
+        logger.error(f"Error deleting factor: {str(err)}")
         return jsonify({"error": str(err)}), 500
 
 
@@ -624,19 +638,19 @@ def delete_custom_factor(factor_id):
 @app.route("/api/auth/signin", methods=["POST"])
 def mock_signin():
     """Mocks user sign-in with hCaptcha verification for local development."""
-    data = request.get_json()
-    email = data.get("email")
-    password = data.get("password")
-    hcaptcha_token = data.get("hcaptchaToken")
+    signin_request = request.get_json()
+    email = signin_request.get("email")
+    password = signin_request.get("password")
+    hcaptcha_token = signin_request.get("hcaptchaToken")
 
     if not email or not password:
-        return jsonify({"error": "Email and password are required"}), 400
+        return jsonify({JSON_KEY_ERROR: ERROR_MSG_EMAIL_PASSWORD_REQUIRED}), 400
 
     # Mock hCaptcha verification
     if not hcaptcha_token:
-        print("Mock Sign-in: hCaptcha token missing.")
+        logger.warning("Mock Sign-in: hCaptcha token missing.")
         return (
-            jsonify({"error": "hCaptcha token missing. Security check required."}),
+            jsonify({JSON_KEY_ERROR: ERROR_MSG_HCAPTCHA_MISSING}),
             400,
         )
 
@@ -648,7 +662,7 @@ def mock_signin():
     # if not response.json().get('success'):
     #     return jsonify({'error': 'hCaptcha verification failed'}), 400
 
-    print(
+    logger.info(
         f"Mock Sign-in: Successfully verified hCaptcha for {email}. Token: {hcaptcha_token[:10]}..."
     )
 
@@ -671,19 +685,19 @@ def mock_signin():
             200,
         )
     else:
-        return jsonify({"error": "Invalid email or password"}), 401
+        return jsonify({JSON_KEY_ERROR: ERROR_MSG_INVALID_CREDENTIALS}), 401
 
 
 if __name__ == "__main__":
-    print("Starting local Flask server at http://localhost:5000")
-    print("API endpoints available:")
-    print("  - GET /api/stock/price?symbol=AAPL")
-    print("  - GET /api/stock/metrics?symbol=AAPL")
-    print("  - GET /api/stock/estimates?symbol=AAPL")
-    print("  - GET /api/stock/financials?symbol=AAPL")
-    print("  - GET /api/stock/news?symbol=AAPL")
-    print("  - GET /api/stocks/search?q=apple")
-    print("  - GET /api/stocks/popular?limit=10")
-    print("  - POST /api/dcf")
-    print()
+    logger.info("Starting local Flask server at http://localhost:5000")
+    logger.info("API endpoints available:")
+    logger.info("  - GET /api/stock/price?symbol=AAPL")
+    logger.info("  - GET /api/stock/metrics?symbol=AAPL")
+    logger.info("  - GET /api/stock/estimates?symbol=AAPL")
+    logger.info("  - GET /api/stock/financials?symbol=AAPL")
+    logger.info("  - GET /api/stock/news?symbol=AAPL")
+    logger.info("  - GET /api/stocks/search?q=apple")
+    logger.info("  - GET /api/stocks/popular?limit=10")
+    logger.info("  - POST /api/dcf")
+    logger.info("")
     app.run(host="0.0.0.0", port=5000, debug=True)
