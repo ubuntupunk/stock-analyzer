@@ -5,6 +5,11 @@ from typing import Dict, List, Tuple, Optional
 import requests
 import os
 
+from logger_config import setup_logger
+
+# Initialize logger
+logger = setup_logger(__name__)
+
 
 def decimal_default(obj):
     if isinstance(obj, Decimal):
@@ -110,36 +115,59 @@ class CriteriaValidator:
                 constraint_min, constraint_max, is_pct = cls.FACTOR_CONSTRAINTS[factor]
 
                 for val, label in [(min_val, "minimum"), (max_val, "maximum")]:
-                    if val is not None:
-                        # Check minimum constraint
-                        if constraint_min is not None and val < constraint_min:
-                            pct_label = "%" if is_pct else ""
-                            errors.append(
-                                f"{factor}: {label} value ({val}{pct_label}) is below allowed minimum ({constraint_min}{pct_label})"
-                            )
-
-                        # Check maximum constraint
-                        if constraint_max is not None and val > constraint_max:
-                            pct_label = "%" if is_pct else ""
-                            errors.append(
-                                f"{factor}: {label} value ({val}{pct_label}) exceeds allowed maximum ({constraint_max}{pct_label})"
-                            )
-
-                        # Warn about extreme values
-                        if is_pct and factor in [
-                            "revenue_growth",
-                            "cash_flow_growth",
-                            "net_income_growth",
-                        ]:
-                            if val > 1.0:  # > 100%
-                                warnings.append(
-                                    f"{factor}: {label} value ({val*100:.0f}%) is very high - results may be limited"
-                                )
+                    if val is None:
+                        continue
+                    
+                    cls._validate_constraint_bounds(
+                        factor, val, label, constraint_min, constraint_max, is_pct, errors
+                    )
+                    cls._check_extreme_growth_values(
+                        factor, val, label, is_pct, warnings
+                    )
 
         # Check for impossible factor combinations
         cls._check_contradictory_factors(criteria, errors, warnings)
 
         return len(errors) == 0, errors, warnings
+
+    @classmethod
+    def _validate_constraint_bounds(
+        cls, factor: str, val: float, label: str, 
+        constraint_min: float, constraint_max: float, 
+        is_pct: bool, errors: List[str]
+    ) -> None:
+        """Validate value against constraint bounds"""
+        pct_label = "%" if is_pct else ""
+        
+        # Check minimum constraint
+        if constraint_min is not None and val < constraint_min:
+            errors.append(
+                f"{factor}: {label} value ({val}{pct_label}) is below allowed minimum ({constraint_min}{pct_label})"
+            )
+
+        # Check maximum constraint
+        if constraint_max is not None and val > constraint_max:
+            errors.append(
+                f"{factor}: {label} value ({val}{pct_label}) exceeds allowed maximum ({constraint_max}{pct_label})"
+            )
+
+    @classmethod
+    def _check_extreme_growth_values(
+        cls, factor: str, val: float, label: str, 
+        is_pct: bool, warnings: List[str]
+    ) -> None:
+        """Check for extreme growth values that might limit results"""
+        if not is_pct:
+            return
+            
+        growth_factors = ["revenue_growth", "cash_flow_growth", "net_income_growth"]
+        if factor not in growth_factors:
+            return
+            
+        if val > 1.0:  # > 100%
+            warnings.append(
+                f"{factor}: {label} value ({val*100:.0f}%) is very high - results may be limited"
+            )
 
     @classmethod
     def _check_contradictory_factors(
@@ -276,7 +304,7 @@ class StockScreener:
                 raise Exception("No stocks in database")
 
         except Exception as err:
-            print(f"Error scanning stock universe (using fallback data): {str(err)}")
+            logger.warning(f"Error scanning stock universe (using fallback data): {str(err)}")
             # Fallback mock data for demonstration/resilience
             stocks = [
                 {

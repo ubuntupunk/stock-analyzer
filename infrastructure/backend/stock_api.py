@@ -29,6 +29,7 @@ from constants import (
     DEFAULT_PRIORITIES,
     DELIMITER_COMMA,
     ERROR_METHOD_NOT_ALLOWED,
+    ERROR_MSG_NO_DATA,
     ERROR_NOT_FOUND,
     ERROR_SYMBOL_REQUIRED,
     ERROR_SYMBOLS_REQUIRED,
@@ -39,6 +40,8 @@ from constants import (
     HTTP_NOT_FOUND,
     HTTP_OK,
     HTTP_SERVER_ERROR,
+    JSON_KEY_ERROR,
+    JSON_KEY_SYMBOL,
     KEY_BODY,
     KEY_ERROR,
     KEY_STATUS_CODE,
@@ -336,14 +339,14 @@ class StockDataAPI:
         """Fetch price from Yahoo Finance"""
         try:
             start = time.time()
-            data = await asyncio.get_event_loop().run_in_executor(
+            yahoo_data = await asyncio.get_event_loop().run_in_executor(
                 self.executor, self.yahoo.fetch_data, symbol
             )
             latency_ms = (time.time() - start) * 1000
 
-            if data:
+            if yahoo_data:
                 await self.metrics.record_request("yahoo_finance", True, latency_ms)
-                return self.yahoo.parse_price(data)
+                return self.yahoo.parse_price(yahoo_data)
             else:
                 await self.metrics.record_request("yahoo_finance", False, latency_ms)
                 return None
@@ -356,14 +359,14 @@ class StockDataAPI:
         """Fetch price from Alpaca"""
         try:
             start = time.time()
-            data = await asyncio.get_event_loop().run_in_executor(
+            alpaca_snapshot = await asyncio.get_event_loop().run_in_executor(
                 self.executor, self.alpaca.fetch_snapshot, symbol
             )
             latency_ms = (time.time() - start) * 1000
 
-            if data:
+            if alpaca_snapshot:
                 await self.metrics.record_request("alpaca", True, latency_ms)
-                return self.alpaca.parse_price(data)
+                return self.alpaca.parse_price(alpaca_snapshot)
             else:
                 await self.metrics.record_request("alpaca", False, latency_ms)
                 return None
@@ -376,14 +379,14 @@ class StockDataAPI:
         """Fetch price from Polygon"""
         try:
             start = time.time()
-            data = await asyncio.get_event_loop().run_in_executor(
+            polygon_snapshot = await asyncio.get_event_loop().run_in_executor(
                 self.executor, self.polygon.fetch_snapshot, symbol
             )
             latency_ms = (time.time() - start) * 1000
 
-            if data:
+            if polygon_snapshot:
                 await self.metrics.record_request("polygon", True, latency_ms)
-                return self.polygon.parse_price(data)
+                return self.polygon.parse_price(polygon_snapshot)
             else:
                 await self.metrics.record_request("polygon", False, latency_ms)
                 return None
@@ -396,14 +399,14 @@ class StockDataAPI:
         """Fetch price from Alpha Vantage"""
         try:
             start = time.time()
-            data = await asyncio.get_event_loop().run_in_executor(
+            alpha_quote = await asyncio.get_event_loop().run_in_executor(
                 self.executor, self.alpha_vantage.fetch_quote, symbol
             )
             latency_ms = (time.time() - start) * 1000
 
-            if data and "05. price" in data:
+            if alpha_quote and "05. price" in alpha_quote:
                 await self.metrics.record_request("alpha_vantage", True, latency_ms)
-                return self.alpha_vantage.parse_price(data)
+                return self.alpha_vantage.parse_price(alpha_quote)
             else:
                 await self.metrics.record_request("alpha_vantage", False, latency_ms)
                 return None
@@ -870,7 +873,7 @@ class StockDataAPI:
                 if price:
                     results[symbol] = price
                 else:
-                    results[symbol] = {"symbol": symbol, "error": "No data"}
+                    results[symbol] = {"symbol": symbol, "error": ERROR_MSG_NO_DATA}
             except Exception as err:
                 results[symbol] = {"symbol": symbol, "error": str(err)}
         return results
@@ -884,7 +887,7 @@ class StockDataAPI:
                 if metrics:
                     results[symbol] = metrics
                 else:
-                    results[symbol] = {"symbol": symbol, "error": "No data"}
+                    results[symbol] = {"symbol": symbol, "error": ERROR_MSG_NO_DATA}
             except Exception as err:
                 results[symbol] = {"symbol": symbol, "error": str(err)}
         return results
@@ -898,7 +901,7 @@ class StockDataAPI:
                 if estimates:
                     results[symbol] = estimates
                 else:
-                    results[symbol] = {"symbol": symbol, "error": "No data"}
+                    results[symbol] = {"symbol": symbol, "error": ERROR_MSG_NO_DATA}
             except Exception as err:
                 results[symbol] = {"symbol": symbol, "error": str(err)}
         return results
@@ -912,7 +915,7 @@ class StockDataAPI:
                 if financials:
                     results[symbol] = financials
                 else:
-                    results[symbol] = {"symbol": symbol, "error": "No data"}
+                    results[symbol] = {"symbol": symbol, "error": ERROR_MSG_NO_DATA}
             except Exception as err:
                 results[symbol] = {"symbol": symbol, "error": str(err)}
         return results

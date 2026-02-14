@@ -704,31 +704,31 @@ if __name__ == "__main__":
         command = sys.argv[1]
 
         if command == "--seed-all":
-            print("Running seed for all indices...")
+            logging.info("Running seed for all indices...")
             seeder = StockUniverseSeeder()
             result = seeder.seed_all_indices(enrich=False)  # Start without enrichment
-            print(json.dumps(result, indent=2))
+            logging.info(json.dumps(result, indent=2))
 
         elif command.startswith("--seed="):
             index_id = command.split("=")[1]
-            print(f"Running seed for {index_id}...")
+            logging.info(f"Running seed for {index_id}...")
             seeder = StockUniverseSeeder()
             result = seeder.seed_index(index_id, enrich=False)
-            print(json.dumps(result, indent=2))
+            logging.info(json.dumps(result, indent=2))
 
         elif command == "--quick-update":
-            print("Running quick market data update...")
+            logging.info("Running quick market data update...")
             seeder = StockUniverseSeeder()
             result = seeder.update_market_data()
-            print(json.dumps(result, indent=2))
+            logging.info(json.dumps(result, indent=2))
 
         else:
-            print(f"Unknown command: {command}")
-            print(
+            logging.warning(f"Unknown command: {command}")
+            logging.info(
                 "Usage: python stock_universe_seed.py --seed-all | --seed=INDEX_ID | --quick-update"
             )
     else:
-        print("Running default SP500 seed...")
+        logging.info("Running default SP500 seed...")
         seeder = StockUniverseSeeder()
         result = seeder.seed_index("SP500", enrich=False)
-        print(json.dumps(result, indent=2))
+        logging.info(json.dumps(result, indent=2))
